@@ -61,7 +61,38 @@ An engine should allow for:
 # Non-functional Goals
 
 - Zero heap allocation as much as we can
-- Maximum golangci-linter configuration
+- Maximum golangci-lint configuration
 - Minimum dependencies
 - Minimum exported interface
+- Rule are data not code
 
+
+# Usecases
+
+- Web service that reacts to HTTP calls and do several actions (CRUD)
+- Kafka consumer/producer, multiple consumer groups/topics. 
+- ETL processor from SQS/DB/Redis/....
+- Game engine
+
+
+# How to use 
+
+``` go
+import "github.com/emad-elsaid/firehose"
+
+func main() {
+	ctx := context.Background()
+	err := firehose.AddRule(ctx, printTime)
+	if err != nil {
+		panic(err)
+	}
+
+	firehose.Start(ctx)
+}
+
+var printTime = firehose.Rule[events.Time, events.Time]{
+	When: sources.Time{Period: 1 * time.Second},
+	Then: actions.Yield[events.Time]{},
+	To:   destinations.Stdout[events.Time]{},
+}
+```
