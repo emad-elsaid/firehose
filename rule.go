@@ -1,11 +1,14 @@
+// Package firehose provides an event processing pipeline framework.
 package firehose
 
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 type (
+	// Rule defines an event processing pipeline from source to destination.
 	Rule[In, Out any] struct {
 		When Source[In]
 		If   string
@@ -13,15 +16,18 @@ type (
 		To   Destination[Out]
 	}
 
+	// Source produces events of type T.
 	Source[T any] interface {
 		ID() string
 		Start(ctx context.Context, cb func(context.Context, T) error) (done context.Context, err error)
 	}
 
+	// Action transforms input events to output events.
 	Action[In, Out any] interface {
 		Process(ctx context.Context, event In) (Out, error)
 	}
 
+	// Destination consumes events of type T.
 	Destination[T any] interface {
 		Send(event T) error
 	}
@@ -32,21 +38,24 @@ type (
 		activators []activator
 	}
 
-	metaKeyCtx struct{}
+	metaKey string
 )
 
-var metaKey = metaKeyCtx{}
+const metaKeyValue metaKey = "firehose-meta"
 
 func getOrSetMeta(ctx context.Context) (context.Context, *meta) {
-	m, ok := ctx.Value(metaKey).(*meta)
+	existing, ok := ctx.Value(metaKeyValue).(*meta)
 	if !ok {
-		m = &meta{}
-		ctx = context.WithValue(ctx, metaKey, m)
+		existing = &meta{
+			activators: []activator{},
+		}
+		ctx = context.WithValue(ctx, metaKeyValue, existing)
 	}
 
-	return ctx, m
+	return ctx, existing
 }
 
+// AddRule registers a new processing rule in the context.
 func AddRule[In, Out any](ctx context.Context, rule Rule[In, Out]) (context.Context, error) {
 	fn := ruleToActivator(rule)
 	ctx, m := getOrSetMeta(ctx)
@@ -66,17 +75,23 @@ func ruleToCallback[In, Out any](rule Rule[In, Out]) func(context.Context, In) e
 	return func(ctx context.Context, event In) error {
 		out, err := rule.Then.Process(ctx, event)
 		if err != nil {
-			return err
+			return fmt.Errorf("Action failed: %w", err)
 		}
 
-		return rule.To.Send(out)
+		err = rule.To.Send(out)
+		if err != nil {
+			return fmt.Errorf("Destination failed: %w", err)
+		}
+
+		return nil
 	}
 }
 
+// Start activates all registered rules and waits for completion.
 func Start(ctx context.Context) error {
 	ctx, m := getOrSetMeta(ctx)
 	activators := m.activators
-	contexts := make([]context.Context, len(activators))
+	contexts := make([]context.Context, 0, len(activators))
 
 	for i := range activators {
 		sourceCtx, err := activators[i](ctx)
@@ -84,7 +99,7 @@ func Start(ctx context.Context) error {
 			return err
 		}
 
-		contexts[i] = sourceCtx
+		contexts = append(contexts, sourceCtx)
 	}
 
 	<-ctx.Done()
@@ -97,7 +112,9 @@ func waitForSourcesToFinish(contexts []context.Context) error {
 
 	for _, ctx := range contexts {
 		<-ctx.Done()
-		if err := ctx.Err(); err != nil {
+
+		err := ctx.Err()
+		if err != nil {
 			errs = append(errs, err)
 		}
 	}
