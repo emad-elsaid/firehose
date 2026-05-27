@@ -112,3 +112,6 @@ linters:
     - wrapcheck
     - wsl_v5
     - zerologlint
+  settings:
+    cyclop:
+      max-complexity: 5

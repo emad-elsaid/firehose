@@ -20,27 +20,35 @@ func (t Time) ID() string {
 }
 
 // Start begins emitting time events at the configured period.
-func (t Time) Start(ctx context.Context, callback func(context.Context, events.Time) error) (context.Context, error) {
+func (t Time) Start(ctx context.Context, callback timeCallback) (context.Context, error) {
 	done, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(t.Period)
 
-	go func() {
-		for {
-			select {
-			case now := <-ticker.C:
-				err := callback(ctx, events.Time{Time: now})
-				if err != nil {
-					slog.Error("error in time event callback", "time", t, "error", err)
-				}
-			case <-ctx.Done():
-			case <-done.Done():
-				ticker.Stop()
-				cancel()
-
-				return
-			}
-		}
-	}()
+	go t.tick(ctx, done, cancel, ticker, callback)
 
 	return done, nil
 }
+
+func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker *time.Ticker, callback timeCallback) {
+	for {
+		select {
+		case now := <-ticker.C:
+			t.emit(ctx, now, callback)
+		case <-ctx.Done():
+		case <-done.Done():
+			ticker.Stop()
+			cancel()
+
+			return
+		}
+	}
+}
+
+func (t Time) emit(ctx context.Context, now time.Time, callback timeCallback) {
+	err := callback(ctx, events.Time{Time: now})
+	if err != nil {
+		slog.Error("error in time event callback", "time", t, "error", err)
+	}
+}
+
+type timeCallback = func(context.Context, events.Time) error
