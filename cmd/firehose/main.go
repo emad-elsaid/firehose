@@ -15,7 +15,7 @@ import (
 const timeoutDuration = 5 * time.Second
 
 func main() {
-	printTime := firehose.Rule[events.Time, events.Time]{
+	printTime := &firehose.Rule[events.Time, events.Time]{
 		When: sources.Time{Period: 1 * time.Second},
 		If:   "",
 		Then: actions.Yield[events.Time]{},
@@ -27,12 +27,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
 	defer cancel()
 
-	ctx, err := firehose.AddRule(ctx, printTime)
+	r, err := firehose.AddRule(nil, printTime)
 	if err != nil {
 		panic(err)
 	}
 
-	err = firehose.Start(ctx)
+	err = firehose.Start(ctx, r)
 	if err != nil {
 		panic(err)
 	}

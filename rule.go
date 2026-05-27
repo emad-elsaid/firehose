@@ -14,6 +14,8 @@ type (
 		If   string
 		Then Action[In, Out]
 		To   Destination[Out]
+
+		next, prev Registery
 	}
 
 	// Source produces events of type T.
@@ -32,46 +34,52 @@ type (
 		Send(event T) error
 	}
 
-	activator func(context.Context) (context.Context, error)
-
-	meta struct {
-		activators []activator
+	Registery interface {
+		Activator() activator
+		GetNext() Registery
+		SetNext(n Registery)
+		GetPrev() Registery
+		SetPrev(p Registery)
 	}
 
-	metaKey string
+	activator func(context.Context) (context.Context, error)
 )
 
-const metaKeyValue metaKey = "firehose-meta"
+func (r *Rule[In, Out]) GetNext() Registery {
+	return r.next
+}
 
-func getOrSetMeta(ctx context.Context) (context.Context, *meta) {
-	existing, ok := ctx.Value(metaKeyValue).(*meta)
-	if !ok {
-		existing = &meta{
-			activators: []activator{},
-		}
-		ctx = context.WithValue(ctx, metaKeyValue, existing)
+func (r *Rule[In, Out]) SetNext(n Registery) {
+	r.next = n
+}
+
+func (r *Rule[In, Out]) GetPrev() Registery {
+	return r.prev
+}
+
+func (r *Rule[In, Out]) SetPrev(p Registery) {
+	r.prev = p
+}
+
+func (r *Rule[In, Out]) Activator() activator {
+	return func(ctx context.Context) (context.Context, error) {
+		return r.When.Start(ctx, ruleToCallback(r))
 	}
-
-	return ctx, existing
 }
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out any](ctx context.Context, rule Rule[In, Out]) (context.Context, error) {
-	fn := ruleToActivator(rule)
-	ctx, m := getOrSetMeta(ctx)
-
-	m.activators = append(m.activators, fn)
-
-	return ctx, nil
-}
-
-func ruleToActivator[In, Out any](rule Rule[In, Out]) activator {
-	return func(ctx context.Context) (context.Context, error) {
-		return rule.When.Start(ctx, ruleToCallback(rule))
+func AddRule[In, Out any](r Registery, rule *Rule[In, Out]) (Registery, error) {
+	if r == nil {
+		return rule, nil
 	}
+
+	rule.SetNext(r)
+	r.SetPrev(rule)
+
+	return rule, nil
 }
 
-func ruleToCallback[In, Out any](rule Rule[In, Out]) func(context.Context, In) error {
+func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) error {
 	return func(ctx context.Context, event In) error {
 		out, err := rule.Then.Process(ctx, event)
 		if err != nil {
@@ -88,13 +96,12 @@ func ruleToCallback[In, Out any](rule Rule[In, Out]) func(context.Context, In) e
 }
 
 // Start activates all registered rules and waits for completion.
-func Start(ctx context.Context) error {
-	ctx, m := getOrSetMeta(ctx)
-	activators := m.activators
-	contexts := make([]context.Context, 0, len(activators))
+func Start(ctx context.Context, r Registery) error {
+	contexts := make([]context.Context, 0)
 
-	for i := range activators {
-		sourceCtx, err := activators[i](ctx)
+	for i := r; i != nil; i = i.GetNext() {
+		activator := i.Activator()
+		sourceCtx, err := activator(ctx)
 		if err != nil {
 			return err
 		}
