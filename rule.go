@@ -24,10 +24,35 @@ type (
 	}
 )
 
-func AddRule[In, Out any](ctx context.Context, rule Rule[In, Out]) error {
-	_, err := rule.When.Start(ctx, ruleToCallback(rule))
+type activator func(context.Context) (context.Context, error)
 
-	return err
+type meta struct {
+	activators []activator
+}
+
+type metaKeyCtx struct{}
+
+var metaKey = metaKeyCtx{}
+
+func getOrSetMeta(ctx context.Context) (context.Context, *meta) {
+	m, ok := ctx.Value(metaKey).(*meta)
+	if !ok {
+		m = &meta{}
+		ctx = context.WithValue(ctx, metaKey, m)
+	}
+
+	return ctx, m
+}
+
+func AddRule[In, Out any](ctx context.Context, rule Rule[In, Out]) (context.Context, error) {
+	fn := func(ctx context.Context) (context.Context, error) {
+		return rule.When.Start(ctx, ruleToCallback(rule))
+	}
+
+	ctx, m := getOrSetMeta(ctx)
+	m.activators = append(m.activators, fn)
+
+	return ctx, nil
 }
 
 func ruleToCallback[In, Out any](rule Rule[In, Out]) func(context.Context, In) error {
@@ -42,6 +67,16 @@ func ruleToCallback[In, Out any](rule Rule[In, Out]) func(context.Context, In) e
 }
 
 func Start(ctx context.Context) error {
+	ctx, m := getOrSetMeta(ctx)
+	activators := m.activators
+
+	for i := range activators {
+		_, err := activators[i](ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	<-ctx.Done()
 
 	return nil

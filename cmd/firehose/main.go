@@ -13,7 +13,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	err := firehose.AddRule(ctx, printTime)
+	ctx, err := firehose.AddRule(ctx, printTime)
 	if err != nil {
 		panic(err)
 	}
