@@ -13,6 +13,9 @@ import (
 
 func main() {
 	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	ctx, err := firehose.AddRule(ctx, printTime)
 	if err != nil {
 		panic(err)
