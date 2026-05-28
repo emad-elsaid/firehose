@@ -38,7 +38,6 @@ type (
 	Registry interface {
 		getNext() Registry
 		setNext(n Registry)
-		getPrev() Registry
 		setPrev(p Registry)
 		getCtx() context.Context
 		start(ctx context.Context) error
@@ -51,10 +50,6 @@ func (r *Rule[In, Out]) getNext() Registry {
 
 func (r *Rule[In, Out]) setNext(n Registry) {
 	r.next = n
-}
-
-func (r *Rule[In, Out]) getPrev() Registry {
-	return r.prev
 }
 
 func (r *Rule[In, Out]) setPrev(p Registry) {
