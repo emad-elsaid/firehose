@@ -3,6 +3,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/emad-elsaid/firehose"
@@ -29,7 +33,8 @@ func main() {
 		To:   destinations.Stdout[events.Time]{},
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
 	defer cancel()
@@ -37,9 +42,12 @@ func main() {
 	r := must(firehose.AddRule(nil, printTime))
 	r = must(firehose.AddRule(r, printTime2))
 
-	err := firehose.Start(ctx, r)
-	if err != nil {
-		panic(err)
+	for i := range firehose.Start(ctx, r) {
+		if errors.Is(i, context.Canceled) {
+			continue
+		}
+
+		slog.Error(i.Error())
 	}
 }
 

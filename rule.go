@@ -3,7 +3,6 @@ package firehose
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -97,7 +96,7 @@ func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) 
 }
 
 // Start activates all registered rules and waits for completion.
-func Start(ctx context.Context, r Registry) error {
+func Start(ctx context.Context, r Registry) <-chan error {
 	contexts := make([]context.Context, 0)
 
 	for i := r; i != nil; i = i.getNext() {
@@ -105,7 +104,7 @@ func Start(ctx context.Context, r Registry) error {
 
 		sourceCtx, err := activator(ctx)
 		if err != nil {
-			return err
+			return chan1(fmt.Errorf("failed to start source: %w", err))
 		}
 
 		contexts = append(contexts, sourceCtx)
@@ -116,17 +115,29 @@ func Start(ctx context.Context, r Registry) error {
 	return waitForSourcesToFinish(contexts)
 }
 
-func waitForSourcesToFinish(contexts []context.Context) error {
-	errs := make([]error, 0, len(contexts))
+func waitForSourcesToFinish(contexts []context.Context) <-chan error {
+	errs := make(chan error)
 
-	for _, ctx := range contexts {
-		<-ctx.Done()
+	go func() {
+		for _, ctx := range contexts {
+			<-ctx.Done()
 
-		err := ctx.Err()
-		if err != nil {
-			errs = append(errs, err)
+			err := ctx.Err()
+			if err != nil {
+				errs <- err
+			}
 		}
-	}
 
-	return errors.Join(errs...)
+		close(errs)
+	}()
+
+	return errs
+}
+
+func chan1[T any](v T) <-chan T {
+	ch := make(chan T, 1)
+	ch <- v
+	close(ch)
+
+	return ch
 }
