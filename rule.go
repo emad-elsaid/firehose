@@ -14,8 +14,10 @@ type (
 		Then Action[In, Out]
 		To   Destination[Out]
 
-		next, prev Registry
-		ctx        context.Context
+		next, prev                     Registry
+		nextSameSource, prevSameSource Registry
+
+		ctx context.Context
 	}
 
 	// Source produces events of type T.
@@ -39,8 +41,19 @@ type (
 		getNext() Registry
 		setNext(n Registry)
 		setPrev(p Registry)
+		getPrev() Registry
+
 		getCtx() context.Context
 		start(ctx context.Context) error
+
+		getSourceRegistry() sourceRegistry
+	}
+
+	sourceRegistry interface {
+		getNextSameSource() Registry
+		setNextSameSource(n Registry)
+		getPrevSameSource() Registry
+		setPrevSameSource(p Registry)
 	}
 )
 
@@ -52,8 +65,32 @@ func (r *Rule[In, Out]) setNext(n Registry) {
 	r.next = n
 }
 
+func (r *Rule[In, Out]) getPrev() Registry {
+	return r.prev
+}
+
 func (r *Rule[In, Out]) setPrev(p Registry) {
 	r.prev = p
+}
+
+func (r *Rule[In, Out]) getNextSameSource() Registry {
+	return r.nextSameSource
+}
+
+func (r *Rule[In, Out]) setNextSameSource(n Registry) {
+	r.nextSameSource = n
+}
+
+func (r *Rule[In, Out]) getPrevSameSource() Registry {
+	return r.prevSameSource
+}
+
+func (r *Rule[In, Out]) setPrevSameSource(p Registry) {
+	r.prevSameSource = p
+}
+
+func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry {
+	return r
 }
 
 func (r *Rule[In, Out]) start(ctx context.Context) error {
@@ -73,14 +110,24 @@ func (r *Rule[In, Out]) getCtx() context.Context {
 
 // AddRule registers a new processing rule in the context.
 func AddRule[In, Out any](registry Registry, rule *Rule[In, Out]) (Registry, error) {
-	if registry == nil {
+	head := registry
+
+	if head == nil {
+		rule.setNext(rule)
+		rule.setPrev(rule)
+
 		return rule, nil
 	}
 
-	rule.setNext(registry)
-	registry.setPrev(rule)
+	tail := head.getPrev()
 
-	return rule, nil
+	rule.setNext(head)
+	head.setPrev(rule)
+
+	rule.setPrev(tail)
+	tail.setNext(rule)
+
+	return head, nil
 }
 
 func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) error {
@@ -101,10 +148,15 @@ func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) 
 
 // Start activates all registered rules and waits for completion.
 func Start(ctx context.Context, registry Registry) <-chan error {
-	for i := registry; i != nil; i = i.getNext() {
-		err := i.start(ctx)
+	for current := registry; current != nil; {
+		err := current.start(ctx)
 		if err != nil {
 			return chan1(err)
+		}
+
+		current = current.getNext()
+		if current == registry {
+			break
 		}
 	}
 
@@ -121,19 +173,22 @@ func waitForSourcesToFinish(registry Registry) <-chan error {
 	return errs
 }
 
-func collectErrors(r Registry, errs chan<- error) {
-	for i := r; i != nil; i = i.getNext() {
-		ctx := i.getCtx()
+func collectErrors(registry Registry, errs chan<- error) {
+	for current := registry; current != nil; {
+		ctx := current.getCtx()
 
-		if ctx == nil {
-			continue
+		if ctx != nil {
+			<-ctx.Done()
+
+			err := ctx.Err()
+			if err != nil {
+				errs <- err
+			}
 		}
 
-		<-ctx.Done()
-
-		err := ctx.Err()
-		if err != nil {
-			errs <- err
+		current = current.getNext()
+		if current == registry {
+			break
 		}
 	}
 
