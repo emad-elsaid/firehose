@@ -15,7 +15,7 @@ type (
 		Then Action[In, Out]
 		To   Destination[Out]
 
-		next, prev Registery
+		next, prev Registry
 	}
 
 	// Source produces events of type T.
@@ -34,47 +34,47 @@ type (
 		Send(event T) error
 	}
 
-	Registery interface {
-		Activator() activator
-		GetNext() Registery
-		SetNext(n Registery)
-		GetPrev() Registery
-		SetPrev(p Registery)
+	Registry interface {
+		activator() activator
+		getNext() Registry
+		setNext(n Registry)
+		getPrev() Registry
+		setPrev(p Registry)
 	}
 
 	activator func(context.Context) (context.Context, error)
 )
 
-func (r *Rule[In, Out]) GetNext() Registery {
+func (r *Rule[In, Out]) getNext() Registry {
 	return r.next
 }
 
-func (r *Rule[In, Out]) SetNext(n Registery) {
+func (r *Rule[In, Out]) setNext(n Registry) {
 	r.next = n
 }
 
-func (r *Rule[In, Out]) GetPrev() Registery {
+func (r *Rule[In, Out]) getPrev() Registry {
 	return r.prev
 }
 
-func (r *Rule[In, Out]) SetPrev(p Registery) {
+func (r *Rule[In, Out]) setPrev(p Registry) {
 	r.prev = p
 }
 
-func (r *Rule[In, Out]) Activator() activator {
+func (r *Rule[In, Out]) activator() activator {
 	return func(ctx context.Context) (context.Context, error) {
 		return r.When.Start(ctx, ruleToCallback(r))
 	}
 }
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out any](r Registery, rule *Rule[In, Out]) (Registery, error) {
+func AddRule[In, Out any](r Registry, rule *Rule[In, Out]) (Registry, error) {
 	if r == nil {
 		return rule, nil
 	}
 
-	rule.SetNext(r)
-	r.SetPrev(rule)
+	rule.setNext(r)
+	r.setPrev(rule)
 
 	return rule, nil
 }
@@ -96,11 +96,11 @@ func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) 
 }
 
 // Start activates all registered rules and waits for completion.
-func Start(ctx context.Context, r Registery) error {
+func Start(ctx context.Context, r Registry) error {
 	contexts := make([]context.Context, 0)
 
-	for i := r; i != nil; i = i.GetNext() {
-		activator := i.Activator()
+	for i := r; i != nil; i = i.getNext() {
+		activator := i.activator()
 		sourceCtx, err := activator(ctx)
 		if err != nil {
 			return err
