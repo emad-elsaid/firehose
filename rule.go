@@ -15,6 +15,7 @@ type (
 		To   Destination[Out]
 
 		next, prev Registry
+		ctx        context.Context
 	}
 
 	// Source produces events of type T.
@@ -40,9 +41,10 @@ type (
 		setNext(n Registry)
 		getPrev() Registry
 		setPrev(p Registry)
+		getCtx() context.Context
 	}
 
-	activator func(context.Context) (context.Context, error)
+	activator func(context.Context) error
 )
 
 func (r *Rule[In, Out]) getNext() Registry {
@@ -62,9 +64,20 @@ func (r *Rule[In, Out]) setPrev(p Registry) {
 }
 
 func (r *Rule[In, Out]) activator() activator {
-	return func(ctx context.Context) (context.Context, error) {
-		return r.When.Start(ctx, ruleToCallback(r))
+	return func(ctx context.Context) error {
+		sourceCtx, err := r.When.Start(ctx, ruleToCallback(r))
+		if err != nil {
+			return err
+		}
+
+		r.ctx = sourceCtx
+
+		return nil
 	}
+}
+
+func (r *Rule[In, Out]) getCtx() context.Context {
+	return r.ctx
 }
 
 // AddRule registers a new processing rule in the context.
@@ -96,47 +109,52 @@ func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) 
 }
 
 // Start activates all registered rules and waits for completion.
-func Start(ctx context.Context, r Registry) <-chan error {
-	contexts := make([]context.Context, 0)
-
-	for i := r; i != nil; i = i.getNext() {
+func Start(ctx context.Context, registry Registry) <-chan error {
+	for i := registry; i != nil; i = i.getNext() {
 		activator := i.activator()
 
-		sourceCtx, err := activator(ctx)
+		err := activator(ctx)
 		if err != nil {
-			return chan1(fmt.Errorf("failed to start source: %w", err))
+			return chan1(err)
 		}
-
-		contexts = append(contexts, sourceCtx)
 	}
 
 	<-ctx.Done()
 
-	return waitForSourcesToFinish(contexts)
+	return waitForSourcesToFinish(registry)
 }
 
-func waitForSourcesToFinish(contexts []context.Context) <-chan error {
+func waitForSourcesToFinish(registry Registry) <-chan error {
 	errs := make(chan error)
 
-	go func() {
-		for _, ctx := range contexts {
-			<-ctx.Done()
-
-			err := ctx.Err()
-			if err != nil {
-				errs <- err
-			}
-		}
-
-		close(errs)
-	}()
+	go collectErrors(registry, errs)
 
 	return errs
+}
+
+func collectErrors(r Registry, errs chan<- error) {
+	for i := r; i != nil; i = i.getNext() {
+		ctx := i.getCtx()
+
+		if ctx == nil {
+			continue
+		}
+
+		<-ctx.Done()
+
+		err := ctx.Err()
+		if err != nil {
+			errs <- err
+		}
+	}
+
+	close(errs)
 }
 
 func chan1[T any](v T) <-chan T {
 	ch := make(chan T, 1)
 	ch <- v
+
 	close(ch)
 
 	return ch
