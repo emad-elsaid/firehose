@@ -36,15 +36,13 @@ type (
 
 	// Registry handler that accumulates rules and manages their execution.
 	Registry interface {
-		activator() activator
 		getNext() Registry
 		setNext(n Registry)
 		getPrev() Registry
 		setPrev(p Registry)
 		getCtx() context.Context
+		start(ctx context.Context) error
 	}
-
-	activator func(context.Context) error
 )
 
 func (r *Rule[In, Out]) getNext() Registry {
@@ -63,17 +61,15 @@ func (r *Rule[In, Out]) setPrev(p Registry) {
 	r.prev = p
 }
 
-func (r *Rule[In, Out]) activator() activator {
-	return func(ctx context.Context) error {
-		sourceCtx, err := r.When.Start(ctx, ruleToCallback(r))
-		if err != nil {
-			return err
-		}
-
-		r.ctx = sourceCtx
-
-		return nil
+func (r *Rule[In, Out]) start(ctx context.Context) error {
+	sourceCtx, err := r.When.Start(ctx, ruleToCallback(r))
+	if err != nil {
+		return err
 	}
+
+	r.ctx = sourceCtx
+
+	return nil
 }
 
 func (r *Rule[In, Out]) getCtx() context.Context {
@@ -111,9 +107,7 @@ func ruleToCallback[In, Out any](rule *Rule[In, Out]) func(context.Context, In) 
 // Start activates all registered rules and waits for completion.
 func Start(ctx context.Context, registry Registry) <-chan error {
 	for i := registry; i != nil; i = i.getNext() {
-		activator := i.activator()
-
-		err := activator(ctx)
+		err := i.start(ctx)
 		if err != nil {
 			return chan1(err)
 		}
