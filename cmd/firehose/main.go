@@ -22,18 +22,31 @@ func main() {
 		To:   destinations.Stdout[events.Time]{},
 	}
 
+	printTime2 := &firehose.Rule[events.Time, events.Time]{
+		When: sources.Time{Period: 1 * time.Second},
+		If:   "",
+		Then: actions.Yield[events.Time]{},
+		To:   destinations.Stdout[events.Time]{},
+	}
+
 	ctx := context.Background()
 
 	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
 	defer cancel()
 
-	r, err := firehose.AddRule(nil, printTime)
+	r := must(firehose.AddRule(nil, printTime))
+	r = must(firehose.AddRule(r, printTime2))
+
+	err := firehose.Start(ctx, r)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func must[T any](v T, err error) T {
 	if err != nil {
 		panic(err)
 	}
 
-	err = firehose.Start(ctx, r)
-	if err != nil {
-		panic(err)
-	}
+	return v
 }

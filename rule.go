@@ -34,6 +34,7 @@ type (
 		Send(event T) error
 	}
 
+	// Registry handler that accumulates rules and manages their execution.
 	Registry interface {
 		activator() activator
 		getNext() Registry
@@ -68,13 +69,13 @@ func (r *Rule[In, Out]) activator() activator {
 }
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out any](r Registry, rule *Rule[In, Out]) (Registry, error) {
-	if r == nil {
+func AddRule[In, Out any](registry Registry, rule *Rule[In, Out]) (Registry, error) {
+	if registry == nil {
 		return rule, nil
 	}
 
-	rule.setNext(r)
-	r.setPrev(rule)
+	rule.setNext(registry)
+	registry.setPrev(rule)
 
 	return rule, nil
 }
@@ -101,6 +102,7 @@ func Start(ctx context.Context, r Registry) error {
 
 	for i := r; i != nil; i = i.getNext() {
 		activator := i.activator()
+
 		sourceCtx, err := activator(ctx)
 		if err != nil {
 			return err
