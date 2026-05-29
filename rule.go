@@ -73,15 +73,17 @@ func (r *Rule[In, Out]) getRegistry() Registry              { return r }
 func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[In, Out]) getSource() any                     { return r.When }
 
-func (r *Rule[In, Out]) start(ctx context.Context) (err error) {
+func (r *Rule[In, Out]) start(ctx context.Context) error {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
 		return nil
 	}
 
+	var err error
+
 	r.ctx, err = r.When.Start(ctx, r.callback)
 
-	return
+	return err
 }
 
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
