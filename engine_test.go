@@ -169,7 +169,7 @@ func TestAddRule(t *testing.T) {
 		// With 2 rules in a circular list: rule1 <-> rule2
 		require.Equal(t, rule2, result.getNext(), "rule1.next should point to rule2")
 		require.Equal(t, rule2, result.getPrev(), "rule1.prev should point to rule2")
-		
+
 		// Verify rule2 points back to rule1
 		require.Equal(t, rule1, rule2.getNext(), "rule2.next should point to rule1")
 		require.Equal(t, rule1, rule2.getPrev(), "rule2.prev should point to rule1")
@@ -428,7 +428,6 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		require.Nil(t, sourceBRules[0].nextSameSource)
 	})
 }
-
 
 func TestStart(t *testing.T) {
 	t.Run("start single rule successfully", func(t *testing.T) {

@@ -19,8 +19,10 @@ func AddRule[In, Out any](registry Registry, rule *Rule[In, Out]) (Registry, err
 	rule.setNext(head)
 	head.setPrev(rule)
 
-	rule.setPrev(tail)
-	tail.setNext(rule)
+	if tail != nil {
+		rule.setPrev(tail)
+		tail.setNext(rule)
+	}
 
 	if sameSourceTail != nil {
 		rule.setPrevSameSource(sameSourceTail)

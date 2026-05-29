@@ -10,7 +10,8 @@ type (
 	// Rule defines an event processing pipeline from source to destination.
 	Rule[In, Out any] struct {
 		When Source[In]
-		If   string
+		If   Condition[In]
+
 		Then Action[In, Out]
 		To   Destination[Out]
 
@@ -24,6 +25,11 @@ type (
 	Source[T any] interface {
 		ID() string
 		Start(ctx context.Context, cb func(context.Context, T) error) (done context.Context, err error)
+	}
+
+	// Condition evaluates input events to determine if they should be processed.
+	Condition[In any] interface {
+		Eval(ctx context.Context, event In) (bool, error)
 	}
 
 	// Action transforms input events to output events.
@@ -87,14 +93,9 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 }
 
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
-	out, err := r.Then.Process(ctx, event)
+	err := r.run(ctx, event)
 	if err != nil {
-		return fmt.Errorf("Action failed: %w", err)
-	}
-
-	err = r.To.Send(out)
-	if err != nil {
-		return fmt.Errorf("Destination failed: %w", err)
+		return fmt.Errorf("error processing event in rule with source %T: %w", r.When, err)
 	}
 
 	if r.nextSameSource == nil {
@@ -103,6 +104,33 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 
 	if callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In]); ok {
 		return callbackable.callback(ctx, event)
+	}
+
+	return nil
+}
+
+func (r *Rule[In, Out]) run(ctx context.Context, event In) error {
+	var shouldProcess bool
+	var err error
+
+	if r.If == nil {
+		shouldProcess = true
+	} else if shouldProcess, err = r.If.Eval(ctx, event); err != nil {
+		return fmt.Errorf("Condition evaluation failed: %w", err)
+	}
+
+	if !shouldProcess {
+		return nil
+	}
+
+	out, err := r.Then.Process(ctx, event)
+	if err != nil {
+		return fmt.Errorf("Action failed: %w", err)
+	}
+
+	err = r.To.Send(out)
+	if err != nil {
+		return fmt.Errorf("Destination failed: %w", err)
 	}
 
 	return nil

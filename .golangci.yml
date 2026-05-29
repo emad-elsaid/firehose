@@ -113,3 +113,6 @@ linters:
   settings:
     cyclop:
       max-complexity: 5
+  exclusions:
+    paths:
+      - _test\.go
