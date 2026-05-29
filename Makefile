@@ -15,3 +15,7 @@ fix:
 
 opts:
 	-@go build -gcflags -m .
+
+
+test:
+	@go test -race -count=5 -coverprofile=coverage.out ./...
