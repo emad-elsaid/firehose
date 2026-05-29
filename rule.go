@@ -62,52 +62,26 @@ type (
 	}
 )
 
-func (r *Rule[In, Out]) getNext() Registry {
-	return r.next
-}
+func (r *Rule[In, Out]) getNext() Registry                  { return r.next }
+func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
+func (r *Rule[In, Out]) getPrev() Registry                  { return r.prev }
+func (r *Rule[In, Out]) setPrev(p Registry)                 { r.prev = p }
+func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
+func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
+func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry  { return r }
+func (r *Rule[In, Out]) getRegistry() Registry              { return r }
+func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
+func (r *Rule[In, Out]) getSource() any                     { return r.When }
 
-func (r *Rule[In, Out]) setNext(n Registry) {
-	r.next = n
-}
-
-func (r *Rule[In, Out]) getPrev() Registry {
-	return r.prev
-}
-
-func (r *Rule[In, Out]) setPrev(p Registry) {
-	r.prev = p
-}
-
-func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) {
-	r.nextSameSource = n
-}
-
-func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) {
-	r.prevSameSource = p
-}
-
-func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry {
-	return r
-}
-
-func (r *Rule[In, Out]) getRegistry() Registry {
-	return r
-}
-
-func (r *Rule[In, Out]) start(ctx context.Context) error {
+func (r *Rule[In, Out]) start(ctx context.Context) (err error) {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
 		return nil
 	}
 
-	sourceCtx, err := r.When.Start(ctx, r.callback)
-	if err != nil {
-		return err
-	}
+	r.ctx, err = r.When.Start(ctx, r.callback)
 
-	r.ctx = sourceCtx
-
-	return nil
+	return
 }
 
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
@@ -130,12 +104,4 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 	}
 
 	return nil
-}
-
-func (r *Rule[In, Out]) getCtx() context.Context {
-	return r.ctx
-}
-
-func (r *Rule[In, Out]) getSource() any {
-	return r.When
 }

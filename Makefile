@@ -12,3 +12,6 @@ lint:
 fix:
 	@go fmt ./...
 	@golangci-lint run --fix
+
+opts:
+	-@go build -gcflags -m .

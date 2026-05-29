@@ -42,7 +42,10 @@ func main() {
 	r := must(firehose.AddRule(nil, printTime))
 	r = must(firehose.AddRule(r, printTime2))
 
-	for i := range firehose.Start(ctx, r) {
+	errs := make(chan error)
+	go firehose.Start(ctx, r, errs)
+
+	for i := range errs {
 		if errors.Is(i, context.Canceled) {
 			continue
 		}

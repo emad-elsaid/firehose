@@ -48,11 +48,11 @@ func getSameSourceTail(registry Registry, source any) sourceRegistry {
 }
 
 // Start activates all registered rules and waits for completion.
-func Start(ctx context.Context, registry Registry) <-chan error {
+func Start(ctx context.Context, registry Registry, errChan chan<- error) {
 	for current := registry; current != nil; {
 		err := current.start(ctx)
 		if err != nil {
-			return chan1(err)
+			errChan <- err
 		}
 
 		current = current.getNext()
@@ -61,20 +61,10 @@ func Start(ctx context.Context, registry Registry) <-chan error {
 		}
 	}
 
-	<-ctx.Done()
-
-	return waitForSourcesToFinish(registry)
+	waitForSourcesToFinish(registry, errChan)
 }
 
-func waitForSourcesToFinish(registry Registry) <-chan error {
-	errs := make(chan error)
-
-	go collectErrors(registry, errs)
-
-	return errs
-}
-
-func collectErrors(registry Registry, errs chan<- error) {
+func waitForSourcesToFinish(registry Registry, errChan chan<- error) {
 	for current := registry; current != nil; {
 		ctx := current.getCtx()
 
@@ -83,7 +73,7 @@ func collectErrors(registry Registry, errs chan<- error) {
 
 			err := ctx.Err()
 			if err != nil {
-				errs <- err
+				errChan <- err
 			}
 		}
 
@@ -93,14 +83,5 @@ func collectErrors(registry Registry, errs chan<- error) {
 		}
 	}
 
-	close(errs)
-}
-
-func chan1[T any](v T) <-chan T {
-	ch := make(chan T, 1)
-	ch <- v
-
-	close(ch)
-
-	return ch
+	close(errChan)
 }
