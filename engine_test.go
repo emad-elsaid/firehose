@@ -1,17 +1,14 @@
 package firehose
 
 import (
-	"context"
-	"errors"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// Test helper functions
-
-// drainErrorChannel collects all errors from a channel until it closes or timeout expires.
 func drainErrorChannel(t *testing.T, errChan <-chan error, timeout time.Duration) []error {
 	t.Helper()
 
@@ -32,108 +29,12 @@ func drainErrorChannel(t *testing.T, errChan <-chan error, timeout time.Duration
 	}
 }
 
-// Mock implementations for testing
-
-type mockSource[T any] struct {
-	id       string
-	startErr error
-	started  bool
-	done     chan struct{}
-	stopped  bool
-}
-
-func newMockSource[T any](id string) *mockSource[T] {
-	return &mockSource[T]{
-		id:   id,
-		done: make(chan struct{}),
-	}
-}
-
-func (m *mockSource[T]) ID() string {
-	return m.id
-}
-
-func (m *mockSource[T]) Start(ctx context.Context, cb func(context.Context, T) error) (context.Context, error) {
-	m.started = true
-	if m.startErr != nil {
-		return nil, m.startErr
-	}
-
-	doneCtx, cancel := context.WithCancel(ctx)
-
-	go func() {
-		select {
-		case <-m.done:
-			cancel()
-		case <-ctx.Done():
-			cancel()
-		}
-	}()
-
-	return doneCtx, nil
-}
-
-func (m *mockSource[T]) Stop() {
-	if !m.stopped {
-		m.stopped = true
-		close(m.done)
-	}
-}
-
-type mockAction[In, Out any] struct {
-	processErr error
-	processed  []In
-}
-
-func (m *mockAction[In, Out]) Process(ctx context.Context, event In) (Out, error) {
-	m.processed = append(m.processed, event)
-	var zero Out
-	if m.processErr != nil {
-		return zero, m.processErr
-	}
-	return zero, nil
-}
-
-type mockDestination[T any] struct {
-	sendErr error
-	sent    []T
-}
-
-func (m *mockDestination[T]) Send(event T) error {
-	if m.sendErr != nil {
-		return m.sendErr
-	}
-	m.sent = append(m.sent, event)
-	return nil
-}
-
-// mockIncompatibleRegistry is a registry that doesn't implement callbackable
-type mockIncompatibleRegistry struct{}
-
-func (m *mockIncompatibleRegistry) getNext() Registry                 { return nil }
-func (m *mockIncompatibleRegistry) setNext(n Registry)                {}
-func (m *mockIncompatibleRegistry) getPrev() Registry                 { return nil }
-func (m *mockIncompatibleRegistry) setPrev(p Registry)                {}
-func (m *mockIncompatibleRegistry) getSource() any                    { return nil }
-func (m *mockIncompatibleRegistry) getCtx() context.Context           { return nil }
-func (m *mockIncompatibleRegistry) start(ctx context.Context) error   { return nil }
-func (m *mockIncompatibleRegistry) getSourceRegistry() sourceRegistry { return nil }
-
-// mockIncompatibleSourceRegistry returns an incompatible registry
-type mockIncompatibleSourceRegistry struct{}
-
-func (m *mockIncompatibleSourceRegistry) setNextSameSource(n sourceRegistry) {}
-func (m *mockIncompatibleSourceRegistry) setPrevSameSource(p sourceRegistry) {}
-func (m *mockIncompatibleSourceRegistry) getRegistry() Registry {
-	return &mockIncompatibleRegistry{}
-}
-
 func TestAddRule(t *testing.T) {
 	t.Run("add first rule to nil registry", func(t *testing.T) {
-		rule := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule := &MockRule{
+			When: newSourceMock[*EventMock]("source1"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(nil, rule)
@@ -145,17 +46,17 @@ func TestAddRule(t *testing.T) {
 	})
 
 	t.Run("add second rule to existing registry", func(t *testing.T) {
-		rule1 := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule1 := &MockRule{
+			When: newSourceMock[*EventMock]("source1"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
-		registry, _ := AddRule[int, string](nil, rule1)
+		registry, _ := AddRule(nil, rule1)
 
-		rule2 := &Rule[int, string]{
-			When: newMockSource[int]("source2"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule2 := &MockRule{
+			When: newSourceMock[*EventMock]("source2"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(registry, rule2)
@@ -176,24 +77,24 @@ func TestAddRule(t *testing.T) {
 	})
 
 	t.Run("add third rule to registry with two rules", func(t *testing.T) {
-		rule1 := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule1 := &MockRule{
+			When: newSourceMock[*EventMock]("source1"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
-		registry, _ := AddRule[int, string](nil, rule1)
+		registry, _ := AddRule(nil, rule1)
 
-		rule2 := &Rule[int, string]{
-			When: newMockSource[int]("source2"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule2 := &MockRule{
+			When: newSourceMock[*EventMock]("source2"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
-		registry, _ = AddRule[int, string](registry, rule2)
+		registry, _ = AddRule(registry, rule2)
 
-		rule3 := &Rule[int, string]{
-			When: newMockSource[int]("source3"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		rule3 := &MockRule{
+			When: newSourceMock[*EventMock]("source3"),
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(registry, rule3)
@@ -218,37 +119,37 @@ func TestAddRule(t *testing.T) {
 
 func TestAddRuleSameSourceChaining(t *testing.T) {
 	t.Run("first rule with a source has no same-source links", func(t *testing.T) {
-		source := newMockSource[int]("source1")
-		rule := &Rule[int, string]{
+		source := newSourceMock[*EventMock]("source1")
+		rule := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
-		result, err := AddRule[int, string](nil, rule)
+		result, err := AddRule(nil, rule)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		ruleResult := result.(*Rule[int, string])
+		ruleResult := result.(*Rule[*EventMock, *EventMock])
 		require.Nil(t, ruleResult.nextSameSource, "first rule should have no next same source")
 		require.Nil(t, ruleResult.prevSameSource, "first rule should have no prev same source")
 	})
 
 	t.Run("two rules with different sources have no same-source links", func(t *testing.T) {
-		source1 := newMockSource[int]("source1")
-		source2 := newMockSource[int]("source2")
+		source1 := newSourceMock[*EventMock]("source1")
+		source2 := newSourceMock[*EventMock]("source2")
 
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		registry, _ := AddRule(nil, &MockRule{
 			When: source1,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source2,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(registry, rule2)
@@ -256,29 +157,29 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		require.NoError(t, err)
 
 		// First rule
-		rule1 := result.(*Rule[int, string])
+		rule1 := result.(*Rule[*EventMock, *EventMock])
 		require.Nil(t, rule1.nextSameSource, "rule1 should have no next same source")
 		require.Nil(t, rule1.prevSameSource, "rule1 should have no prev same source")
 
 		// Second rule
-		secondRule := result.getNext().(*Rule[int, string])
+		secondRule := result.getNext().(*Rule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 should have no next same source")
 		require.Nil(t, secondRule.prevSameSource, "rule2 should have no prev same source")
 	})
 
 	t.Run("two rules with same source are linked", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		source := newSourceMock[*EventMock]("source1")
 
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		registry, _ := AddRule(nil, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(registry, rule2)
@@ -286,12 +187,12 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		require.NoError(t, err)
 
 		// First rule
-		rule1 := result.(*Rule[int, string])
+		rule1 := result.(*Rule[*EventMock, *EventMock])
 		require.NotNil(t, rule1.nextSameSource, "rule1 should have next same source")
 		require.Nil(t, rule1.prevSameSource, "rule1 is first, should have no prev same source")
 
 		// Second rule
-		secondRule := result.getNext().(*Rule[int, string])
+		secondRule := result.getNext().(*Rule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 is last, should have no next same source")
 		require.NotNil(t, secondRule.prevSameSource, "rule2 should have prev same source")
 
@@ -301,24 +202,24 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("three rules with same source form a chain", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		source := newSourceMock[*EventMock]("source1")
 
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		registry, _ := AddRule(nil, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
-		registry, _ = AddRule[int, string](registry, &Rule[int, string]{
+		registry, _ = AddRule(registry, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
-		rule3 := &Rule[int, string]{
+		rule3 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		}
 
 		result, err := AddRule(registry, rule3)
@@ -326,10 +227,10 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		require.NoError(t, err)
 
 		// Navigate the circular list to find all three rules
-		rules := make([]*Rule[int, string], 0, 3)
+		rules := make([]*Rule[*EventMock, *EventMock], 0, 3)
 		current := result
 		for i := 0; i < 3; i++ {
-			rules = append(rules, current.(*Rule[int, string]))
+			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
 			current = current.getNext()
 		}
 
@@ -353,53 +254,53 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("mixed sources: two with sourceA, one with sourceB, one more with sourceA", func(t *testing.T) {
-		sourceA := newMockSource[int]("sourceA")
-		sourceB := newMockSource[int]("sourceB")
+		sourceA := newSourceMock[*EventMock]("sourceA")
+		sourceB := newSourceMock[*EventMock]("sourceB")
 
 		// Add first rule with sourceA
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		registry, _ := AddRule(nil, &MockRule{
 			When: sourceA,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		// Add second rule with sourceA
-		registry, _ = AddRule[int, string](registry, &Rule[int, string]{
+		registry, _ = AddRule(registry, &MockRule{
 			When: sourceA,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		// Add rule with sourceB
-		registry, _ = AddRule[int, string](registry, &Rule[int, string]{
+		registry, _ = AddRule(registry, &MockRule{
 			When: sourceB,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		// Add third rule with sourceA
-		result, err := AddRule[int, string](registry, &Rule[int, string]{
+		result, err := AddRule(registry, &MockRule{
 			When: sourceA,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		require.NoError(t, err)
 
 		// Collect all rules
-		rules := make([]*Rule[int, string], 0, 4)
+		rules := make([]*Rule[*EventMock, *EventMock], 0, 4)
 		current := result
 		for i := 0; i < 4; i++ {
-			rules = append(rules, current.(*Rule[int, string]))
+			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
 			current = current.getNext()
 		}
 
 		// Identify rules by source
-		var sourceARules []*Rule[int, string]
-		var sourceBRules []*Rule[int, string]
+		var sourceARules []*Rule[*EventMock, *EventMock]
+		var sourceBRules []*Rule[*EventMock, *EventMock]
 
 		for _, r := range rules {
-			if r.When.(*mockSource[int]).id == "sourceA" {
+			if r.When.(*SourceMock[*EventMock]).id == "sourceA" {
 				sourceARules = append(sourceARules, r)
 			} else {
 				sourceBRules = append(sourceBRules, r)
@@ -431,17 +332,22 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	t.Run("start single rule successfully", func(t *testing.T) {
-		source := newMockSource[int]("source1")
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		source := newSourceMock[*EventMock]("source1")
+		defer source.AssertExpectations(t)
+
+		registry, _ := AddRule(nil, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
 
+		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+
 		go Start(ctx, registry, errChan)
+		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
 
 		source.Stop()
 
@@ -449,111 +355,97 @@ func TestStart(t *testing.T) {
 
 		require.Len(t, receivedErrors, 1) // context.Canceled when we stop the source
 
-		rule := registry.(*Rule[int, string])
-		require.True(t, source.started)
+		rule := registry.(*Rule[*EventMock, *EventMock])
 		require.NotNil(t, rule.ctx)
 	})
 
 	t.Run("start multiple rules with different sources", func(t *testing.T) {
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		source1 := newSourceMock[*EventMock]("source1")
+		defer source1.AssertExpectations(t)
+		source2 := newSourceMock[*EventMock]("source2")
+		defer source2.AssertExpectations(t)
+
+		registry, _ := AddRule(nil, &MockRule{
+			When: source1,
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
-		registry, _ = AddRule[int, string](registry, &Rule[int, string]{
-			When: newMockSource[int]("source2"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		registry, _ = AddRule(registry, &MockRule{
+			When: source2,
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
 
+		source1.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+		source2.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+
 		go Start(ctx, registry, errChan)
 
-		// Stop all sources
-		current := registry
-		for {
-			if rule, ok := current.(*Rule[int, string]); ok {
-				if source, ok := rule.When.(*mockSource[int]); ok {
-					source.Stop()
-				}
-			}
+		require.Eventually(t, source1.isStarted, time.Second, time.Millisecond*100)
+		require.Eventually(t, source2.isStarted, time.Second, time.Millisecond*100)
 
-			current = current.getNext()
-			if current == registry {
-				break
-			}
-		}
+		source1.Stop()
+		source2.Stop()
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
 		require.Len(t, receivedErrors, 2) // context.Canceled for each source
-
-		// Verify all sources started
-		count := 0
-		current = registry
-		for {
-			rule := current.(*Rule[int, string])
-			source := rule.When.(*mockSource[int])
-			require.True(t, source.started)
-			count++
-
-			current = current.getNext()
-			if current == registry {
-				break
-			}
-		}
-		require.Equal(t, 2, count)
 	})
 
 	t.Run("start rule with source error", func(t *testing.T) {
-		source := newMockSource[int]("source1")
-		source.startErr = errors.New("source start error")
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		source := newSourceMock[*EventMock]("source1")
+		defer source.AssertExpectations(t)
+
+		registry, _ := AddRule(nil, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
 
+		source.On("Start", ctx, mock.Anything).Return(ctx, os.ErrClosed).Once()
+
 		go Start(ctx, registry, errChan)
+
+		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
 		require.Len(t, receivedErrors, 1)
-		require.True(t, source.started)
 	})
 
 	t.Run("start multiple rules with same source", func(t *testing.T) {
-		source := newMockSource[int]("source1")
-		registry, _ := AddRule[int, string](nil, &Rule[int, string]{
+		source := newSourceMock[*EventMock]("source1")
+		defer source.AssertExpectations(t)
+
+		registry, _ := AddRule(nil, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
-		registry, _ = AddRule[int, string](registry, &Rule[int, string]{
+		registry, _ = AddRule(registry, &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: &MockAction{},
+			To:   &MockDestination{},
 		})
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
 
+		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+
 		go Start(ctx, registry, errChan)
 
+		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
 		source.Stop()
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
 		require.Len(t, receivedErrors, 1) // Only one context.Canceled since source is shared
-
-		// Source should only be started once
-		firstRule := registry.(*Rule[int, string])
-		require.True(t, source.started)
-		require.NotNil(t, firstRule.ctx)
 	})
 }

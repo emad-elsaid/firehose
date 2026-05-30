@@ -1,9 +1,16 @@
 package firehose
 
-import "context"
+import (
+	"context"
+)
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out any](registry Registry, rule *Rule[In, Out]) (Registry, error) {
+func AddRule[In, Out Event](registry Registry, rule *Rule[In, Out]) (Registry, error) {
+	err := rule.parseCondition()
+	if err != nil {
+		return registry, err
+	}
+
 	head := registry
 
 	if head == nil {

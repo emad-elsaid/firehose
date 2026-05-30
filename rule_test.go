@@ -1,7 +1,7 @@
 package firehose
 
 import (
-	"errors"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,225 +9,226 @@ import (
 
 func TestRuleCallback(t *testing.T) {
 	t.Run("successful callback with action and destination", func(t *testing.T) {
-		rule := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		source := &MockSource{}
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			Then: action,
+			To:   destination,
 		}
 
-		err := rule.callback(t.Context(), 42)
+		in := new(EventMock)
 
-		require.NoError(t, err)
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", in).Return(nil).Once()
 
-		action := rule.Then.(*mockAction[int, string])
-		destination := rule.To.(*mockDestination[string])
-
-		require.Len(t, action.processed, 1)
-		require.Equal(t, 42, action.processed[0])
-		require.Len(t, destination.sent, 1)
+		require.NoError(t, rule.callback(t.Context(), in))
 	})
 
 	t.Run("callback with action error", func(t *testing.T) {
-		rule := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{processErr: errors.New("action error")},
-			To:   &mockDestination[string]{},
+		source := &MockSource{}
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+		rule := &MockRule{
+			When: source,
+			Then: action,
+			To:   destination,
 		}
+		in := new(EventMock)
 
-		err := rule.callback(t.Context(), 42)
+		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 
-		require.Error(t, err)
-		require.ErrorContains(t, err, "Action failed")
-
-		action := rule.Then.(*mockAction[int, string])
-		destination := rule.To.(*mockDestination[string])
-
-		require.Len(t, action.processed, 1)
-		require.Len(t, destination.sent, 0)
+		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
 	})
 
 	t.Run("callback with destination error", func(t *testing.T) {
-		rule := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{sendErr: errors.New("destination error")},
+		source := &MockSource{}
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+		rule := &MockRule{
+			When: source,
+			Then: action,
+			To:   destination,
 		}
+		in := new(EventMock)
 
-		err := rule.callback(t.Context(), 42)
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", in).Return(os.ErrClosed).Once()
 
-		require.Error(t, err)
-		require.ErrorContains(t, err, "Destination failed")
-
-		action := rule.Then.(*mockAction[int, string])
-		destination := rule.To.(*mockDestination[string])
-
-		require.Len(t, action.processed, 1)
-		require.Len(t, destination.sent, 0)
+		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
 	})
 
 	t.Run("callback chains to next rule with same source", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		in := new(EventMock)
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
 
-		rule1 := &Rule[int, string]{
+		rule1 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		// Manually set up the same-source chain
-		rule1.nextSameSource = rule2
-		rule2.prevSameSource = rule1
-
-		err := rule1.callback(t.Context(), 42)
-
+		registry, err := AddRule(nil, rule1)
 		require.NoError(t, err)
 
-		action1 := rule1.Then.(*mockAction[int, string])
-		destination1 := rule1.To.(*mockDestination[string])
+		registry, err = AddRule(registry, rule2)
+		require.NoError(t, err)
 
-		require.Len(t, action1.processed, 1)
-		require.Equal(t, 42, action1.processed[0])
-		require.Len(t, destination1.sent, 1)
+		action.On("Process", t.Context(), in).Return(in, nil).Twice()
+		destination.On("Send", in).Return(nil).Twice()
 
-		// Check that the second rule in the chain was also called
-		action2 := rule2.Then.(*mockAction[int, string])
-		destination2 := rule2.To.(*mockDestination[string])
-
-		require.Len(t, action2.processed, 1)
-		require.Equal(t, 42, action2.processed[0])
-		require.Len(t, destination2.sent, 1)
+		require.NoError(t, rule1.callback(t.Context(), in))
 	})
 
 	t.Run("callback chain stops on action error in first rule", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		in := new(EventMock)
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
 
-		rule1 := &Rule[int, string]{
+		rule1 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{processErr: errors.New("action error")},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule1.nextSameSource = rule2
-		rule2.prevSameSource = rule1
+		registry, err := AddRule(nil, rule1)
+		require.NoError(t, err)
 
-		err := rule1.callback(t.Context(), 42)
+		registry, err = AddRule(registry, rule2)
+		require.NoError(t, err)
 
-		require.Error(t, err)
-		require.ErrorContains(t, err, "Action failed")
+		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 
-		action1 := rule1.Then.(*mockAction[int, string])
-		require.Len(t, action1.processed, 1)
-
-		// Second rule should not be called
-		action2 := rule2.Then.(*mockAction[int, string])
-		require.Len(t, action2.processed, 0)
+		require.Error(t, rule1.callback(t.Context(), in), os.ErrClosed)
 	})
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		in := new(EventMock)
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
 
-		rule1 := &Rule[int, string]{
+		rule1 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{processErr: errors.New("second rule error")},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule1.nextSameSource = rule2
-		rule2.prevSameSource = rule1
+		registry, err := AddRule(nil, rule1)
+		require.NoError(t, err)
 
-		err := rule1.callback(t.Context(), 42)
+		registry, err = AddRule(registry, rule2)
+		require.NoError(t, err)
 
-		require.Error(t, err)
-		require.ErrorContains(t, err, "Action failed")
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", in).Return(nil).Once()
 
-		action1 := rule1.Then.(*mockAction[int, string])
-		destination1 := rule1.To.(*mockDestination[string])
+		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 
-		require.Len(t, action1.processed, 1)
-		require.Len(t, destination1.sent, 1)
-
-		// Second rule was called but failed
-		action2 := rule2.Then.(*mockAction[int, string])
-		require.Len(t, action2.processed, 1)
+		require.Error(t, rule1.callback(t.Context(), in), os.ErrClosed)
 	})
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
-		source := newMockSource[int]("source1")
+		in := new(EventMock)
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
 
-		rule1 := &Rule[int, string]{
+		rule1 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule2 := &Rule[int, string]{
+		rule2 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule3 := &Rule[int, string]{
+		rule3 := &MockRule{
 			When: source,
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+			Then: action,
+			To:   destination,
 		}
 
-		rule1.nextSameSource = rule2
-		rule2.prevSameSource = rule1
-		rule2.nextSameSource = rule3
-		rule3.prevSameSource = rule2
-
-		err := rule1.callback(t.Context(), 42)
-
+		registry, err := AddRule(nil, rule1)
 		require.NoError(t, err)
 
-		// All three rules should have processed the event
-		action1 := rule1.Then.(*mockAction[int, string])
-		require.Len(t, action1.processed, 1)
+		registry, err = AddRule(registry, rule2)
+		require.NoError(t, err)
 
-		action2 := rule2.Then.(*mockAction[int, string])
-		require.Len(t, action2.processed, 1)
+		registry, err = AddRule(registry, rule3)
+		require.NoError(t, err)
 
-		action3 := rule3.Then.(*mockAction[int, string])
-		require.Len(t, action3.processed, 1)
+		action.On("Process", t.Context(), in).Return(in, nil).Times(3)
+		destination.On("Send", in).Return(nil).Times(3)
+
+		require.NoError(t, rule1.callback(t.Context(), in))
 	})
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
-		rule := &Rule[int, string]{
-			When: newMockSource[int]("source1"),
-			Then: &mockAction[int, string]{},
-			To:   &mockDestination[string]{},
+		in := &EventMock{}
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			Then: action,
+			To:   destination,
 		}
+
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", in).Return(nil).Once()
 
 		// Create a mock sourceRegistry with incompatible type
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
 
-		err := rule.callback(t.Context(), 42)
-
-		require.NoError(t, err)
-
-		action := rule.Then.(*mockAction[int, string])
-		destination := rule.To.(*mockDestination[string])
-
-		require.Len(t, action.processed, 1)
-		require.Len(t, destination.sent, 1)
+		require.Error(t, rule.callback(t.Context(), in))
 	})
 }

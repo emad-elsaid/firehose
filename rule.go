@@ -4,20 +4,27 @@ package firehose
 import (
 	"context"
 	"fmt"
+
+	"github.com/emad-elsaid/boolexpr"
 )
 
 type (
 	// Rule defines an event processing pipeline from source to destination.
-	Rule[In, Out any] struct {
+	Rule[In, Out Event] struct {
 		When Source[In]
-		If   Condition[In]
+		If   string
 		Then Action[In, Out]
 		To   Destination[Out]
 
 		next, prev                     Registry
 		nextSameSource, prevSameSource sourceRegistry
 
-		ctx context.Context
+		ctx      context.Context
+		parsedIf *boolexpr.Expression
+	}
+
+	Event interface {
+		Attributes(ctx context.Context) map[string]any
 	}
 
 	// Source produces events of type T.
@@ -63,7 +70,7 @@ type (
 	}
 
 	callbackable[In any] interface {
-		callback(ctx context.Context, event In) error
+		callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error
 	}
 )
 
@@ -84,15 +91,26 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 		return nil
 	}
 
-	var err error
+	ctx, err := r.When.Start(ctx, r.callback)
+	if err != nil {
+		return fmt.Errorf("failed to start source: %w", err)
+	}
 
-	r.ctx, err = r.When.Start(ctx, r.callback)
+	r.ctx = ctx
 
-	return err
+	return nil
 }
 
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
-	err := r.run(ctx, event)
+	return r.callbackWithSyms(ctx, event, nil)
+}
+
+func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error {
+	if r.parsedIf != nil && syms == nil {
+		syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
+	}
+
+	err := r.run(ctx, event, syms)
 	if err != nil {
 		return fmt.Errorf("error processing event in rule with source %T: %w", r.When, err)
 	}
@@ -101,15 +119,16 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 		return nil
 	}
 
-	if callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In]); ok {
-		return callbackable.callback(ctx, event)
+	callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In])
+	if !ok {
+		return fmt.Errorf("next rule for rule %#v is %#v doesn't have the same source", r, r.nextSameSource)
 	}
 
-	return nil
+	return callbackable.callbackWithSyms(ctx, event, syms)
 }
 
-func (r *Rule[In, Out]) run(ctx context.Context, event In) error {
-	shouldProcess, err := r.shouldProcess(ctx, event)
+func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols) error {
+	shouldProcess, err := r.shouldProcess(syms)
 	if err != nil {
 		return err
 	}
@@ -131,15 +150,30 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In) error {
 	return nil
 }
 
-func (r *Rule[In, Out]) shouldProcess(ctx context.Context, event In) (bool, error) {
-	if r.If == nil {
+func (r *Rule[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
+	if r.parsedIf == nil {
 		return true, nil
 	}
 
-	shouldProcess, err := r.If.Eval(ctx, event)
+	shouldProcess, err := boolexpr.EvalExpression(*r.parsedIf, syms)
 	if err != nil {
 		return false, fmt.Errorf("Condition evaluation failed: %w", err)
 	}
 
 	return shouldProcess, nil
+}
+
+func (r *Rule[In, Out]) parseCondition() error {
+	if r.If == "" {
+		return nil
+	}
+
+	parsedIf, err := boolexpr.Parse(r.If)
+	if err != nil {
+		return err
+	}
+
+	r.parsedIf = &parsedIf
+
+	return nil
 }
