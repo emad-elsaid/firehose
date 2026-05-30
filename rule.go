@@ -11,7 +11,6 @@ type (
 	Rule[In, Out any] struct {
 		When Source[In]
 		If   Condition[In]
-
 		Then Action[In, Out]
 		To   Destination[Out]
 
@@ -110,13 +109,9 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 }
 
 func (r *Rule[In, Out]) run(ctx context.Context, event In) error {
-	var shouldProcess bool
-	var err error
-
-	if r.If == nil {
-		shouldProcess = true
-	} else if shouldProcess, err = r.If.Eval(ctx, event); err != nil {
-		return fmt.Errorf("Condition evaluation failed: %w", err)
+	shouldProcess, err := r.shouldProcess(ctx, event)
+	if err != nil {
+		return err
 	}
 
 	if !shouldProcess {
@@ -134,4 +129,17 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In) error {
 	}
 
 	return nil
+}
+
+func (r *Rule[In, Out]) shouldProcess(ctx context.Context, event In) (bool, error) {
+	if r.If == nil {
+		return true, nil
+	}
+
+	shouldProcess, err := r.If.Eval(ctx, event)
+	if err != nil {
+		return false, fmt.Errorf("Condition evaluation failed: %w", err)
+	}
+
+	return shouldProcess, nil
 }
