@@ -232,3 +232,114 @@ func TestRuleCallback(t *testing.T) {
 		require.Error(t, rule.callback(t.Context(), in))
 	})
 }
+
+func TestRuleWithCondition(t *testing.T) {
+	t.Run("callback with condition that evaluates to true", func(t *testing.T) {
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			If:   `attr1 = "value1"`,
+			Then: action,
+			To:   destination,
+		}
+
+		_, err := AddRule(nil, rule)
+		require.NoError(t, err)
+
+		in := &EventMock{}
+		defer in.AssertExpectations(t)
+
+		in.On("Attributes", t.Context()).Return(map[string]any{
+			"attr1": "value1",
+		}).Once()
+
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", in).Return(nil).Once()
+
+		require.NoError(t, rule.callback(t.Context(), in))
+	})
+
+	t.Run("callback with condition that evaluates to false", func(t *testing.T) {
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			If:   `attr1 != "value1"`,
+			Then: action,
+			To:   destination,
+		}
+
+		_, err := AddRule(nil, rule)
+		require.NoError(t, err)
+
+		in := &EventMock{}
+		defer in.AssertExpectations(t)
+
+		in.On("Attributes", t.Context()).Return(map[string]any{
+			"attr1": "value1",
+		}).Once()
+
+		require.NoError(t, rule.callback(t.Context(), in))
+	})
+
+	t.Run("callback with condition that error while eval", func(t *testing.T) {
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			If:   `attr1 != "value1"`,
+			Then: action,
+			To:   destination,
+		}
+
+		_, err := AddRule(nil, rule)
+		require.NoError(t, err)
+
+		in := &EventMock{}
+		defer in.AssertExpectations(t)
+
+		in.On("Attributes", t.Context()).Return(map[string]any{
+			"attr1": func() (string, error) {
+				return "", os.ErrClosed
+			},
+		}).Once()
+
+		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
+	})
+
+	t.Run("callback with faulty condition", func(t *testing.T) {
+		source := &MockSource{}
+		defer source.AssertExpectations(t)
+		action := &MockAction{}
+		defer action.AssertExpectations(t)
+		destination := &MockDestination{}
+		defer destination.AssertExpectations(t)
+
+		rule := &MockRule{
+			When: source,
+			If:   `attr1 <> "value1"`,
+			Then: action,
+			To:   destination,
+		}
+
+		registry, err := AddRule(nil, rule)
+		require.Error(t, err)
+		require.Nil(t, registry)
+	})
+}

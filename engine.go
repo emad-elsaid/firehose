@@ -8,7 +8,7 @@ import (
 func AddRule[In, Out Event](registry Registry, rule *Rule[In, Out]) (Registry, error) {
 	err := rule.parseCondition()
 	if err != nil {
-		return registry, err
+		return nil, err
 	}
 
 	head := registry
