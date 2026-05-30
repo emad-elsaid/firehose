@@ -3,6 +3,7 @@ package firehose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/emad-elsaid/boolexpr"
@@ -23,6 +24,7 @@ type (
 		parsedIf *boolexpr.Expression
 	}
 
+	// Event represents an event with attributes that can be evaluated in conditions.
 	Event interface {
 		Attributes(ctx context.Context) map[string]any
 	}
@@ -105,6 +107,9 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 	return r.callbackWithSyms(ctx, event, nil)
 }
 
+// ErrIncompatibleSource is returned when the next rule in the same source chain doesn't have the same source type.
+var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
+
 func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error {
 	if r.parsedIf != nil && syms == nil {
 		syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
@@ -115,13 +120,17 @@ func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boo
 		return fmt.Errorf("error processing event in rule with source %T: %w", r.When, err)
 	}
 
+	return r.callNextRule(ctx, event, syms)
+}
+
+func (r *Rule[In, Out]) callNextRule(ctx context.Context, event In, syms boolexpr.Symbols) error {
 	if r.nextSameSource == nil {
 		return nil
 	}
 
 	callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In])
 	if !ok {
-		return fmt.Errorf("next rule for rule %#v is %#v doesn't have the same source", r, r.nextSameSource)
+		return fmt.Errorf("%w: current rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
 	}
 
 	return callbackable.callbackWithSyms(ctx, event, syms)
