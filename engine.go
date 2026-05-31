@@ -5,8 +5,13 @@ import (
 )
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out Event](registry Registry, rule *Rule[In, Out]) (Registry, error) {
-	err := rule.parseCondition()
+func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[In, Out], in In) (Registry, error) {
+	err := IsValid(ctx, rule, in)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rule.parseCondition()
 	if err != nil {
 		return nil, err
 	}

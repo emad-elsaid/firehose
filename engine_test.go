@@ -37,7 +37,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(nil, rule)
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -51,7 +51,7 @@ func TestAddRule(t *testing.T) {
 			Then: &MockAction{},
 			To:   &MockDestination{},
 		}
-		registry, _ := AddRule(nil, rule1)
+		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock))
 
 		rule2 := &MockRule{
 			When: newSourceMock[*EventMock]("source2"),
@@ -59,7 +59,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(registry, rule2)
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -82,14 +82,14 @@ func TestAddRule(t *testing.T) {
 			Then: &MockAction{},
 			To:   &MockDestination{},
 		}
-		registry, _ := AddRule(nil, rule1)
+		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock))
 
 		rule2 := &MockRule{
 			When: newSourceMock[*EventMock]("source2"),
 			Then: &MockAction{},
 			To:   &MockDestination{},
 		}
-		registry, _ = AddRule(registry, rule2)
+		registry, _ = AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		rule3 := &MockRule{
 			When: newSourceMock[*EventMock]("source3"),
@@ -97,7 +97,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(registry, rule3)
+		result, err := AddRule(t.Context(), registry, rule3, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -126,7 +126,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(nil, rule)
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -140,11 +140,11 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		source1 := newSourceMock[*EventMock]("source1")
 		source2 := newSourceMock[*EventMock]("source2")
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source1,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		rule2 := &MockRule{
 			When: source2,
@@ -152,7 +152,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(registry, rule2)
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -170,11 +170,11 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	t.Run("two rules with same source are linked", func(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		rule2 := &MockRule{
 			When: source,
@@ -182,7 +182,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(registry, rule2)
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -204,17 +204,17 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	t.Run("three rules with same source form a chain", func(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
-		registry, _ = AddRule(registry, &MockRule{
+		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		rule3 := &MockRule{
 			When: source,
@@ -222,7 +222,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		result, err := AddRule(registry, rule3)
+		result, err := AddRule(t.Context(), registry, rule3, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -258,32 +258,32 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 		sourceB := newSourceMock[*EventMock]("sourceB")
 
 		// Add first rule with sourceA
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: sourceA,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		// Add second rule with sourceA
-		registry, _ = AddRule(registry, &MockRule{
+		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			When: sourceA,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		// Add rule with sourceB
-		registry, _ = AddRule(registry, &MockRule{
+		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			When: sourceB,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		// Add third rule with sourceA
-		result, err := AddRule(registry, &MockRule{
+		result, err := AddRule(t.Context(), registry, &MockRule{
 			When: sourceA,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -335,11 +335,11 @@ func TestStart(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 		defer source.AssertExpectations(t)
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
@@ -365,16 +365,16 @@ func TestStart(t *testing.T) {
 		source2 := newSourceMock[*EventMock]("source2")
 		defer source2.AssertExpectations(t)
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source1,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
-		registry, _ = AddRule(registry, &MockRule{
+		}, new(EventMock))
+		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			When: source2,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
@@ -399,11 +399,11 @@ func TestStart(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 		defer source.AssertExpectations(t)
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
@@ -423,16 +423,16 @@ func TestStart(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 		defer source.AssertExpectations(t)
 
-		registry, _ := AddRule(nil, &MockRule{
+		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
-		registry, _ = AddRule(registry, &MockRule{
+		}, new(EventMock))
+		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			When: source,
 			Then: &MockAction{},
 			To:   &MockDestination{},
-		})
+		}, new(EventMock))
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)

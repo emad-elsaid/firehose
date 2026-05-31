@@ -39,8 +39,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
 	defer cancel()
 
-	r := must(firehose.AddRule(nil, printTime))
-	r = must(firehose.AddRule(r, printTime2))
+	r := must(firehose.AddRule(ctx, nil, printTime, events.Time{}))
+	r = must(firehose.AddRule(ctx, r, printTime2, events.Time{}))
 
 	errs := make(chan error)
 	go firehose.Start(ctx, r, errs)

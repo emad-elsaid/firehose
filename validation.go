@@ -12,16 +12,16 @@ import (
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
-func IsValid[In, Out Event](ctx context.Context, rule *Rule[In, Out]) error {
+func IsValid[In, Out Event](ctx context.Context, rule *Rule[In, Out], in In) error {
 	err := validate.Struct(rule)
 	if err != nil {
 		return err
 	}
 
-	return isValidCondition(ctx, rule)
+	return isValidCondition(ctx, rule, in)
 }
 
-func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out]) error {
+func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out], in In) error {
 	if rule.If == "" {
 		return nil
 	}
@@ -33,8 +33,12 @@ func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out]) e
 
 	symsList := boolexpr.ListSymbols(*rule.parsedIf)
 
-	var in In
-	attrs := slices.Collect(maps.Keys(in.Attributes(ctx)))
+	attrsMap := in.Attributes(ctx)
+	if attrsMap == nil {
+		return nil
+	}
+
+	attrs := slices.Collect(maps.Keys(attrsMap))
 
 	for _, sym := range symsList {
 		if !slices.Contains(attrs, sym) {
