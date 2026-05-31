@@ -45,7 +45,7 @@ func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker 
 }
 
 func (t Time) emit(ctx context.Context, now time.Time, callback timeCallback) {
-	err := callback(ctx, events.Time{Time: now})
+	err := callback(ctx, events.Time(now))
 	if err != nil {
 		slog.Error("error in time event callback", "time", t, "error", err)
 	}

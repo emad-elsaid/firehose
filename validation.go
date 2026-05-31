@@ -10,18 +10,19 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var validate = validator.New(validator.WithRequiredStructEnabled())
+// IsValid validates the rule's fields and its condition if provided.
+func IsValid[In, Out Event](ctx context.Context, rule *Rule[In, Out], instance In) error {
+	var validate = validator.New(validator.WithRequiredStructEnabled())
 
-func IsValid[In, Out Event](ctx context.Context, rule *Rule[In, Out], in In) error {
 	err := validate.Struct(rule)
 	if err != nil {
 		return err
 	}
 
-	return isValidCondition(ctx, rule, in)
+	return isValidCondition(ctx, rule, instance)
 }
 
-func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out], in In) error {
+func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out], instance In) error {
 	if rule.If == "" {
 		return nil
 	}
@@ -32,13 +33,7 @@ func isValidCondition[In, Out Event](ctx context.Context, rule *Rule[In, Out], i
 	}
 
 	symsList := boolexpr.ListSymbols(*rule.parsedIf)
-
-	attrsMap := in.Attributes(ctx)
-	if attrsMap == nil {
-		return nil
-	}
-
-	attrs := slices.Collect(maps.Keys(attrsMap))
+	attrs := slices.Collect(maps.Keys(instance.Attributes(ctx)))
 
 	for _, sym := range symsList {
 		if !slices.Contains(attrs, sym) {

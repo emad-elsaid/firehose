@@ -28,6 +28,13 @@ func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[I
 	tail := head.getPrev()
 	sameSourceTail := getSameSourceTail(head, rule.When)
 
+	linkRule(rule, head, tail)
+	linkSameSourceRule(rule, sameSourceTail)
+
+	return head, nil
+}
+
+func linkRule(rule Registry, head Registry, tail Registry) {
 	rule.setNext(head)
 	head.setPrev(rule)
 
@@ -35,13 +42,15 @@ func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[I
 		rule.setPrev(tail)
 		tail.setNext(rule)
 	}
+}
 
-	if sameSourceTail != nil {
-		rule.setPrevSameSource(sameSourceTail)
-		sameSourceTail.setNextSameSource(rule)
+func linkSameSourceRule(rule sourceRegistry, sameSourceTail sourceRegistry) {
+	if sameSourceTail == nil {
+		return
 	}
 
-	return head, nil
+	rule.setPrevSameSource(sameSourceTail)
+	sameSourceTail.setNextSameSource(rule)
 }
 
 func getSameSourceTail(registry Registry, source any) sourceRegistry {
