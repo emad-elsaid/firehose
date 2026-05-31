@@ -12,10 +12,10 @@ import (
 type (
 	// Rule defines an event processing pipeline from source to destination.
 	Rule[In, Out Event] struct {
-		When Source[In]
+		When Source[In] `validate:"required"`
 		If   string
-		Then Action[In, Out]
-		To   Destination[Out]
+		Then Action[In, Out]  `validate:"required"`
+		To   Destination[Out] `validate:"required"`
 
 		next, prev                     Registry
 		nextSameSource, prevSameSource sourceRegistry
