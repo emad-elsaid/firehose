@@ -244,7 +244,7 @@ func TestRuleWithCondition(t *testing.T) {
 
 		rule := &MockRule{
 			When: source,
-			If:   `attr1 = "value1"`,
+			If:   `Attr1 = "value1"`,
 			Then: action,
 			To:   destination,
 		}
@@ -255,9 +255,7 @@ func TestRuleWithCondition(t *testing.T) {
 		in := &EventMock{}
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": "value1",
-		}).Once()
+		in.On("Attr1").Return("value1")
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
 		destination.On("Send", in).Return(nil).Once()
@@ -275,7 +273,7 @@ func TestRuleWithCondition(t *testing.T) {
 
 		rule := &MockRule{
 			When: source,
-			If:   `attr1 != "value1"`,
+			If:   `Attr1 != "value1"`,
 			Then: action,
 			To:   destination,
 		}
@@ -286,9 +284,7 @@ func TestRuleWithCondition(t *testing.T) {
 		in := &EventMock{}
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": "value1",
-		}).Once()
+		in.On("Attr1").Return("value1").Once()
 
 		require.NoError(t, rule.callback(t.Context(), in))
 	})
@@ -303,7 +299,7 @@ func TestRuleWithCondition(t *testing.T) {
 
 		rule := &MockRule{
 			When: source,
-			If:   `attr1 != "value1"`,
+			If:   `ErrAttr != "value1"`,
 			Then: action,
 			To:   destination,
 		}
@@ -314,11 +310,7 @@ func TestRuleWithCondition(t *testing.T) {
 		in := &EventMock{}
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": func() (string, error) {
-				return "", os.ErrClosed
-			},
-		}).Once()
+		in.On("ErrAttr").Return("", os.ErrClosed).Once()
 
 		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
 	})

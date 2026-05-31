@@ -21,14 +21,14 @@ const timeoutDuration = 5 * time.Second
 func main() {
 	printTime := &firehose.Rule[events.Time, events.Time]{
 		When: sources.Time{Period: 1 * time.Second},
-		If:   "seconds < 3",
+		If:   "Seconds < 3",
 		Then: actions.Yield[events.Time]{},
 		To:   destinations.Stdout[events.Time]{},
 	}
 
 	printTime2 := &firehose.Rule[events.Time, events.Time]{
 		When: sources.Time{Period: 1 * time.Second},
-		If:   "seconds > 3",
+		If:   "Seconds > 3",
 		Then: actions.Yield[events.Time]{},
 		To:   destinations.Stdout[events.Time]{},
 	}
