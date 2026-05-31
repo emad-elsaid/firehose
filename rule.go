@@ -25,7 +25,9 @@ type (
 	}
 
 	// Event represents an event with attributes that can be evaluated in conditions.
-	Event interface{}
+	Event interface {
+		Attributes(ctx context.Context) map[string]any
+	}
 
 	// Source produces events of type T.
 	Source[T any] interface {
@@ -110,7 +112,7 @@ var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error {
 	if r.parsedIf != nil && syms == nil {
-		syms = symbols{v: event}
+		syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
 	}
 
 	err := r.run(ctx, event, syms)

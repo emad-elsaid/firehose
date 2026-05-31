@@ -2,6 +2,7 @@
 package events
 
 import (
+	"context"
 	"time"
 )
 
@@ -10,14 +11,11 @@ type Time struct {
 	Time time.Time
 }
 
-func (t Time) Seconds() int {
-	return t.Time.Second()
-}
-
-func (t Time) Minutes() int {
-	return t.Time.Minute()
-}
-
-func (t Time) Hours() int {
-	return t.Time.Hour()
+// Attributes returns a map of attributes for the Time event.
+func (t Time) Attributes(_ context.Context) map[string]any {
+	return map[string]any{
+		"seconds": t.Time.Second(),
+		"minute":  t.Time.Minute(),
+		"hour":    t.Time.Hour(),
+	}
 }
