@@ -20,11 +20,17 @@ func main() {
 	logger := slog.New(devslog.NewHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	processRule := &firehose.Rule[events.Process, events.Process]{
+	processRule := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
 		If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
-		Then: actions.Yield[events.Process]{},
-		To: destinations.Slog[events.Process]{
+		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
+			Output: events.TwitchStreamInfo{
+				Title:    "Playing Have a Nice Death",
+				Category: "Have a Nice Death",
+				Tags:     []string{"English", "gaming", "linux"},
+			},
+		},
+		To: destinations.Slog[events.TwitchStreamInfo]{
 			Level:   slog.LevelInfo,
 			Message: "New process",
 		},
