@@ -12,6 +12,8 @@ github.com/emad-elsaid/memoize v0.0.0-20240524185039-a963118906c5 h1:M5V6cvhr4f8
 github.com/emad-elsaid/memoize v0.0.0-20240524185039-a963118906c5/go.mod h1:StFIjzcCkMtwKnLcaCGx66uBSH68sfGoz8q227+ZxFo=
 github.com/emad-elsaid/types v0.0.4 h1:wk9ftd4uoRAdwDIJKzigAmexK05D0RWqNYdsYXxHZOg=
 github.com/emad-elsaid/types v0.0.4/go.mod h1:7A4ii8wOJCtw6WUyJjlNVpA/AoMEfj/r8Oi2l9q5FF4=
+github.com/emad-elsaid/types v0.0.5 h1:nrwnCdV/1sV9skJKiEEf1KQTrni0/7PfJmRoXZyuGRU=
+github.com/emad-elsaid/types v0.0.5/go.mod h1:7A4ii8wOJCtw6WUyJjlNVpA/AoMEfj/r8Oi2l9q5FF4=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
 github.com/gabriel-vasile/mimetype v1.4.13/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
@@ -22,6 +24,10 @@ github.com/go-playground/universal-translator v0.18.1 h1:Bcnm0ZwsGyWbCzImXv+pAJn
 github.com/go-playground/universal-translator v0.18.1/go.mod h1:xekY+UJKNuX9WP91TpwSH2VMlDf28Uj24BCp08ZFTUY=
 github.com/go-playground/validator/v10 v10.30.3 h1:4MU6YkEwx7GbcPJOZxrtbu+QfF3pJLJuaYTeAH0DYy8=
 github.com/go-playground/validator/v10 v10.30.3/go.mod h1:4Axh7oCNGcoGkqLoE4YWt6n20mcEIsPRlB7vPk3lpyc=
+github.com/godbus/dbus/v5 v5.2.2 h1:TUR3TgtSVDmjiXOgAAyaZbYmIeP3DPkld3jgKGV8mXQ=
+github.com/godbus/dbus/v5 v5.2.2/go.mod h1:3AAv2+hPq5rdnr5txxxRwiGjPXamgoIHgz9FPBfOp3c=
+github.com/golang-cz/devslog v0.0.15 h1:ejoBLTCwJHWGbAmDf2fyTJJQO3AkzcPjw8SC9LaOQMI=
+github.com/golang-cz/devslog v0.0.15/go.mod h1:bSe5bm0A7Nyfqtijf1OMNgVJHlWEuVSXnkuASiE1vV8=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=

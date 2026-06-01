@@ -7,40 +7,33 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/actions"
 	"github.com/emad-elsaid/firehose/destinations"
 	"github.com/emad-elsaid/firehose/events"
 	"github.com/emad-elsaid/firehose/sources"
+	"github.com/golang-cz/devslog"
 )
 
-const timeoutDuration = 5 * time.Second
-
 func main() {
-	printTime := &firehose.Rule[events.Time, events.Time]{
-		When: sources.Time{Period: 1 * time.Second},
-		If:   "seconds < 3",
-		Then: actions.Yield[events.Time]{},
-		To:   destinations.Stdout[events.Time]{},
-	}
+	logger := slog.New(devslog.NewHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
-	printTime2 := &firehose.Rule[events.Time, events.Time]{
-		When: sources.Time{Period: 1 * time.Second},
-		If:   "seconds > 3",
-		Then: actions.Yield[events.Time]{},
-		To:   destinations.Stdout[events.Time]{},
+	processRule := &firehose.Rule[events.Process, events.Process]{
+		When: sources.Process{},
+		If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
+		Then: actions.Yield[events.Process]{},
+		To: destinations.Slog[events.Process]{
+			Level:   slog.LevelInfo,
+			Message: "New process",
+		},
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
-	defer cancel()
-
-	r := must(firehose.AddRule(ctx, nil, printTime, events.Time{}))
-	r = must(firehose.AddRule(ctx, r, printTime2, events.Time{}))
+	r := must(firehose.AddRule(ctx, nil, processRule, events.Process{}))
 
 	errs := make(chan error)
 	go firehose.Start(ctx, r, errs)

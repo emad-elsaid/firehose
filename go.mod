@@ -9,6 +9,8 @@ tool go.uber.org/nilaway/cmd/nilaway
 require (
 	github.com/emad-elsaid/boolexpr v0.0.0-20240828071547-090fef4bb165
 	github.com/go-playground/validator/v10 v10.30.3
+	github.com/godbus/dbus/v5 v5.2.2
+	github.com/golang-cz/devslog v0.0.15
 	github.com/stretchr/testify v1.10.0
 )
 
@@ -16,7 +18,7 @@ require (
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emad-elsaid/memoize v0.0.0-20240524185039-a963118906c5 // indirect
-	github.com/emad-elsaid/types v0.0.4 // indirect
+	github.com/emad-elsaid/types v0.0.5 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
