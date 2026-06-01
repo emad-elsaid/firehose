@@ -9,72 +9,22 @@ import (
 	"github.com/emad-elsaid/boolexpr"
 )
 
-type (
-	// Rule defines an event processing pipeline from source to destination.
-	Rule[In, Out Event] struct {
-		When Source[In] `validate:"required"`
-		If   string
-		Then Action[In, Out]  `validate:"required"`
-		To   Destination[Out] `validate:"required"`
+// ErrIncompatibleSource is returned when the next rule in the same source chain doesn't have the same source type.
+var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
-		next, prev                     Registry
-		nextSameSource, prevSameSource sourceRegistry
+// Rule defines an event processing pipeline from source to destination.
+type Rule[In, Out Event] struct {
+	When Source[In] `validate:"required"`
+	If   string
+	Then Action[In, Out]  `validate:"required"`
+	To   Destination[Out] `validate:"required"`
 
-		ctx      context.Context
-		parsedIf *boolexpr.Expression
-	}
+	next, prev                     Registry
+	nextSameSource, prevSameSource sourceRegistry
 
-	// Event represents an event with attributes that can be evaluated in conditions.
-	Event interface {
-		Attributes(ctx context.Context) map[string]any
-	}
-
-	// Source produces events of type T.
-	Source[T any] interface {
-		ID() string
-		Start(ctx context.Context, cb func(context.Context, T) error) (done context.Context, err error)
-	}
-
-	// Condition evaluates input events to determine if they should be processed.
-	Condition[In any] interface {
-		Eval(ctx context.Context, event In) (bool, error)
-	}
-
-	// Action transforms input events to output events.
-	Action[In, Out any] interface {
-		Process(ctx context.Context, event In) (Out, error)
-	}
-
-	// Destination consumes events of type T.
-	Destination[T any] interface {
-		Send(event T) error
-	}
-
-	// Registry handler that accumulates rules and manages their execution.
-	Registry interface {
-		getNext() Registry
-		setNext(n Registry)
-		getPrev() Registry
-		setPrev(p Registry)
-
-		getSource() any
-		getCtx() context.Context
-		start(ctx context.Context) error
-
-		getSourceRegistry() sourceRegistry
-	}
-
-	sourceRegistry interface {
-		setNextSameSource(n sourceRegistry)
-		setPrevSameSource(p sourceRegistry)
-
-		getRegistry() Registry
-	}
-
-	callbackable[In any] interface {
-		callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error
-	}
-)
+	ctx      context.Context
+	parsedIf *boolexpr.Expression
+}
 
 func (r *Rule[In, Out]) getNext() Registry                  { return r.next }
 func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
@@ -106,9 +56,6 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
 	return r.callbackWithSyms(ctx, event, nil)
 }
-
-// ErrIncompatibleSource is returned when the next rule in the same source chain doesn't have the same source type.
-var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error {
 	if r.parsedIf != nil && syms == nil {
@@ -151,7 +98,7 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 		return fmt.Errorf("Action failed: %w", err)
 	}
 
-	err = r.To.Send(out)
+	err = r.To.Send(ctx, out)
 	if err != nil {
 		return fmt.Errorf("Destination failed: %w", err)
 	}

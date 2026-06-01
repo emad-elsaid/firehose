@@ -2,6 +2,7 @@
 package destinations
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +12,7 @@ import (
 type Stdout[T any] struct{}
 
 // Send writes the event to standard output.
-func (s Stdout[T]) Send(event T) error {
+func (s Stdout[T]) Send(_ context.Context, event T) error {
 	_, err := io.WriteString(os.Stdout, fmt.Sprintf("%v\n", event))
 	if err != nil {
 		return fmt.Errorf("error sending event to stdout: %w", err)

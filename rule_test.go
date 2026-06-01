@@ -8,6 +8,8 @@ import (
 )
 
 func TestRuleCallback(t *testing.T) {
+	t.Parallel()
+
 	t.Run("successful callback with action and destination", func(t *testing.T) {
 		source := &MockSource{}
 		action := &MockAction{}
@@ -24,7 +26,7 @@ func TestRuleCallback(t *testing.T) {
 		in := new(EventMock)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		require.NoError(t, rule.callback(t.Context(), in))
 	})
@@ -61,7 +63,7 @@ func TestRuleCallback(t *testing.T) {
 		in := new(EventMock)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", in).Return(os.ErrClosed).Once()
+		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
 
 		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
 	})
@@ -94,7 +96,7 @@ func TestRuleCallback(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Twice()
-		destination.On("Send", in).Return(nil).Twice()
+		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
 		require.NoError(t, rule1.callback(t.Context(), in))
 	})
@@ -159,7 +161,7 @@ func TestRuleCallback(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 
@@ -203,7 +205,7 @@ func TestRuleCallback(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Times(3)
-		destination.On("Send", in).Return(nil).Times(3)
+		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 
 		require.NoError(t, rule1.callback(t.Context(), in))
 	})
@@ -224,7 +226,7 @@ func TestRuleCallback(t *testing.T) {
 		}
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		// Create a mock sourceRegistry with incompatible type
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
@@ -234,6 +236,8 @@ func TestRuleCallback(t *testing.T) {
 }
 
 func TestRuleWithCondition(t *testing.T) {
+	t.Parallel()
+
 	t.Run("callback with condition that evaluates to true", func(t *testing.T) {
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
@@ -260,7 +264,7 @@ func TestRuleWithCondition(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		require.NoError(t, rule.callback(t.Context(), in))
 	})

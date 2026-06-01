@@ -30,6 +30,8 @@ func drainErrorChannel(t *testing.T, errChan <-chan error, timeout time.Duration
 }
 
 func TestAddRule(t *testing.T) {
+	t.Parallel()
+
 	t.Run("add first rule to nil registry", func(t *testing.T) {
 		rule := &MockRule{
 			When: newSourceMock[*EventMock]("source1"),
@@ -118,6 +120,8 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestAddRuleSameSourceChaining(t *testing.T) {
+	t.Parallel()
+
 	t.Run("first rule with a source has no same-source links", func(t *testing.T) {
 		source := newSourceMock[*EventMock]("source1")
 		rule := &MockRule{
