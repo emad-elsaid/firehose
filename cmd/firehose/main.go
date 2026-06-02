@@ -20,7 +20,7 @@ func main() {
 	logger := slog.New(devslog.NewHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	processRule := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
+	haveANiceDeath := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
 		If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
 		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
@@ -33,10 +33,24 @@ func main() {
 		To: destinations.TwitchStreamInfo{},
 	}
 
+	deadCells := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
+		When: sources.Process{},
+		If:   `cmd = "./deadcells"`,
+		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
+			Output: events.TwitchStreamInfo{
+				Title: "Playing Dead Cells",
+				Game:  "Dead Cells",
+				Tags:  []string{"English", "gaming", "linux"},
+			},
+		},
+		To: destinations.TwitchStreamInfo{},
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	r := must(firehose.AddRule(ctx, nil, processRule, events.Process{}))
+	r := must(firehose.AddRule(ctx, nil, haveANiceDeath, events.Process{}))
+	r = must(firehose.AddRule(ctx, r, deadCells, events.Process{}))
 
 	errs := make(chan error)
 	go firehose.Start(ctx, r, errs)
