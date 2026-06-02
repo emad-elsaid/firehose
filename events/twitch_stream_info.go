@@ -3,9 +3,9 @@ package events
 import "context"
 
 type TwitchStreamInfo struct {
-	Title    string
-	Category string
-	Tags     []string
+	Title string
+	Game  string
+	Tags  []string
 }
 
 func (TwitchStreamInfo) Attributes(ctx context.Context) map[string]any {

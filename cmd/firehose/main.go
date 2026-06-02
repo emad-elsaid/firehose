@@ -25,15 +25,12 @@ func main() {
 		If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
 		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
 			Output: events.TwitchStreamInfo{
-				Title:    "Playing Have a Nice Death",
-				Category: "Have a Nice Death",
-				Tags:     []string{"English", "gaming", "linux"},
+				Title: "Playing Have a Nice Death",
+				Game:  "Have a Nice Death",
+				Tags:  []string{"English", "gaming", "linux"},
 			},
 		},
-		To: destinations.Slog[events.TwitchStreamInfo]{
-			Level:   slog.LevelInfo,
-			Message: "New process",
-		},
+		To: destinations.TwitchStreamInfo{},
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

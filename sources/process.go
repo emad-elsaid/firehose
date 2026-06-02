@@ -43,7 +43,10 @@ func (s Process) Start(ctx context.Context, callback func(context.Context, event
 				newPIDs := current.Difference(last)
 
 				for _, pid := range newPIDs.ToSlice() {
-					callback(sourceCtx, pidToProcess(pid))
+					err = callback(sourceCtx, pidToProcess(pid))
+					if err != nil {
+						slog.Error("Error processing new process event", "error", err)
+					}
 				}
 
 				lastPIDs = pids

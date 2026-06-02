@@ -2,6 +2,7 @@ package firehose
 
 import (
 	"context"
+	"log/slog"
 )
 
 // AddRule registers a new processing rule in the context.
@@ -83,6 +84,8 @@ func Start(ctx context.Context, registry Registry, errChan chan<- error) {
 			break
 		}
 	}
+
+	slog.Info("All sources started, waiting for them to finish...")
 
 	waitForSourcesToFinish(registry, errChan)
 }
