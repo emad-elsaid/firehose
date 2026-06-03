@@ -25,7 +25,7 @@ func main() {
 		If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
 		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
 			Output: events.TwitchStreamInfo{
-				Title: "Playing Have a Nice Death",
+				Title: "Send Help I'm Being Chased",
 				Game:  "Have a Nice Death",
 				Tags:  []string{"English", "gaming", "linux"},
 			},
@@ -46,11 +46,39 @@ func main() {
 		To: destinations.TwitchStreamInfo{},
 	}
 
+	mk1 := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
+		When: sources.Process{},
+		If:   `cmd = "S:\\common\\Mortal Kombat 1\\MK12\\Binaries\\Win64\\MK12.exe\x00MK12"`,
+		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
+			Output: events.TwitchStreamInfo{
+				Title: "Call an ambulance",
+				Game:  "Mortal Kombat 1",
+				Tags:  []string{"English", "gaming", "linux"},
+			},
+		},
+		To: destinations.TwitchStreamInfo{},
+	}
+
+	emacs := &firehose.Rule[events.Process, events.TwitchStreamInfo]{
+		When: sources.Process{},
+		If:   `cmd = "/usr/bin/emacs"`,
+		Then: actions.Event[events.Process, events.TwitchStreamInfo]{
+			Output: events.TwitchStreamInfo{
+				Title: "Linux Go Coding No AI",
+				Game:  "Software and Game Development",
+				Tags:  []string{"English", "coding", "linux", "programming"},
+			},
+		},
+		To: destinations.TwitchStreamInfo{},
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	r := must(firehose.AddRule(ctx, nil, haveANiceDeath, events.Process{}))
 	r = must(firehose.AddRule(ctx, r, deadCells, events.Process{}))
+	r = must(firehose.AddRule(ctx, r, mk1, events.Process{}))
+	r = must(firehose.AddRule(ctx, r, emacs, events.Process{}))
 
 	errs := make(chan error)
 	go firehose.Start(ctx, r, errs)

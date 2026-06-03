@@ -37,7 +37,7 @@ func (t TwitchStreamInfo) Send(ctx context.Context, event events.TwitchStreamInf
 	}
 
 	if len(event.Tags) > 0 {
-		request["tag_ids"] = event.Tags
+		request["tags"] = event.Tags
 	}
 
 	body, err := json.Marshal(request)
