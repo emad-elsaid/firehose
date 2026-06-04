@@ -15,11 +15,6 @@ type Time struct {
 	Period time.Duration
 }
 
-// ID returns a string identifier for this time source.
-func (t Time) ID() string {
-	return t.Period.String()
-}
-
 // Start begins emitting time events at the configured period.
 func (t Time) Start(ctx context.Context, callback firehose.SourceCallback[events.Time]) (context.Context, error) {
 	done, cancel := context.WithCancel(ctx)
@@ -30,7 +25,12 @@ func (t Time) Start(ctx context.Context, callback firehose.SourceCallback[events
 	return done, nil
 }
 
-func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker *time.Ticker, callback firehose.SourceCallback[events.Time]) {
+func (t Time) tick(
+	ctx, done context.Context,
+	cancel context.CancelFunc,
+	ticker *time.Ticker,
+	callback firehose.SourceCallback[events.Time],
+) {
 	for {
 		select {
 		case now := <-ticker.C:

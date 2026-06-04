@@ -1,45 +1,27 @@
 package firehose
 
-import (
-	"sync"
-	"sync/atomic"
+// Status represents the outcome of processing an event through a rule,
+// indicating whether it was successful, if there was an error, or if there was
+// no match.
+type Status string
+
+// Predefined status values for processing results.
+const (
+	StatusNoMatch          Status = "No match"
+	StatusSuccess          Status = "Success"
+	StatusError            Status = "Error"
+	StatusConditionError   Status = "Condition error"
+	StatusActionError      Status = "Action error"
+	StatusDestinationError Status = "Destination error"
 )
 
-type Status int64
-
-var statusCounter atomic.Int64
-var statusNames sync.Map
-
-func NewStatus(name string) Status {
-	status := Status(statusCounter.Add(1))
-	statusNames.Store(status, name)
-
-	return status
-}
-
-var (
-	StatusNoMatch          Status = NewStatus("No match")
-	StatusSuccess                 = NewStatus("Success")
-	StatusError                   = NewStatus("Error")
-	StatusConditionError          = NewStatus("Condition error")
-	StatusActionError             = NewStatus("Action error")
-	StatusDestinationError        = NewStatus("Destination error")
-)
-
+// Report represents the result of processing an event through a rule, including the status and any error that occurred.
 type Report struct {
 	Status Status
 	Err    error
 }
 
-func (r Report) String() string {
-	name, _ := statusNames.Load(r.Status)
-	if r.Err != nil {
-		return name.(string) + ": " + r.Err.Error()
-	}
-
-	return name.(string)
-}
-
+// NewReport creates a new Report with the given status and error.
 func NewReport(status Status, err error) Report {
 	return Report{
 		Status: status,

@@ -52,6 +52,10 @@ type sourceRegistry interface {
 	getRegistry() Registry
 }
 
+// SourceCallback is a function type that sources use to send events to the
+// engine. It takes a context and an event of type T, and returns a channel of
+// Report which the engine will write to with the results of processing the
+// event through each rule.
 type SourceCallback[T any] func(context.Context, T) <-chan Report
 
 type callbackable[In any] interface {

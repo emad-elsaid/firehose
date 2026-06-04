@@ -114,5 +114,9 @@ linters:
     cyclop:
       max-complexity: 5
   exclusions:
+    rules:
+      - path: cmd/firehose/rules.go
+        linters:
+          - funlen
     paths:
       - _test\.go

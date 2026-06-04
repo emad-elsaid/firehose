@@ -2,7 +2,6 @@ package firehose
 
 import (
 	"context"
-	"log/slog"
 )
 
 // AddRule registers a new processing rule in the context.
@@ -71,7 +70,7 @@ func getSameSourceTail(registry Registry, source any) sourceRegistry {
 	return nil
 }
 
-// Start activates all registered rules and waits for completion.
+// Start activates all registered rules.
 func Start(ctx context.Context, registry Registry, errChan chan<- error) {
 	for current := registry; current != nil; {
 		err := current.start(ctx)
@@ -84,13 +83,11 @@ func Start(ctx context.Context, registry Registry, errChan chan<- error) {
 			break
 		}
 	}
-
-	slog.Info("All sources started, waiting for them to finish...")
-
-	waitForSourcesToFinish(registry, errChan)
 }
 
-func waitForSourcesToFinish(registry Registry, errChan chan<- error) {
+// Wait blocks until all rules have completed processing, and sends any errors
+// that occurred during processing to the provided error channel.
+func Wait(registry Registry, errChan chan<- error) {
 	for current := registry; current != nil; {
 		ctx := current.getCtx()
 

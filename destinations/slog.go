@@ -14,22 +14,27 @@ type Slog[T firehose.Event] struct {
 	Level   slog.Level
 }
 
-// Send writes the event using Go structured logging
+// Send writes the event using Go structured logging.
 func (s Slog[T]) Send(ctx context.Context, event T) error {
 	attributes := event.Attributes(ctx)
 	symbols := boolexpr.NewSymbolsCached(attributes)
 
-	attrs := make([]any, 0, len(attributes)*2+2)
+	const eventAttrsCount = 2
+
+	const pair = 2
+
+	attrs := make([]any, 0, len(attributes)*pair+eventAttrsCount)
 	attrs = append(attrs, "event", event)
 
-	for k := range attributes {
-		v, err := symbols.Get(k)
+	for key := range attributes {
+		value, err := symbols.Get(key)
 		if err != nil {
-			attrs = append(attrs, k, err)
+			attrs = append(attrs, key, err)
+
 			continue
 		}
 
-		attrs = append(attrs, k, v)
+		attrs = append(attrs, key, value)
 	}
 
 	slog.Log(ctx, s.Level, s.Message, attrs...)

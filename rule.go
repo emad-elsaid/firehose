@@ -53,9 +53,9 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 	return nil
 }
 
-// Must be from the source not called internally
+// Must be from the source not called internally.
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
-	reports := make(chan Report, 0)
+	reports := make(chan Report)
 
 	go func() {
 		r.callbackWithSyms(ctx, event, nil, reports)
@@ -81,7 +81,7 @@ func (r *Rule[In, Out]) callNextRule(ctx context.Context, event In, syms boolexp
 
 	callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In])
 	if !ok {
-		reports <- NewReport(StatusError, fmt.Errorf("%w: current rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource))
+		reports <- NewReport(StatusError, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource))
 
 		return
 	}
