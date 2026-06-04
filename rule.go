@@ -53,57 +53,71 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rule[In, Out]) callback(ctx context.Context, event In) error {
-	return r.callbackWithSyms(ctx, event, nil)
+// Must be from the source not called internally
+func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
+	reports := make(chan Report, 0)
+
+	go func() {
+		r.callbackWithSyms(ctx, event, nil, reports)
+		close(reports)
+	}()
+
+	return reports
 }
 
-func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error {
+func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	if r.parsedIf != nil && syms == nil {
 		syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
 	}
 
-	err := r.run(ctx, event, syms)
-	if err != nil {
-		return fmt.Errorf("error processing event in rule with source %T: %w", r.When, err)
-	}
-
-	return r.callNextRule(ctx, event, syms)
+	r.run(ctx, event, syms, reports)
+	r.callNextRule(ctx, event, syms, reports)
 }
 
-func (r *Rule[In, Out]) callNextRule(ctx context.Context, event In, syms boolexpr.Symbols) error {
+func (r *Rule[In, Out]) callNextRule(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	if r.nextSameSource == nil {
-		return nil
+		return
 	}
 
 	callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In])
 	if !ok {
-		return fmt.Errorf("%w: current rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
+		reports <- NewReport(StatusError, fmt.Errorf("%w: current rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource))
+
+		return
 	}
 
-	return callbackable.callbackWithSyms(ctx, event, syms)
+	callbackable.callbackWithSyms(ctx, event, syms, reports)
 }
 
-func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols) error {
+func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	shouldProcess, err := r.shouldProcess(syms)
 	if err != nil {
-		return err
+		reports <- NewReport(StatusConditionError, err)
+
+		return
 	}
 
 	if !shouldProcess {
-		return nil
+		reports <- NewReport(StatusNoMatch, nil)
+
+		return
 	}
 
 	out, err := r.Then.Process(ctx, event)
 	if err != nil {
-		return fmt.Errorf("Action failed: %w", err)
+		reports <- NewReport(StatusActionError, err)
+
+		return
 	}
 
 	err = r.To.Send(ctx, out)
 	if err != nil {
-		return fmt.Errorf("Destination failed: %w", err)
+		reports <- NewReport(StatusDestinationError, err)
+
+		return
 	}
 
-	return nil
+	reports <- NewReport(StatusSuccess, nil)
 }
 
 func (r *Rule[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
@@ -113,7 +127,7 @@ func (r *Rule[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
 
 	shouldProcess, err := boolexpr.EvalExpression(*r.parsedIf, syms)
 	if err != nil {
-		return false, fmt.Errorf("Condition evaluation failed: %w", err)
+		return false, err
 	}
 
 	return shouldProcess, nil

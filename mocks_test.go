@@ -24,7 +24,7 @@ func (e *EventMock) Attributes(ctx context.Context) map[string]any {
 type SourceMock[T any] struct {
 	mock.Mock
 	lck     sync.Mutex
-	cb      func(context.Context, T) error
+	cb      SourceCallback[T]
 	cancel  context.CancelFunc
 	id      string
 	started bool
@@ -36,7 +36,7 @@ func newSourceMock[T any](id string) *SourceMock[T] {
 	}
 }
 
-func (m *SourceMock[T]) Start(ctx context.Context, cb func(context.Context, T) error) (context.Context, error) {
+func (m *SourceMock[T]) Start(ctx context.Context, cb SourceCallback[*EventMock]) (context.Context, error) {
 	args := m.Called(ctx, cb)
 	sourceCtx := args.Get(0).(context.Context)
 	sourceCtx, cancel := context.WithCancel(sourceCtx)
@@ -53,14 +53,6 @@ func (m *SourceMock[T]) isStarted() bool {
 	defer m.lck.Unlock()
 
 	return m.started
-}
-
-func (m *SourceMock[T]) emit(ctx context.Context, event T) error {
-	if m.cb == nil {
-		return nil
-	}
-
-	return m.cb(ctx, event)
 }
 
 func (m *SourceMock[T]) Stop() {

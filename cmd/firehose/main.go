@@ -72,6 +72,12 @@ func main() {
 		To: destinations.TwitchStreamInfo{},
 	}
 
+	allProc := &firehose.Rule[events.Process, events.Process]{
+		When: sources.Process{},
+		Then: actions.Yield[events.Process]{},
+		To:   destinations.Slog[events.Process]{},
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
@@ -79,6 +85,7 @@ func main() {
 	r = must(firehose.AddRule(ctx, r, deadCells, events.Process{}))
 	r = must(firehose.AddRule(ctx, r, mk1, events.Process{}))
 	r = must(firehose.AddRule(ctx, r, emacs, events.Process{}))
+	r = must(firehose.AddRule(ctx, r, allProc, events.Process{}))
 
 	errs := make(chan error)
 	go firehose.Start(ctx, r, errs)

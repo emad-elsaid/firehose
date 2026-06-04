@@ -28,7 +28,12 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
-		require.NoError(t, rule.callback(t.Context(), in))
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+		for _, report := range reports {
+			require.NoError(t, report.Err)
+		}
 	})
 
 	t.Run("callback with action error", func(t *testing.T) {
@@ -46,7 +51,13 @@ func TestRuleCallback(t *testing.T) {
 
 		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 
-		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+
+		for _, report := range reports {
+			require.ErrorIs(t, report.Err, os.ErrClosed)
+		}
 	})
 
 	t.Run("callback with destination error", func(t *testing.T) {
@@ -65,7 +76,13 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
 		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
 
-		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+
+		for _, report := range reports {
+			require.ErrorIs(t, report.Err, os.ErrClosed)
+		}
 	})
 
 	t.Run("callback chains to next rule with same source", func(t *testing.T) {
@@ -98,10 +115,16 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in).Return(in, nil).Twice()
 		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
-		require.NoError(t, rule1.callback(t.Context(), in))
+		reports := chanToSlice(rule1.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 2)
+
+		for _, report := range reports {
+			require.NoError(t, report.Err, in)
+		}
 	})
 
-	t.Run("callback chain stops on action error in first rule", func(t *testing.T) {
+	t.Run("callback chain continue on action error in first rule", func(t *testing.T) {
 		in := new(EventMock)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
@@ -129,8 +152,14 @@ func TestRuleCallback(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
+		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
-		require.Error(t, rule1.callback(t.Context(), in), os.ErrClosed)
+		reports := chanToSlice(rule1.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 2)
+		require.ErrorIs(t, reports[0].Err, os.ErrClosed)
+		require.NoError(t, reports[1].Err)
 	})
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
@@ -161,11 +190,14 @@ func TestRuleCallback(t *testing.T) {
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
-		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
-
-		require.Error(t, rule1.callback(t.Context(), in), os.ErrClosed)
+		reports := chanToSlice(rule1.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 2)
+		require.NoError(t, reports[0].Err)
+		require.ErrorIs(t, reports[1].Err, os.ErrClosed)
 	})
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
@@ -207,7 +239,13 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in).Return(in, nil).Times(3)
 		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 
-		require.NoError(t, rule1.callback(t.Context(), in))
+		reports := chanToSlice(rule1.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 3)
+
+		for _, report := range reports {
+			require.NoError(t, report.Err)
+		}
 	})
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
@@ -231,7 +269,12 @@ func TestRuleCallback(t *testing.T) {
 		// Create a mock sourceRegistry with incompatible type
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
 
-		require.Error(t, rule.callback(t.Context(), in))
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 2)
+
+		require.NoError(t, reports[0].Err)
+		require.ErrorIs(t, reports[1].Err, ErrIncompatibleSource)
 	})
 }
 
@@ -266,7 +309,13 @@ func TestRuleWithCondition(t *testing.T) {
 		action.On("Process", t.Context(), in).Return(in, nil).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
-		require.NoError(t, rule.callback(t.Context(), in))
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+
+		for _, report := range reports {
+			require.NoError(t, report.Err)
+		}
 	})
 
 	t.Run("callback with condition that evaluates to false", func(t *testing.T) {
@@ -294,7 +343,13 @@ func TestRuleWithCondition(t *testing.T) {
 		_, err := AddRule(t.Context(), nil, rule, in)
 		require.NoError(t, err)
 
-		require.NoError(t, rule.callback(t.Context(), in))
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+
+		for _, report := range reports {
+			require.NoError(t, report.Err)
+		}
 	})
 
 	t.Run("callback with condition that error while eval", func(t *testing.T) {
@@ -324,7 +379,14 @@ func TestRuleWithCondition(t *testing.T) {
 		_, err := AddRule(t.Context(), nil, rule, in)
 		require.NoError(t, err)
 
-		require.ErrorIs(t, rule.callback(t.Context(), in), os.ErrClosed)
+		reports := chanToSlice(rule.callback(t.Context(), in))
+		require.NotNil(t, reports)
+		require.Len(t, reports, 1)
+
+		for _, report := range reports {
+			require.ErrorIs(t, report.Err, os.ErrClosed)
+			require.Equal(t, report.Status, StatusConditionError)
+		}
 	})
 
 	t.Run("callback with faulty condition", func(t *testing.T) {
@@ -346,4 +408,13 @@ func TestRuleWithCondition(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, registry)
 	})
+}
+
+func chanToSlice[T any](ch <-chan T) []T {
+	var result []T
+	for v := range ch {
+		result = append(result, v)
+	}
+
+	return result
 }

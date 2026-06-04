@@ -7,13 +7,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/events"
 	"github.com/emad-elsaid/types"
 )
 
 type Process struct{}
 
-func (s Process) Start(ctx context.Context, callback func(context.Context, events.Process) error) (context.Context, error) {
+func (s Process) Start(ctx context.Context, callback firehose.SourceCallback[events.Process]) (context.Context, error) {
 	sourceCtx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -43,9 +44,11 @@ func (s Process) Start(ctx context.Context, callback func(context.Context, event
 				newPIDs := current.Difference(last)
 
 				for _, pid := range newPIDs.ToSlice() {
-					err = callback(sourceCtx, pidToProcess(pid))
-					if err != nil {
-						slog.Error("Error processing new process event", "error", err)
+					reports := callback(sourceCtx, pidToProcess(pid))
+					for report := range reports {
+						if report.Err != nil {
+							slog.Error("Error processing new process event", "error", report.Err)
+						}
 					}
 				}
 

@@ -13,7 +13,7 @@ type Event interface {
 
 // Source produces events of type T.
 type Source[T any] interface {
-	Start(ctx context.Context, cb func(context.Context, T) error) (done context.Context, err error)
+	Start(ctx context.Context, cb SourceCallback[T]) (done context.Context, err error)
 }
 
 // Condition evaluates input events to determine if they should be processed.
@@ -52,6 +52,8 @@ type sourceRegistry interface {
 	getRegistry() Registry
 }
 
+type SourceCallback[T any] func(context.Context, T) <-chan Report
+
 type callbackable[In any] interface {
-	callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols) error
+	callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
 }

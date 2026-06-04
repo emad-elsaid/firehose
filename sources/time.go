@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/events"
 )
 
@@ -20,7 +21,7 @@ func (t Time) ID() string {
 }
 
 // Start begins emitting time events at the configured period.
-func (t Time) Start(ctx context.Context, callback timeCallback) (context.Context, error) {
+func (t Time) Start(ctx context.Context, callback firehose.SourceCallback[events.Time]) (context.Context, error) {
 	done, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(t.Period)
 
@@ -29,7 +30,7 @@ func (t Time) Start(ctx context.Context, callback timeCallback) (context.Context
 	return done, nil
 }
 
-func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker *time.Ticker, callback timeCallback) {
+func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker *time.Ticker, callback firehose.SourceCallback[events.Time]) {
 	for {
 		select {
 		case now := <-ticker.C:
@@ -44,11 +45,11 @@ func (t Time) tick(ctx, done context.Context, cancel context.CancelFunc, ticker 
 	}
 }
 
-func (t Time) emit(ctx context.Context, now time.Time, callback timeCallback) {
-	err := callback(ctx, events.Time(now))
-	if err != nil {
-		slog.Error("error in time event callback", "time", t, "error", err)
+func (t Time) emit(ctx context.Context, now time.Time, callback firehose.SourceCallback[events.Time]) {
+	reports := callback(ctx, events.Time(now))
+	for report := range reports {
+		if report.Err != nil {
+			slog.Error("error in time event callback", "time", t, "error", report.Err)
+		}
 	}
 }
-
-type timeCallback = func(context.Context, events.Time) error
