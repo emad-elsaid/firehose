@@ -13,6 +13,11 @@ import (
 
 func activateRules(ctx context.Context) firehose.Registry {
 	exampleProc := events.Process{PID: 0}
+	exampleTSI := events.TwitchStreamInfo{
+		Title: "",
+		Game:  "",
+		Tags:  []string{},
+	}
 
 	registry := must(firehose.AddRule(ctx, nil, &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
@@ -25,7 +30,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 			},
 		},
 		To: destinations.TwitchStreamInfo{},
-	}, exampleProc))
+	}, exampleProc, exampleTSI))
 
 	registry = must(firehose.AddRule(ctx, registry, &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
@@ -38,7 +43,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 			},
 		},
 		To: destinations.TwitchStreamInfo{},
-	}, exampleProc))
+	}, exampleProc, exampleTSI))
 
 	registry = must(firehose.AddRule(ctx, registry, &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
@@ -51,7 +56,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 			},
 		},
 		To: destinations.TwitchStreamInfo{},
-	}, exampleProc))
+	}, exampleProc, exampleTSI))
 
 	registry = must(firehose.AddRule(ctx, registry, &firehose.Rule[events.Process, events.TwitchStreamInfo]{
 		When: sources.Process{},
@@ -64,7 +69,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 			},
 		},
 		To: destinations.TwitchStreamInfo{},
-	}, exampleProc))
+	}, exampleProc, exampleTSI))
 
 	registry = must(firehose.AddRule(ctx, registry, &firehose.Rule[events.Process, events.Process]{
 		When: sources.Process{},
@@ -74,7 +79,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 			Message: "New",
 			Level:   slog.LevelInfo,
 		},
-	}, exampleProc))
+	}, exampleProc, exampleProc))
 
 	return registry
 }

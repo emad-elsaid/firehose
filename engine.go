@@ -5,20 +5,32 @@ import (
 )
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[In, Out], in In) (Registry, error) {
+func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[In, Out], in In, out Out) (Registry, error) {
 	err := IsValid(ctx, rule)
 	if err != nil {
 		return nil, err
 	}
 
-	middlewares := []Middleware[In, Out]{
-		&PanicRecoveryMiddleware[In, Out]{},
-		&ConditionalMiddleware[In, Out]{},
+	actionMiddlewares := []ActionMiddleware[In, Out]{
+		&PanicActionMiddleware[In, Out]{},
+		&IfActionMiddleware[In, Out]{},
 	}
 
-	for i := len(middlewares) - 1; i >= 0; i-- {
+	for i := len(actionMiddlewares) - 1; i >= 0; i-- {
 		var err error
-		rule.Then, err = middlewares[i].Wrap(ctx, *rule, rule.Then, in)
+		rule.Then, err = actionMiddlewares[i].Wrap(ctx, *rule, rule.Then, in)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	destinationMiddlewares := []DestinationMiddleware[In, Out]{
+		&PanicDestinationMiddleware[In, Out]{},
+	}
+
+	for i := len(destinationMiddlewares) - 1; i >= 0; i-- {
+		var err error
+		rule.To, err = destinationMiddlewares[i].Wrap(ctx, *rule, rule.To, out)
 		if err != nil {
 			return nil, err
 		}

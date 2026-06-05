@@ -57,6 +57,10 @@ type runnable[In any] interface {
 	run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
 }
 
-type Middleware[In, Out Event] interface {
+type ActionMiddleware[In, Out Event] interface {
 	Wrap(context.Context, Rule[In, Out], Action[In, Out], In) (Action[In, Out], error)
+}
+
+type DestinationMiddleware[In, Out Event] interface {
+	Wrap(context.Context, Rule[In, Out], Destination[Out], Out) (Destination[Out], error)
 }

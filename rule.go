@@ -75,8 +75,7 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
 
-	var zeroOut Out
-	if report.Err != nil || any(out) == any(zeroOut) {
+	if report.Err != nil || report.Abort {
 		reports <- report
 
 		return
@@ -89,7 +88,7 @@ func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.
 		return
 	}
 
-	reports <- NewReport(StatusSuccess, nil)
+	reports <- report
 }
 
 func (r *Rule[In, Out]) getNext() Registry                  { return r.next }

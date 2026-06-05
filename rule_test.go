@@ -114,10 +114,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
@@ -155,10 +155,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
@@ -195,10 +195,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
@@ -241,13 +241,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule3, in)
+		registry, err = AddRule(t.Context(), registry, rule3, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}).Times(3)

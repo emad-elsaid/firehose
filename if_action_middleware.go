@@ -9,15 +9,18 @@ import (
 	"github.com/emad-elsaid/boolexpr"
 )
 
-const StatusConditionError Status = "Condition error"
+const (
+	StatusConditionError Status = "Condition error"
+	StatusNoMatch        Status = "No match"
+)
 
-type ConditionalMiddleware[In, Out Event] struct {
+type IfActionMiddleware[In, Out Event] struct {
 	If         string
 	parsedIf   *boolexpr.Expression
 	downstream Action[In, Out]
 }
 
-func (c *ConditionalMiddleware[In, Out]) Wrap(ctx context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error) {
+func (c *IfActionMiddleware[In, Out]) Wrap(ctx context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error) {
 	if rule.If == "" {
 		return action, nil
 	}
@@ -37,7 +40,7 @@ func (c *ConditionalMiddleware[In, Out]) Wrap(ctx context.Context, rule Rule[In,
 	return c, nil
 }
 
-func (c *ConditionalMiddleware[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report) {
+func (c *IfActionMiddleware[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report) {
 	shouldProcess, err := c.shouldProcess(syms)
 	if err != nil {
 		var zero Out
@@ -46,13 +49,13 @@ func (c *ConditionalMiddleware[In, Out]) Process(ctx context.Context, event In, 
 
 	if !shouldProcess {
 		var zero Out
-		return zero, NewReport(StatusNoMatch, nil)
+		return zero, NewAbortReport(StatusNoMatch, nil)
 	}
 
 	return c.downstream.Process(ctx, event, syms)
 }
 
-func (c *ConditionalMiddleware[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
+func (c *IfActionMiddleware[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
 	shouldProcess, err := boolexpr.EvalExpression(*c.parsedIf, syms)
 	if err != nil {
 		return false, err
@@ -61,7 +64,7 @@ func (c *ConditionalMiddleware[In, Out]) shouldProcess(syms boolexpr.Symbols) (b
 	return shouldProcess, nil
 }
 
-func (c *ConditionalMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
+func (c *IfActionMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
 	parsedIf, err := boolexpr.Parse(r.If)
 	if err != nil {
 		return err
@@ -72,7 +75,7 @@ func (c *ConditionalMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
 	return nil
 }
 
-func (c *ConditionalMiddleware[In, Out]) isValidCondition(ctx context.Context, rule *Rule[In, Out], instance In) error {
+func (c *IfActionMiddleware[In, Out]) isValidCondition(ctx context.Context, rule *Rule[In, Out], instance In) error {
 	symsList := boolexpr.ListSymbols(*c.parsedIf)
 	attrs := slices.Collect(maps.Keys(instance.Attributes(ctx)))
 

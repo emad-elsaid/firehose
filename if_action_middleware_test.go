@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConditionalMiddleware(t *testing.T) {
+func TestIfActionMiddleware(t *testing.T) {
 	t.Run("rule with condition that uses non-existing attribute is invalid", func(t *testing.T) {
 		rule := &MockRule{
 			When: newSourceMock[*EventMock]("source1"),
@@ -17,7 +17,7 @@ func TestConditionalMiddleware(t *testing.T) {
 			To:   &MockDestination{},
 		}
 
-		middleware := ConditionalMiddleware[*EventMock, *EventMock]{}
+		middleware := IfActionMiddleware[*EventMock, *EventMock]{}
 
 		in := new(EventMock)
 		in.On("Attributes", t.Context()).Return(nil).Once()
@@ -52,7 +52,7 @@ func TestRuleWithCondition(t *testing.T) {
 			"attr1": "value1",
 		}).Twice()
 
-		_, err := AddRule(t.Context(), nil, rule, in)
+		_, err := AddRule(t.Context(), nil, rule, in, in)
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
@@ -89,7 +89,7 @@ func TestRuleWithCondition(t *testing.T) {
 			"attr1": "value1",
 		}).Twice()
 
-		_, err := AddRule(t.Context(), nil, rule, in)
+		_, err := AddRule(t.Context(), nil, rule, in, in)
 		require.NoError(t, err)
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
@@ -125,7 +125,7 @@ func TestRuleWithCondition(t *testing.T) {
 			},
 		}).Twice()
 
-		_, err := AddRule(t.Context(), nil, rule, in)
+		_, err := AddRule(t.Context(), nil, rule, in, in)
 		require.NoError(t, err)
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
@@ -153,7 +153,7 @@ func TestRuleWithCondition(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule, new(EventMock))
+		registry, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
 		require.Error(t, err)
 		require.Nil(t, registry)
 	})

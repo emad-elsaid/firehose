@@ -9,17 +9,17 @@ import (
 
 const StatusPanicRecovered Status = "Panic recovered"
 
-type PanicRecoveryMiddleware[In, Out Event] struct {
+type PanicActionMiddleware[In, Out Event] struct {
 	downstream Action[In, Out]
 }
 
-func (p *PanicRecoveryMiddleware[In, Out]) Wrap(_ context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error) {
+func (p *PanicActionMiddleware[In, Out]) Wrap(_ context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error) {
 	p.downstream = action
 
 	return p, nil
 }
 
-func (p *PanicRecoveryMiddleware[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (o Out, report Report) {
+func (p *PanicActionMiddleware[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (o Out, report Report) {
 	defer func() {
 		if r := recover(); r != nil {
 			report = NewReport(StatusPanicRecovered, fmt.Errorf("%v", r))

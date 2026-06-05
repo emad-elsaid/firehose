@@ -7,7 +7,6 @@ type Status string
 
 // Predefined status values for processing results.
 const (
-	StatusNoMatch          Status = "No match"
 	StatusSuccess          Status = "Success"
 	StatusError            Status = "Error"
 	StatusActionError      Status = "Action error"
@@ -17,6 +16,7 @@ const (
 // Report represents the result of processing an event through a rule, including the status and any error that occurred.
 type Report struct {
 	Status Status
+	Abort  bool
 	Err    error
 }
 
@@ -25,5 +25,13 @@ func NewReport(status Status, err error) Report {
 	return Report{
 		Status: status,
 		Err:    err,
+	}
+}
+
+func NewAbortReport(status Status, err error) Report {
+	return Report{
+		Status: status,
+		Err:    err,
+		Abort:  true,
 	}
 }
