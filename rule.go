@@ -57,14 +57,14 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	r.runCurrent(ctx, event, syms, reports)
 
+	if !r.hasNextRunnable() {
+		return
+	}
+
 	nextRunnable, err := r.nextRunnable()
 	if err != nil {
 		reports <- NewReport(StatusError, err)
 
-		return
-	}
-
-	if nextRunnable == nil {
 		return
 	}
 
@@ -101,11 +101,11 @@ func (r *Rule[In, Out]) getRegistry() Registry              { return r }
 func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[In, Out]) getSource() any                     { return r.When }
 
-func (r *Rule[In, Out]) nextRunnable() (runnable[In], error) {
-	if r.nextSameSource == nil {
-		return nil, nil
-	}
+func (r *Rule[In, Out]) hasNextRunnable() bool {
+	return r.nextSameSource != nil
+}
 
+func (r *Rule[In, Out]) nextRunnable() (runnable[In], error) {
 	runnable, ok := r.nextSameSource.getRegistry().(runnable[In])
 	if !ok {
 		return nil, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
