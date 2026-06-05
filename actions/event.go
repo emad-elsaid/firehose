@@ -3,6 +3,7 @@ package actions
 import (
 	"context"
 
+	"github.com/emad-elsaid/boolexpr"
 	"github.com/emad-elsaid/firehose"
 )
 
@@ -12,6 +13,6 @@ type Event[In, Out firehose.Event] struct {
 }
 
 // Process returns the configured event as output.
-func (e Event[In, Out]) Process(_ context.Context, _ In) (Out, error) {
-	return e.Output, nil
+func (e Event[In, Out]) Process(_ context.Context, _ In, _ boolexpr.Symbols) (Out, firehose.Report) {
+	return e.Output, firehose.NewReport(firehose.StatusSuccess, nil)
 }

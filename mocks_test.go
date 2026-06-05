@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/emad-elsaid/boolexpr"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -69,10 +70,10 @@ type ActionMock[In, Out any] struct {
 	mock.Mock
 }
 
-func (m *ActionMock[In, Out]) Process(ctx context.Context, event In) (Out, error) {
-	args := m.Called(ctx, event)
+func (m *ActionMock[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report) {
+	args := m.Called(ctx, event, syms)
 
-	return args.Get(0).(Out), args.Error(1)
+	return args.Get(0).(Out), args.Get(1).(Report)
 }
 
 type DestinationMock[T any] struct {

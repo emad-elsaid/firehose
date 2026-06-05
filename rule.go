@@ -22,20 +22,8 @@ type Rule[In, Out Event] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	ctx      context.Context
-	parsedIf *boolexpr.Expression
+	ctx context.Context
 }
-
-func (r *Rule[In, Out]) getNext() Registry                  { return r.next }
-func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
-func (r *Rule[In, Out]) getPrev() Registry                  { return r.prev }
-func (r *Rule[In, Out]) setPrev(p Registry)                 { r.prev = p }
-func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
-func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
-func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry  { return r }
-func (r *Rule[In, Out]) getRegistry() Registry              { return r }
-func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
-func (r *Rule[In, Out]) getSource() any                     { return r.When }
 
 func (r *Rule[In, Out]) start(ctx context.Context) error {
 	isFirstSameSource := r.prevSameSource == nil
@@ -58,59 +46,43 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 	reports := make(chan Report)
 
 	go func() {
-		r.callbackWithSyms(ctx, event, nil, reports)
+		r.run(ctx, event, nil, reports)
 		close(reports)
 	}()
 
 	return reports
 }
 
-func (r *Rule[In, Out]) callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
-	if r.parsedIf != nil && syms == nil {
-		syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
-	}
-
-	r.run(ctx, event, syms, reports)
-	r.callNextRule(ctx, event, syms, reports)
-}
-
-func (r *Rule[In, Out]) callNextRule(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
-	if r.nextSameSource == nil {
-		return
-	}
-
-	callbackable, ok := r.nextSameSource.getRegistry().(callbackable[In])
-	if !ok {
-		reports <- NewReport(StatusError, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource))
-
-		return
-	}
-
-	callbackable.callbackWithSyms(ctx, event, syms, reports)
-}
-
 func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
-	shouldProcess, err := r.shouldProcess(syms)
+	syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
+
+	r.runCurrent(ctx, event, syms, reports)
+
+	nextRunnable, err := r.nextRunnable()
 	if err != nil {
-		reports <- NewReport(StatusConditionError, err)
+		reports <- NewReport(StatusError, err)
 
 		return
 	}
 
-	if !shouldProcess {
-		reports <- NewReport(StatusNoMatch, nil)
+	if nextRunnable == nil {
+		return
+	}
+
+	nextRunnable.run(ctx, event, syms, reports)
+}
+
+func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
+	out, report := r.Then.Process(ctx, event, syms)
+
+	var zeroOut Out
+	if report.Err != nil || any(out) == any(zeroOut) {
+		reports <- report
 
 		return
 	}
 
-	out, err := r.Then.Process(ctx, event)
-	if err != nil {
-		reports <- NewReport(StatusActionError, err)
-
-		return
-	}
-
-	err = r.To.Send(ctx, out)
+	err := r.To.Send(ctx, out)
 	if err != nil {
 		reports <- NewReport(StatusDestinationError, err)
 
@@ -120,30 +92,26 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 	reports <- NewReport(StatusSuccess, nil)
 }
 
-func (r *Rule[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
-	if r.parsedIf == nil {
-		return true, nil
+func (r *Rule[In, Out]) getNext() Registry                  { return r.next }
+func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
+func (r *Rule[In, Out]) getPrev() Registry                  { return r.prev }
+func (r *Rule[In, Out]) setPrev(p Registry)                 { r.prev = p }
+func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
+func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
+func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry  { return r }
+func (r *Rule[In, Out]) getRegistry() Registry              { return r }
+func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
+func (r *Rule[In, Out]) getSource() any                     { return r.When }
+
+func (r *Rule[In, Out]) nextRunnable() (runnable[In], error) {
+	if r.nextSameSource == nil {
+		return nil, nil
 	}
 
-	shouldProcess, err := boolexpr.EvalExpression(*r.parsedIf, syms)
-	if err != nil {
-		return false, err
+	runnable, ok := r.nextSameSource.getRegistry().(runnable[In])
+	if !ok {
+		return nil, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
 	}
 
-	return shouldProcess, nil
-}
-
-func (r *Rule[In, Out]) parseCondition() error {
-	if r.If == "" {
-		return nil
-	}
-
-	parsedIf, err := boolexpr.Parse(r.If)
-	if err != nil {
-		return err
-	}
-
-	r.parsedIf = &parsedIf
-
-	return nil
+	return runnable, nil
 }

@@ -16,14 +16,9 @@ type Source[T any] interface {
 	Start(ctx context.Context, cb SourceCallback[T]) (done context.Context, err error)
 }
 
-// Condition evaluates input events to determine if they should be processed.
-type Condition[In any] interface {
-	Eval(ctx context.Context, event In) (bool, error)
-}
-
 // Action transforms input events to output events.
 type Action[In, Out any] interface {
-	Process(ctx context.Context, event In) (Out, error)
+	Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report)
 }
 
 // Destination consumes events of type T.
@@ -58,6 +53,10 @@ type sourceRegistry interface {
 // event through each rule.
 type SourceCallback[T any] func(context.Context, T) <-chan Report
 
-type callbackable[In any] interface {
-	callbackWithSyms(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
+type runnable[In any] interface {
+	run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
+}
+
+type Middleware[In, Out Event] interface {
+	Wrap(context.Context, Rule[In, Out], Action[In, Out], In) (Action[In, Out], error)
 }

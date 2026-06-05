@@ -10,7 +10,6 @@ const (
 	StatusNoMatch          Status = "No match"
 	StatusSuccess          Status = "Success"
 	StatusError            Status = "Error"
-	StatusConditionError   Status = "Condition error"
 	StatusActionError      Status = "Action error"
 	StatusDestinationError Status = "Destination error"
 )

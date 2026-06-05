@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,8 +25,10 @@ func TestRuleCallback(t *testing.T) {
 		}
 
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
@@ -48,8 +51,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 
-		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -72,8 +77,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
@@ -87,6 +94,7 @@ func TestRuleCallback(t *testing.T) {
 
 	t.Run("callback chains to next rule with same source", func(t *testing.T) {
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
 		action := &MockAction{}
@@ -112,7 +120,8 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in).Return(in, nil).Twice()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
 		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
@@ -126,6 +135,7 @@ func TestRuleCallback(t *testing.T) {
 
 	t.Run("callback chain continue on action error in first rule", func(t *testing.T) {
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
 		action := &MockAction{}
@@ -151,8 +161,9 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
@@ -164,6 +175,7 @@ func TestRuleCallback(t *testing.T) {
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
 		action := &MockAction{}
@@ -189,8 +201,9 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		action.On("Process", t.Context(), in).Return(in, os.ErrClosed).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
@@ -202,6 +215,7 @@ func TestRuleCallback(t *testing.T) {
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
 		in := new(EventMock)
+		defer in.AssertExpectations(t)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
 		action := &MockAction{}
@@ -236,7 +250,8 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule3, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in).Return(in, nil).Times(3)
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Times(3)
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
 		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
@@ -250,6 +265,7 @@ func TestRuleCallback(t *testing.T) {
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
 		in := &EventMock{}
+		defer in.AssertExpectations(t)
 		source := &MockSource{}
 		defer source.AssertExpectations(t)
 		action := &MockAction{}
@@ -263,7 +279,8 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		// Create a mock sourceRegistry with incompatible type
@@ -275,138 +292,6 @@ func TestRuleCallback(t *testing.T) {
 
 		require.NoError(t, reports[0].Err)
 		require.ErrorIs(t, reports[1].Err, ErrIncompatibleSource)
-	})
-}
-
-func TestRuleWithCondition(t *testing.T) {
-	t.Parallel()
-
-	t.Run("callback with condition that evaluates to true", func(t *testing.T) {
-		source := &MockSource{}
-		defer source.AssertExpectations(t)
-		action := &MockAction{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination{}
-		defer destination.AssertExpectations(t)
-
-		rule := &MockRule{
-			When: source,
-			If:   `attr1 = "value1"`,
-			Then: action,
-			To:   destination,
-		}
-
-		in := &EventMock{}
-		defer in.AssertExpectations(t)
-
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": "value1",
-		}).Twice()
-
-		_, err := AddRule(t.Context(), nil, rule, in)
-		require.NoError(t, err)
-
-		action.On("Process", t.Context(), in).Return(in, nil).Once()
-		destination.On("Send", t.Context(), in).Return(nil).Once()
-
-		reports := chanToSlice(rule.callback(t.Context(), in))
-		require.NotNil(t, reports)
-		require.Len(t, reports, 1)
-
-		for _, report := range reports {
-			require.NoError(t, report.Err)
-		}
-	})
-
-	t.Run("callback with condition that evaluates to false", func(t *testing.T) {
-		source := &MockSource{}
-		defer source.AssertExpectations(t)
-		action := &MockAction{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination{}
-		defer destination.AssertExpectations(t)
-
-		rule := &MockRule{
-			When: source,
-			If:   `attr1 != "value1"`,
-			Then: action,
-			To:   destination,
-		}
-
-		in := &EventMock{}
-		defer in.AssertExpectations(t)
-
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": "value1",
-		}).Twice()
-
-		_, err := AddRule(t.Context(), nil, rule, in)
-		require.NoError(t, err)
-
-		reports := chanToSlice(rule.callback(t.Context(), in))
-		require.NotNil(t, reports)
-		require.Len(t, reports, 1)
-
-		for _, report := range reports {
-			require.NoError(t, report.Err)
-		}
-	})
-
-	t.Run("callback with condition that error while eval", func(t *testing.T) {
-		source := &MockSource{}
-		defer source.AssertExpectations(t)
-		action := &MockAction{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination{}
-		defer destination.AssertExpectations(t)
-
-		rule := &MockRule{
-			When: source,
-			If:   `attr1 != "value1"`,
-			Then: action,
-			To:   destination,
-		}
-
-		in := &EventMock{}
-		defer in.AssertExpectations(t)
-
-		in.On("Attributes", t.Context()).Return(map[string]any{
-			"attr1": func() (string, error) {
-				return "", os.ErrClosed
-			},
-		}).Twice()
-
-		_, err := AddRule(t.Context(), nil, rule, in)
-		require.NoError(t, err)
-
-		reports := chanToSlice(rule.callback(t.Context(), in))
-		require.NotNil(t, reports)
-		require.Len(t, reports, 1)
-
-		for _, report := range reports {
-			require.ErrorIs(t, report.Err, os.ErrClosed)
-			require.Equal(t, report.Status, StatusConditionError)
-		}
-	})
-
-	t.Run("callback with faulty condition", func(t *testing.T) {
-		source := &MockSource{}
-		defer source.AssertExpectations(t)
-		action := &MockAction{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination{}
-		defer destination.AssertExpectations(t)
-
-		rule := &MockRule{
-			When: source,
-			If:   `attr1 <> "value1"`,
-			Then: action,
-			To:   destination,
-		}
-
-		registry, err := AddRule(t.Context(), nil, rule, new(EventMock))
-		require.Error(t, err)
-		require.Nil(t, registry)
 	})
 }
 

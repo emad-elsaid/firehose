@@ -6,14 +6,22 @@ import (
 
 // AddRule registers a new processing rule in the context.
 func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[In, Out], in In) (Registry, error) {
-	err := IsValid(ctx, rule, in)
+	err := IsValid(ctx, rule)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rule.parseCondition()
-	if err != nil {
-		return nil, err
+	middlewares := []Middleware[In, Out]{
+		&PanicRecoveryMiddleware[In, Out]{},
+		&ConditionalMiddleware[In, Out]{},
+	}
+
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		var err error
+		rule.Then, err = middlewares[i].Wrap(ctx, *rule, rule.Then, in)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	head := registry
