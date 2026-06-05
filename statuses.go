@@ -28,6 +28,8 @@ func NewReport(status Status, err error) Report {
 	}
 }
 
+// NewAbortReport creates a new Report with the given status and error, setting Abort to true
+// to signal that processing should halt.
 func NewAbortReport(status Status, err error) Report {
 	return Report{
 		Status: status,

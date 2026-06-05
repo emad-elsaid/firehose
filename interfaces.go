@@ -57,10 +57,14 @@ type runnable[In any] interface {
 	run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
 }
 
+// ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,
+// panic recovery, or logging.
 type ActionMiddleware[In, Out Event] interface {
 	Wrap(context.Context, Rule[In, Out], Action[In, Out], In) (Action[In, Out], error)
 }
 
+// DestinationMiddleware wraps destinations to add cross-cutting concerns such as panic recovery,
+// retry logic, or telemetry.
 type DestinationMiddleware[In, Out Event] interface {
 	Wrap(context.Context, Rule[In, Out], Destination[Out], Out) (Destination[Out], error)
 }

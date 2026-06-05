@@ -2,6 +2,7 @@ package firehose
 
 import (
 	"context"
+	"slices"
 )
 
 // AddRule registers a new processing rule in the context.
@@ -16,9 +17,10 @@ func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[I
 		&IfActionMiddleware[In, Out]{},
 	}
 
-	for i := len(actionMiddlewares) - 1; i >= 0; i-- {
+	for _, v := range slices.Backward(actionMiddlewares) {
 		var err error
-		rule.Then, err = actionMiddlewares[i].Wrap(ctx, *rule, rule.Then, in)
+
+		rule.Then, err = v.Wrap(ctx, *rule, rule.Then, in)
 		if err != nil {
 			return nil, err
 		}
@@ -28,9 +30,10 @@ func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[I
 		&PanicDestinationMiddleware[In, Out]{},
 	}
 
-	for i := len(destinationMiddlewares) - 1; i >= 0; i-- {
+	for _, v := range slices.Backward(destinationMiddlewares) {
 		var err error
-		rule.To, err = destinationMiddlewares[i].Wrap(ctx, *rule, rule.To, out)
+
+		rule.To, err = v.Wrap(ctx, *rule, rule.To, out)
 		if err != nil {
 			return nil, err
 		}
