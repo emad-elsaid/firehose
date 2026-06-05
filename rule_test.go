@@ -120,7 +120,7 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
 		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
@@ -161,7 +161,7 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
@@ -201,7 +201,7 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Twice()
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
@@ -250,7 +250,7 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule3, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Times(3)
+		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
 		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 

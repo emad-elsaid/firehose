@@ -46,7 +46,8 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 	reports := make(chan Report)
 
 	go func() {
-		r.run(ctx, event, nil, reports)
+		syms := boolexpr.NewSymbolsCached(event.Attributes(ctx))
+		r.run(ctx, event, syms, reports)
 		close(reports)
 	}()
 
@@ -54,8 +55,6 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 }
 
 func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
-	syms = boolexpr.NewSymbolsCached(event.Attributes(ctx))
-
 	r.runCurrent(ctx, event, syms, reports)
 
 	nextRunnable, err := r.nextRunnable()
