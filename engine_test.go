@@ -350,10 +350,12 @@ func TestStart(t *testing.T) {
 
 		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 
-		go Start(ctx, registry, errChan)
+		Start(ctx, registry, errChan)
+
 		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
 
 		source.Stop()
+		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
@@ -386,13 +388,14 @@ func TestStart(t *testing.T) {
 		source1.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 		source2.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 
-		go Start(ctx, registry, errChan)
+		Start(ctx, registry, errChan)
 
 		require.Eventually(t, source1.isStarted, time.Second, time.Millisecond*100)
 		require.Eventually(t, source2.isStarted, time.Second, time.Millisecond*100)
 
 		source1.Stop()
 		source2.Stop()
+		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
@@ -414,9 +417,11 @@ func TestStart(t *testing.T) {
 
 		source.On("Start", ctx, mock.Anything).Return(ctx, os.ErrClosed).Once()
 
-		go Start(ctx, registry, errChan)
+		Start(ctx, registry, errChan)
 
 		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
+
+		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
@@ -443,10 +448,12 @@ func TestStart(t *testing.T) {
 
 		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 
-		go Start(ctx, registry, errChan)
+		Start(ctx, registry, errChan)
 
 		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
 		source.Stop()
+
+		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
