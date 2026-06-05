@@ -25,6 +25,7 @@ func NewReport(status Status, err error) Report {
 	return Report{
 		Status: status,
 		Err:    err,
+		Abort:  false,
 	}
 }
 
