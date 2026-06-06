@@ -6,28 +6,56 @@ import (
 )
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[In, Out], in In, out Out) (Registry, error) {
-	err := IsValid(ctx, rule)
+func AddRule[In, Out Event](
+	ctx context.Context,
+	registry Registry,
+	rule *Rule[In, Out],
+	inInstance In,
+	outInstance Out,
+) (Registry, error) {
+	err := IsValid(rule)
 	if err != nil {
 		return nil, err
 	}
 
+	err = wrapActionMiddlewares(ctx, rule, inInstance)
+	if err != nil {
+		return nil, err
+	}
+
+	err = wrapDestinationMiddlewares(ctx, rule, outInstance)
+	if err != nil {
+		return nil, err
+	}
+
+	return addRuleToRegistry(registry, rule), nil
+}
+
+func wrapActionMiddlewares[In, Out Event](
+	ctx context.Context,
+	rule *Rule[In, Out],
+	inInstance In,
+) error {
 	actionMiddlewares := []ActionMiddleware[In, Out]{
-		&PanicActionMiddleware[In, Out]{},
-		&IfActionMiddleware[In, Out]{},
+		&PanicActionMiddleware[In, Out]{downstream: nil},
+		&IfActionMiddleware[In, Out]{parsedIf: nil, downstream: nil},
 	}
 
 	for _, v := range slices.Backward(actionMiddlewares) {
 		var err error
 
-		rule.Then, err = v.Wrap(ctx, *rule, rule.Then, in)
+		rule.Then, err = v.Wrap(ctx, *rule, rule.Then, inInstance)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
+	return nil
+}
+
+func wrapDestinationMiddlewares[In, Out Event](ctx context.Context, rule *Rule[In, Out], out Out) error {
 	destinationMiddlewares := []DestinationMiddleware[In, Out]{
-		&PanicDestinationMiddleware[In, Out]{},
+		&PanicDestinationMiddleware[In, Out]{downstream: nil},
 	}
 
 	for _, v := range slices.Backward(destinationMiddlewares) {
@@ -35,26 +63,28 @@ func AddRule[In, Out Event](ctx context.Context, registry Registry, rule *Rule[I
 
 		rule.To, err = v.Wrap(ctx, *rule, rule.To, out)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	head := registry
+	return nil
+}
 
-	if head == nil {
+func addRuleToRegistry[In, Out Event](registry Registry, rule *Rule[In, Out]) Registry {
+	if registry == nil {
 		rule.setNext(rule)
 		rule.setPrev(rule)
 
-		return rule, nil
+		return rule
 	}
 
-	tail := head.getPrev()
-	sameSourceTail := getSameSourceTail(head, rule.When)
+	tail := registry.getPrev()
+	sameSourceTail := getSameSourceTail(registry, rule.When)
 
-	linkRule(rule, head, tail)
+	linkRule(rule, registry, tail)
 	linkSameSourceRule(rule, sameSourceTail)
 
-	return head, nil
+	return registry
 }
 
 func linkRule(rule Registry, head Registry, tail Registry) {

@@ -10,7 +10,7 @@ func TestIsValid(t *testing.T) {
 	t.Run("empty rule is invalid", func(t *testing.T) {
 		rule := &MockRule{}
 
-		require.Error(t, IsValid(t.Context(), rule))
+		require.Error(t, IsValid(rule))
 	})
 
 	t.Run("rule missing source is invalid", func(t *testing.T) {
@@ -19,7 +19,7 @@ func TestIsValid(t *testing.T) {
 			Then: &MockAction{},
 			To:   &MockDestination{},
 		}
-		require.Error(t, IsValid(t.Context(), rule))
+		require.Error(t, IsValid(rule))
 	})
 
 	t.Run("rule missing action is invalid", func(t *testing.T) {
@@ -29,7 +29,7 @@ func TestIsValid(t *testing.T) {
 			Then: nil,
 			To:   &MockDestination{},
 		}
-		require.Error(t, IsValid(t.Context(), rule))
+		require.Error(t, IsValid(rule))
 	})
 
 	t.Run("rule missing destination is invalid", func(t *testing.T) {
@@ -38,6 +38,6 @@ func TestIsValid(t *testing.T) {
 			Then: &MockAction{},
 			To:   nil,
 		}
-		require.Error(t, IsValid(t.Context(), rule))
+		require.Error(t, IsValid(rule))
 	})
 }

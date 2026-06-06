@@ -19,14 +19,18 @@ const (
 // IfActionMiddleware is an action middleware that conditionally executes actions based on boolean
 // expressions evaluated against event attributes.
 type IfActionMiddleware[In, Out Event] struct {
-	If         string
 	parsedIf   *boolexpr.Expression
 	downstream Action[In, Out]
 }
 
 // Wrap parses and validates the conditional expression from the rule, wrapping the downstream action
 // to be executed only when the condition evaluates to true.
-func (c *IfActionMiddleware[In, Out]) Wrap(ctx context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error) {
+func (c *IfActionMiddleware[In, Out]) Wrap(
+	ctx context.Context,
+	rule Rule[In, Out],
+	action Action[In, Out],
+	inInstance In,
+) (Action[In, Out], error) {
 	if rule.If == "" {
 		return action, nil
 	}
@@ -36,7 +40,7 @@ func (c *IfActionMiddleware[In, Out]) Wrap(ctx context.Context, rule Rule[In, Ou
 		return nil, err
 	}
 
-	err = c.isValidCondition(ctx, &rule, in)
+	err = c.isValidCondition(ctx, inInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +89,7 @@ func (c *IfActionMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
 	return nil
 }
 
-func (c *IfActionMiddleware[In, Out]) isValidCondition(ctx context.Context, rule *Rule[In, Out], instance In) error {
+func (c *IfActionMiddleware[In, Out]) isValidCondition(ctx context.Context, instance In) error {
 	symsList := boolexpr.ListSymbols(*c.parsedIf)
 	attrs := slices.Collect(maps.Keys(instance.Attributes(ctx)))
 
