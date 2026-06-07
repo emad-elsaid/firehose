@@ -8,6 +8,9 @@ import (
 	"github.com/emad-elsaid/firehose"
 )
 
+// StatusPanicRecovered returned when an destination panics.
+const StatusPanicRecovered firehose.Status = "Destination Panicked"
+
 // ErrPanicRecovered is a static error for panic recovery in actions and destinations.
 var ErrPanicRecovered = errors.New("action panicked")
 
@@ -30,12 +33,16 @@ func (p *Panic[In, Out]) Wrap(
 }
 
 // Send executes the downstream destination with panic recovery, converting any panic into an error.
-func (p *Panic[In, Out]) Send(ctx context.Context, event Out) (err error) {
+func (p *Panic[In, Out]) Send(ctx context.Context, event Out) firehose.Report {
+	var report firehose.Report
+
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%w: %v", ErrPanicRecovered, r)
+			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 
-	return p.downstream.Send(ctx, event)
+	report = p.downstream.Send(ctx, event)
+
+	return report
 }

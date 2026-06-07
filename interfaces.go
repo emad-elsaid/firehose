@@ -23,8 +23,7 @@ type Action[In, Out any] interface {
 
 // Destination consumes events of type T.
 type Destination[T any] interface {
-	// TODO change this interface to return report
-	Send(ctx context.Context, event T) error
+	Send(ctx context.Context, event T) Report
 }
 
 // Registry handler that accumulates rules and manages their execution.

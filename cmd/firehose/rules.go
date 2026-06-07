@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/emad-elsaid/firehose"
-	"github.com/emad-elsaid/firehose/actions"
-	"github.com/emad-elsaid/firehose/destinations"
 	"github.com/emad-elsaid/firehose/events"
-	"github.com/emad-elsaid/firehose/sources"
+	"github.com/emad-elsaid/firehose/rules/apps"
+	"github.com/emad-elsaid/firehose/rules/games"
+	"github.com/emad-elsaid/firehose/rules/logging"
 )
 
 func activateRules(ctx context.Context) firehose.Registry {
@@ -19,19 +18,10 @@ func activateRules(ctx context.Context) firehose.Registry {
 		Tags:  []string{},
 	}
 
-	registry := must(firehose.AddRule(ctx, nil,
-		&firehose.Rule[events.Process, events.TwitchStreamInfo]{
-			When: sources.Process{},
-			If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
-			Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-				Output: events.TwitchStreamInfo{
-					Title: "Send Help I'm Being Chased",
-					Game:  "Have a Nice Death",
-					Tags:  []string{english, gaming, linux},
-				},
-			},
-			To: destinations.TwitchStreamInfo{},
-		},
+	registry := must(firehose.AddRule(
+		ctx,
+		nil,
+		&games.HaveANiceDeath,
 		actionMiddlewares[events.Process, events.TwitchStreamInfo],
 		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
 		exampleProc,
@@ -39,18 +29,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 	))
 
 	registry = must(firehose.AddRule(ctx, registry,
-		&firehose.Rule[events.Process, events.TwitchStreamInfo]{
-			When: sources.Process{},
-			If:   `cmd = "./deadcells"`,
-			Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-				Output: events.TwitchStreamInfo{
-					Title: "Playing Dead Cells",
-					Game:  "Dead Cells",
-					Tags:  []string{english, gaming, linux},
-				},
-			},
-			To: destinations.TwitchStreamInfo{},
-		},
+		&games.DeadCells,
 		actionMiddlewares[events.Process, events.TwitchStreamInfo],
 		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
 		exampleProc,
@@ -58,18 +37,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 	))
 
 	registry = must(firehose.AddRule(ctx, registry,
-		&firehose.Rule[events.Process, events.TwitchStreamInfo]{
-			When: sources.Process{},
-			If:   `cmd = "S:\\common\\Mortal Kombat 1\\MK12\\Binaries\\Win64\\MK12.exe\x00MK12"`,
-			Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-				Output: events.TwitchStreamInfo{
-					Title: "Call an ambulance",
-					Game:  "Mortal Kombat 1",
-					Tags:  []string{english, gaming, linux},
-				},
-			},
-			To: destinations.TwitchStreamInfo{},
-		},
+		&games.MortalKombat1,
 		actionMiddlewares[events.Process, events.TwitchStreamInfo],
 		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
 		exampleProc,
@@ -77,18 +45,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 	))
 
 	registry = must(firehose.AddRule(ctx, registry,
-		&firehose.Rule[events.Process, events.TwitchStreamInfo]{
-			When: sources.Process{},
-			If:   `cmd = "/usr/bin/emacs"`,
-			Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-				Output: events.TwitchStreamInfo{
-					Title: "Linux Go Coding No AI",
-					Game:  "Software and Game Development",
-					Tags:  []string{english, "coding", linux, "programming"},
-				},
-			},
-			To: destinations.TwitchStreamInfo{},
-		},
+		&apps.Emacs,
 		actionMiddlewares[events.Process, events.TwitchStreamInfo],
 		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
 		exampleProc,
@@ -96,15 +53,7 @@ func activateRules(ctx context.Context) firehose.Registry {
 	))
 
 	registry = must(firehose.AddRule(ctx, registry,
-		&firehose.Rule[events.Process, events.Process]{
-			When: sources.Process{},
-			If:   ``,
-			Then: actions.Yield[events.Process]{},
-			To: destinations.Slog[events.Process]{
-				Message: "New",
-				Level:   slog.LevelInfo,
-			},
-		},
+		&logging.Process,
 		actionMiddlewares[events.Process, events.Process],
 		destinationMiddlewares[events.Process, events.Process],
 		exampleProc,

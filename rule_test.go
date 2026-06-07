@@ -29,7 +29,7 @@ func TestRuleCallback(t *testing.T) {
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -81,7 +81,7 @@ func TestRuleCallback(t *testing.T) {
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusDestinationError, os.ErrClosed)).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -122,7 +122,7 @@ func TestRuleCallback(t *testing.T) {
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
-		destination.On("Send", t.Context(), in).Return(nil).Twice()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Twice()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -164,7 +164,7 @@ func TestRuleCallback(t *testing.T) {
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -204,7 +204,7 @@ func TestRuleCallback(t *testing.T) {
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
-		destination.On("Send", t.Context(), in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -252,7 +252,7 @@ func TestRuleCallback(t *testing.T) {
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
-		destination.On("Send", t.Context(), in).Return(nil).Times(3)
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Times(3)
 
 		reports := chanToSlice(rule1.callback(t.Context(), in))
 		require.NotNil(t, reports)
@@ -281,7 +281,7 @@ func TestRuleCallback(t *testing.T) {
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(nil).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
 		// Create a mock sourceRegistry with incompatible type
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}

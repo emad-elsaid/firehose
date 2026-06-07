@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/events"
 	"github.com/emad-elsaid/types"
 )
@@ -26,15 +27,15 @@ var ErrNoUserFound = errors.New("no user found with the given credentials")
 type TwitchStreamInfo struct{}
 
 // Send updates the Twitch stream information using the Twitch CLI.
-func (t TwitchStreamInfo) Send(ctx context.Context, event events.TwitchStreamInfo) error {
+func (t TwitchStreamInfo) Send(ctx context.Context, event events.TwitchStreamInfo) firehose.Report {
 	broadcasterID, err := t.broadcasterID(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get broadcaster ID: %w", err)
+		return firehose.NewReport(firehose.StatusDestinationError, fmt.Errorf("failed to get broadcaster ID: %w", err))
 	}
 
 	body, err := t.request(ctx, event)
 	if err != nil {
-		return fmt.Errorf("failed to create Twitch API request: %w", err)
+		return firehose.NewReport(firehose.StatusDestinationError, fmt.Errorf("failed to create Twitch API request: %w", err))
 	}
 
 	cmd := types.Cmd("twitch", "api", "patch", "channels",
@@ -43,14 +44,16 @@ func (t TwitchStreamInfo) Send(ctx context.Context, event events.TwitchStreamInf
 	).WithContext(ctx)
 
 	if cmd.ExitCode() != 0 && !strings.Contains(cmd.Stdout(), "status 204") {
-		return fmt.Errorf("failed to send event to Twitch API: %w,stdout: %s, stderr: %s",
-			cmd.Error(),
-			cmd.Stdout(),
-			cmd.Stderr(),
-		)
+		return firehose.NewReport(
+			firehose.StatusDestinationError,
+			fmt.Errorf("failed to send event to Twitch API: %w,stdout: %s, stderr: %s",
+				cmd.Error(),
+				cmd.Stdout(),
+				cmd.Stderr(),
+			))
 	}
 
-	return nil
+	return firehose.NewReport(firehose.StatusSuccess, nil)
 }
 
 func (t TwitchStreamInfo) request(ctx context.Context, event events.TwitchStreamInfo) ([]byte, error) {

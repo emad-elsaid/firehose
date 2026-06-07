@@ -80,10 +80,10 @@ type DestinationMock[T any] struct {
 	mock.Mock
 }
 
-func (m *DestinationMock[T]) Send(ctx context.Context, event T) error {
+func (m *DestinationMock[T]) Send(ctx context.Context, event T) Report {
 	args := m.Called(ctx, event)
 
-	return args.Error(0)
+	return args.Get(0).(Report)
 }
 
 // mockIncompatibleRegistry is a registry that doesn't implement callbackable

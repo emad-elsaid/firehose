@@ -14,13 +14,6 @@ import (
 	"github.com/golang-cz/devslog"
 )
 
-// Popular tags.
-const (
-	english = "English"
-	gaming  = "gaming"
-	linux   = "linux"
-)
-
 func main() {
 	logger := slog.New(devslog.NewHandler(os.Stdout, nil))
 	slog.SetDefault(logger)

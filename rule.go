@@ -88,14 +88,7 @@ func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.
 		return
 	}
 
-	err := r.To.Send(ctx, out)
-	if err != nil {
-		reports <- NewReport(StatusDestinationError, err)
-
-		return
-	}
-
-	reports <- report
+	reports <- r.To.Send(ctx, out)
 }
 
 func (r *Rule[In, Out]) getNext() Registry                  { return r.next }

@@ -118,5 +118,9 @@ linters:
       - path: cmd/firehose/rules.go
         linters:
           - funlen
+      - path: rules
+        linters:
+          - revive
+          - gochecknoglobals
     paths:
       - _test\.go
