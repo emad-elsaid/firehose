@@ -8,7 +8,7 @@ import (
 
 // Event represents an event with attributes that can be evaluated in conditions.
 type Event interface {
-	Attributes(ctx context.Context) map[string]any
+	Attributes(ctx context.Context) (map[string]any, error)
 }
 
 // Source produces events of type T.
@@ -23,6 +23,7 @@ type Action[In, Out any] interface {
 
 // Destination consumes events of type T.
 type Destination[T any] interface {
+	// TODO change this interface to return report
 	Send(ctx context.Context, event T) error
 }
 

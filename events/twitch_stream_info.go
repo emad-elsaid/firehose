@@ -10,6 +10,6 @@ type TwitchStreamInfo struct {
 }
 
 // Attributes returns the attributes of the Twitch stream information event.
-func (TwitchStreamInfo) Attributes(_ context.Context) map[string]any {
-	return map[string]any{}
+func (TwitchStreamInfo) Attributes(_ context.Context) (map[string]any, error) {
+	return map[string]any{}, nil
 }

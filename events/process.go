@@ -13,13 +13,13 @@ type Process struct {
 }
 
 // Attributes returns the attributes of the process.
-func (p Process) Attributes(_ context.Context) map[string]any {
+func (p Process) Attributes(_ context.Context) (map[string]any, error) {
 	return map[string]any{
 		"pid": p.PID,
 		"cwd": p.Cwd,
 		"exe": p.Exe,
 		"cmd": p.Cmdline,
-	}
+	}, nil
 }
 
 // Cwd returns the current working directory of the process.

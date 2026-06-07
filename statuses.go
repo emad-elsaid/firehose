@@ -1,7 +1,5 @@
 package firehose
 
-import "errors"
-
 // Status represents the outcome of processing an event through a rule,
 // indicating whether it was successful, if there was an error, or if there was
 // no match.
@@ -13,11 +11,7 @@ const (
 	StatusError            Status = "Error"
 	StatusActionError      Status = "Action error"
 	StatusDestinationError Status = "Destination error"
-	StatusPanicRecovered   Status = "Panic recovered"
 )
-
-// ErrPanicRecovered is a static error for panic recovery in actions and destinations.
-var ErrPanicRecovered = errors.New("panic recovered")
 
 // Report represents the result of processing an event through a rule, including the status and any error that occurred.
 type Report struct {

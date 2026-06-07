@@ -1,4 +1,4 @@
-package firehose
+package actions
 
 import (
 	"context"
@@ -7,30 +7,31 @@ import (
 	"slices"
 
 	"github.com/emad-elsaid/boolexpr"
+	"github.com/emad-elsaid/firehose"
 )
 
 const (
 	// StatusConditionError indicates an error occurred while evaluating the conditional expression.
-	StatusConditionError Status = "Condition error"
+	StatusConditionError firehose.Status = "Condition error"
 	// StatusNoMatch indicates the conditional expression evaluated to false.
-	StatusNoMatch Status = "No match"
+	StatusNoMatch firehose.Status = "No match"
 )
 
-// IfActionMiddleware is an action middleware that conditionally executes actions based on boolean
+// If is an action middleware that conditionally executes actions based on boolean
 // expressions evaluated against event attributes.
-type IfActionMiddleware[In, Out Event] struct {
+type If[In, Out firehose.Event] struct {
 	parsedIf   *boolexpr.Expression
-	downstream Action[In, Out]
+	downstream firehose.Action[In, Out]
 }
 
 // Wrap parses and validates the conditional expression from the rule, wrapping the downstream action
 // to be executed only when the condition evaluates to true.
-func (c *IfActionMiddleware[In, Out]) Wrap(
+func (c *If[In, Out]) Wrap(
 	ctx context.Context,
-	rule Rule[In, Out],
-	action Action[In, Out],
+	rule firehose.Rule[In, Out],
+	action firehose.Action[In, Out],
 	inInstance In,
-) (Action[In, Out], error) {
+) (firehose.Action[In, Out], error) {
 	if rule.If == "" {
 		return action, nil
 	}
@@ -52,24 +53,24 @@ func (c *IfActionMiddleware[In, Out]) Wrap(
 
 // Process evaluates the conditional expression and processes the event through the downstream action
 // only if the condition is true, otherwise returns an abort report with StatusNoMatch.
-func (c *IfActionMiddleware[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report) {
+func (c *If[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, firehose.Report) {
 	shouldProcess, err := c.shouldProcess(syms)
 	if err != nil {
 		var zero Out
 
-		return zero, NewReport(StatusConditionError, err)
+		return zero, firehose.NewAbortReport(StatusConditionError, err)
 	}
 
 	if !shouldProcess {
 		var zero Out
 
-		return zero, NewAbortReport(StatusNoMatch, nil)
+		return zero, firehose.NewAbortReport(StatusNoMatch, nil)
 	}
 
 	return c.downstream.Process(ctx, event, syms)
 }
 
-func (c *IfActionMiddleware[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
+func (c *If[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
 	shouldProcess, err := boolexpr.EvalExpression(*c.parsedIf, syms)
 	if err != nil {
 		return false, err
@@ -78,7 +79,7 @@ func (c *IfActionMiddleware[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool
 	return shouldProcess, nil
 }
 
-func (c *IfActionMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
+func (c *If[In, Out]) parseCondition(r firehose.Rule[In, Out]) error {
 	parsedIf, err := boolexpr.Parse(r.If)
 	if err != nil {
 		return err
@@ -89,12 +90,18 @@ func (c *IfActionMiddleware[In, Out]) parseCondition(r Rule[In, Out]) error {
 	return nil
 }
 
-func (c *IfActionMiddleware[In, Out]) isValidCondition(ctx context.Context, instance In) error {
+func (c *If[In, Out]) isValidCondition(ctx context.Context, instance In) error {
 	symsList := boolexpr.ListSymbols(*c.parsedIf)
-	attrs := slices.Collect(maps.Keys(instance.Attributes(ctx)))
+
+	attrs, err := instance.Attributes(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get event attributes: %w", err)
+	}
+
+	attrsSyms := slices.Collect(maps.Keys(attrs))
 
 	for _, sym := range symsList {
-		if !slices.Contains(attrs, sym) {
+		if !slices.Contains(attrsSyms, sym) {
 			return fmt.Errorf("%w: symbol: %s", boolexpr.ErrSymbolNotFound, sym)
 		}
 	}

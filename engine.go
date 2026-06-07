@@ -10,6 +10,8 @@ func AddRule[In, Out Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[In, Out],
+	actionsMiddlewares func() []ActionMiddleware[In, Out],
+	destinationsMiddlewares func() []DestinationMiddleware[In, Out],
 	inInstance In,
 	outInstance Out,
 ) (Registry, error) {
@@ -18,12 +20,12 @@ func AddRule[In, Out Event](
 		return nil, err
 	}
 
-	err = wrapActionMiddlewares(ctx, rule, inInstance)
+	err = wrapActionMiddlewares(ctx, rule, inInstance, actionsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
 
-	err = wrapDestinationMiddlewares(ctx, rule, outInstance)
+	err = wrapDestinationMiddlewares(ctx, rule, outInstance, destinationsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +37,13 @@ func wrapActionMiddlewares[In, Out Event](
 	ctx context.Context,
 	rule *Rule[In, Out],
 	inInstance In,
+	actionMiddlewares func() []ActionMiddleware[In, Out],
 ) error {
-	actionMiddlewares := []ActionMiddleware[In, Out]{
-		&PanicActionMiddleware[In, Out]{downstream: nil},
-		&IfActionMiddleware[In, Out]{parsedIf: nil, downstream: nil},
+	if actionMiddlewares == nil {
+		return nil
 	}
 
-	for _, v := range slices.Backward(actionMiddlewares) {
+	for _, v := range slices.Backward(actionMiddlewares()) {
 		var err error
 
 		rule.Then, err = v.Wrap(ctx, *rule, rule.Then, inInstance)
@@ -53,12 +55,17 @@ func wrapActionMiddlewares[In, Out Event](
 	return nil
 }
 
-func wrapDestinationMiddlewares[In, Out Event](ctx context.Context, rule *Rule[In, Out], out Out) error {
-	destinationMiddlewares := []DestinationMiddleware[In, Out]{
-		&PanicDestinationMiddleware[In, Out]{downstream: nil},
+func wrapDestinationMiddlewares[In, Out Event](
+	ctx context.Context,
+	rule *Rule[In, Out],
+	out Out,
+	destinationMiddlewares func() []DestinationMiddleware[In, Out],
+) error {
+	if destinationMiddlewares == nil {
+		return nil
 	}
 
-	for _, v := range slices.Backward(destinationMiddlewares) {
+	for _, v := range slices.Backward(destinationMiddlewares()) {
 		var err error
 
 		rule.To, err = v.Wrap(ctx, *rule, rule.To, out)

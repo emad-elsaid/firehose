@@ -27,7 +27,7 @@ func TestRuleCallback(t *testing.T) {
 		in := new(EventMock)
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 
@@ -53,7 +53,7 @@ func TestRuleCallback(t *testing.T) {
 		in := new(EventMock)
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 
 		reports := chanToSlice(rule.callback(t.Context(), in))
@@ -79,7 +79,7 @@ func TestRuleCallback(t *testing.T) {
 		in := new(EventMock)
 		defer in.AssertExpectations(t)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
 
@@ -114,13 +114,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
 		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
@@ -155,13 +155,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
@@ -195,13 +195,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
@@ -241,16 +241,16 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule3, in, in)
+		registry, err = AddRule(t.Context(), registry, rule3, nil, nil, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
 		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 
@@ -279,7 +279,7 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}).Once()
+		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
 

@@ -10,12 +10,12 @@ import (
 type Time time.Time
 
 // Attributes returns a map of attributes for the Time event.
-func (t Time) Attributes(_ context.Context) map[string]any {
+func (t Time) Attributes(_ context.Context) (map[string]any, error) {
 	return map[string]any{
 		"seconds": time.Time(t).Second(),
 		"minute":  time.Time(t).Minute(),
 		"hour":    time.Time(t).Hour(),
-	}
+	}, nil
 }
 
 func (t Time) String() string {

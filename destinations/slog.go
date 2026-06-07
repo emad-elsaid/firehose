@@ -16,7 +16,11 @@ type Slog[T firehose.Event] struct {
 
 // Send writes the event using Go structured logging.
 func (s Slog[T]) Send(ctx context.Context, event T) error {
-	attributes := event.Attributes(ctx)
+	attributes, err := event.Attributes(ctx)
+	if err != nil {
+		return err
+	}
+
 	symbols := boolexpr.NewSymbolsCached(attributes)
 
 	const eventAttrsCount = 2

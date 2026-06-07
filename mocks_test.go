@@ -17,9 +17,9 @@ type EventMock struct {
 	mock.Mock
 }
 
-func (e *EventMock) Attributes(ctx context.Context) map[string]any {
+func (e *EventMock) Attributes(ctx context.Context) (map[string]any, error) {
 	args := e.Called(ctx)
-	return args.Get(0).(map[string]any)
+	return args.Get(0).(map[string]any), args.Error(1)
 }
 
 type SourceMock[T any] struct {

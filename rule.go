@@ -46,9 +46,17 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 	reports := make(chan Report)
 
 	go func() {
-		syms := boolexpr.NewSymbolsCached(event.Attributes(ctx))
+		defer close(reports)
+
+		attrs, err := event.Attributes(ctx)
+		if err != nil {
+			reports <- NewReport(StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+
+			return
+		}
+
+		syms := boolexpr.NewSymbolsCached(attrs)
 		r.run(ctx, event, syms, reports)
-		close(reports)
 	}()
 
 	return reports
