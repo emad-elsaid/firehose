@@ -14,6 +14,7 @@ var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[In, Out Event] struct {
+	ID   string
 	When Source[In] `validate:"required"`
 	If   string
 	Then Action[In, Out]  `validate:"required"`
@@ -22,7 +23,8 @@ type Rule[In, Out Event] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	ctx context.Context
+	ctx             context.Context
+	wrappedCallback SourceCallback[In]
 }
 
 func (r *Rule[In, Out]) start(ctx context.Context) error {
@@ -31,7 +33,14 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 		return nil
 	}
 
-	ctx, err := r.When.Start(ctx, r.callback)
+	// use default callback function if not wrapped by any middleware,
+	// otherwise use the wrapped callback.
+	cb := r.callback
+	if r.wrappedCallback != nil {
+		cb = r.wrappedCallback
+	}
+
+	ctx, err := r.When.Start(ctx, cb)
 	if err != nil {
 		return fmt.Errorf("failed to start source: %w", err)
 	}
@@ -45,21 +54,23 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
 	reports := make(chan Report)
 
-	go func() {
-		defer close(reports)
-
-		attrs, err := event.Attributes(ctx)
-		if err != nil {
-			reports <- NewReport(StatusError, fmt.Errorf("failed to get event attributes: %w", err))
-
-			return
-		}
-
-		syms := boolexpr.NewSymbolsCached(attrs)
-		r.run(ctx, event, syms, reports)
-	}()
+	go r.callbackWithChan(ctx, event, reports)
 
 	return reports
+}
+
+func (r *Rule[In, Out]) callbackWithChan(ctx context.Context, event In, reports chan<- Report) {
+	defer close(reports)
+
+	attrs, err := event.Attributes(ctx)
+	if err != nil {
+		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+
+		return
+	}
+
+	syms := boolexpr.NewSymbolsCached(attrs)
+	r.run(ctx, event, syms, reports)
 }
 
 func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
@@ -71,7 +82,7 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 
 	nextRunnable, err := r.nextRunnable()
 	if err != nil {
-		reports <- NewReport(StatusError, err)
+		reports <- NewRuleReport(r.ID, StatusError, err)
 
 		return
 	}
@@ -81,6 +92,7 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 
 func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
+	report.Rule = r.ID
 
 	if report.Err != nil || report.Abort {
 		reports <- report
@@ -88,7 +100,10 @@ func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.
 		return
 	}
 
-	reports <- r.To.Send(ctx, out)
+	report = r.To.Send(ctx, out)
+	report.Rule = r.ID
+
+	reports <- report
 }
 
 func (r *Rule[In, Out]) getNext() Registry                  { return r.next }

@@ -10,12 +10,18 @@ func AddRule[In, Out Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[In, Out],
+	callbackMiddlewares func() []CallbackMiddleware[In, Out],
 	actionsMiddlewares func() []ActionMiddleware[In, Out],
 	destinationsMiddlewares func() []DestinationMiddleware[In, Out],
 	inInstance In,
 	outInstance Out,
 ) (Registry, error) {
 	err := IsValid(rule)
+	if err != nil {
+		return nil, err
+	}
+
+	err = wrapCallbackMiddlewares(ctx, rule, inInstance, callbackMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +37,30 @@ func AddRule[In, Out Event](
 	}
 
 	return addRuleToRegistry(registry, rule), nil
+}
+
+func wrapCallbackMiddlewares[In, Out Event](
+	ctx context.Context,
+	rule *Rule[In, Out],
+	inInstance In,
+	callbackMiddlewares func() []CallbackMiddleware[In, Out],
+) error {
+	if callbackMiddlewares == nil {
+		return nil
+	}
+
+	rule.wrappedCallback = rule.callback
+
+	for _, v := range slices.Backward(callbackMiddlewares()) {
+		var err error
+
+		rule.wrappedCallback, err = v.Wrap(ctx, *rule, rule.wrappedCallback, inInstance)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func wrapActionMiddlewares[In, Out Event](

@@ -9,6 +9,7 @@ import (
 )
 
 var Emacs = firehose.Rule[events.Process, events.TwitchStreamInfo]{
+	ID:   "emacs",
 	When: sources.Process{},
 	If:   `cmd = "/usr/bin/emacs"`,
 	Then: actions.Event[events.Process, events.TwitchStreamInfo]{

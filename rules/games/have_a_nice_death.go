@@ -9,6 +9,7 @@ import (
 )
 
 var HaveANiceDeath = firehose.Rule[events.Process, events.TwitchStreamInfo]{
+	ID:   "have_a_nice_death",
 	When: sources.Process{},
 	If:   `cmd = "S:\\common\\Have A Nice Death\\HaveaNiceDeath.exe"`,
 	Then: actions.Event[events.Process, events.TwitchStreamInfo]{

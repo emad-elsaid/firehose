@@ -10,6 +10,7 @@ import (
 
 	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/middlewares/actions"
+	"github.com/emad-elsaid/firehose/middlewares/callbacks"
 	"github.com/emad-elsaid/firehose/middlewares/destinations"
 	"github.com/golang-cz/devslog"
 )
@@ -36,6 +37,12 @@ func main() {
 		}
 
 		slog.Error(i.Error())
+	}
+}
+
+func callbackMiddlewares[In, Out firehose.Event]() []firehose.CallbackMiddleware[In, Out] {
+	return []firehose.CallbackMiddleware[In, Out]{
+		&callbacks.Slog[In, Out]{},
 	}
 }
 

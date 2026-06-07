@@ -68,3 +68,8 @@ type ActionMiddleware[In, Out Event] interface {
 type DestinationMiddleware[In, Out Event] interface {
 	Wrap(ctx context.Context, rule Rule[In, Out], destination Destination[Out], out Out) (Destination[Out], error)
 }
+
+// CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.
+type CallbackMiddleware[In, Out Event] interface {
+	Wrap(ctx context.Context, rule Rule[In, Out], callback SourceCallback[In], in In) (SourceCallback[In], error)
+}

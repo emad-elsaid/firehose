@@ -9,6 +9,7 @@ import (
 )
 
 var DeadCells = firehose.Rule[events.Process, events.TwitchStreamInfo]{
+	ID:   "dead_cells",
 	When: sources.Process{},
 	If:   `cmd = "./deadcells"`,
 	Then: actions.Event[events.Process, events.TwitchStreamInfo]{

@@ -114,10 +114,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -155,10 +155,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -195,10 +195,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -241,13 +241,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule3, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule3, nil, nil, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()

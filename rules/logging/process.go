@@ -11,6 +11,7 @@ import (
 )
 
 var Process = firehose.Rule[events.Process, events.Process]{
+	ID:   "logging_process",
 	When: sources.Process{},
 	If:   ``,
 	Then: actions.Yield[events.Process]{},

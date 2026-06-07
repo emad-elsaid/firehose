@@ -9,6 +9,7 @@ import (
 )
 
 var MortalKombat1 = firehose.Rule[events.Process, events.TwitchStreamInfo]{
+	ID:   "mortal_kombat_1",
 	When: sources.Process{},
 	If:   `cmd = "S:\\common\\Mortal Kombat 1\\MK12\\Binaries\\Win64\\MK12.exe\x00MK12"`,
 	Then: actions.Event[events.Process, events.TwitchStreamInfo]{
