@@ -3,57 +3,33 @@ package main
 import (
 	"context"
 
-	"github.com/emad-elsaid/firehose"
-	"github.com/emad-elsaid/firehose/events"
+	fh "github.com/emad-elsaid/firehose"
+	evt "github.com/emad-elsaid/firehose/events"
 	"github.com/emad-elsaid/firehose/rules/apps"
 	"github.com/emad-elsaid/firehose/rules/games"
+	"github.com/emad-elsaid/firehose/rules/twitch"
 )
 
-func activateRules(ctx context.Context) firehose.Registry {
-	exampleProc := events.Process{PID: 0}
-	exampleTSI := events.TwitchStreamInfo{
+func activateRules(ctx context.Context) fh.Registry {
+	proc := evt.Process{PID: 0}
+	tsi := evt.TwitchStreamInfo{
 		Title: "",
 		Game:  "",
 		Tags:  []string{},
 	}
+	kp := evt.KeyPress{Key: 0}
+	httpReq := evt.HTTPReq{}
+	httpRes := evt.HTTPRes{}
+	tm := evt.TwitchMessage{}
+	as := evt.AddScore{}
 
-	registry := must(firehose.AddRule(
-		ctx,
-		nil,
-		&games.HaveANiceDeath,
-		callbackMiddlewares[events.Process, events.TwitchStreamInfo],
-		actionMiddlewares[events.Process, events.TwitchStreamInfo],
-		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
-		exampleProc,
-		exampleTSI,
-	))
-
-	registry = must(firehose.AddRule(ctx, registry,
-		&games.DeadCells,
-		callbackMiddlewares[events.Process, events.TwitchStreamInfo],
-		actionMiddlewares[events.Process, events.TwitchStreamInfo],
-		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
-		exampleProc,
-		exampleTSI,
-	))
-
-	registry = must(firehose.AddRule(ctx, registry,
-		&games.MortalKombat1,
-		callbackMiddlewares[events.Process, events.TwitchStreamInfo],
-		actionMiddlewares[events.Process, events.TwitchStreamInfo],
-		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
-		exampleProc,
-		exampleTSI,
-	))
-
-	registry = must(firehose.AddRule(ctx, registry,
-		&apps.Emacs,
-		callbackMiddlewares[events.Process, events.TwitchStreamInfo],
-		actionMiddlewares[events.Process, events.TwitchStreamInfo],
-		destinationMiddlewares[events.Process, events.TwitchStreamInfo],
-		exampleProc,
-		exampleTSI,
-	))
+	registry := addRule(ctx, nil, &games.HaveANiceDeath, proc, tsi)
+	registry = addRule(ctx, registry, &games.DeadCells, proc, tsi)
+	registry = addRule(ctx, registry, &games.MortalKombat1, proc, tsi)
+	registry = addRule(ctx, registry, &apps.Emacs, proc, tsi)
+	registry = addRule(ctx, nil, &twitch.Race, httpReq, httpRes)
+	registry = addRule(ctx, registry, &twitch.Me, kp, as)
+	registry = addRule(ctx, registry, &twitch.Chat, tm, as)
 
 	return registry
 }

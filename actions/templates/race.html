@@ -1,0 +1,93 @@
+{{define "race"}}
+<!doctype html>
+<html>
+  <head>
+    <title>Race</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+      }
+
+      /* Container for the competing bar */
+      .race-bar {
+        display: flex;
+        width: 100%;
+        height: 40px;
+        border-radius: 25px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+
+      /* Common side styling */
+      .me, .chat {
+        display: flex;
+        align-items: center;
+        transition: flex-grow 0.5s ease; /* Smooth transition when scores change */
+        padding: 0 20px;
+      }
+
+      /* Left Side: Me */
+      .me {
+        background: linear-gradient(90deg, #1e3c72, #2a5298);
+        justify-content: flex-start;
+      }
+
+      /* Right Side: Chat */
+      .chat {
+        background: linear-gradient(90deg, #f12711, #f5af19);
+        justify-content: flex-end;
+      }
+
+      .score {
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin: 0 8px;
+      }
+
+     .flag {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transition: left 0.5s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="race-bar">
+      <div class="me" style="flex-grow: {{.Me}};">
+        Me <span class="score">{{.Me}}</span>
+      </div>
+
+      <div class="chat" style="flex-grow: {{.Chat}};">
+        <span class="score">{{.Chat}}</span> Chat
+      </div>
+
+      <div class="flag">🏁</div>
+    </div>
+
+    <script type="text/javascript">
+     // periodically call the server with same URL and replace the body with the response body new content
+      function update() {
+        fetch(window.location.href)
+          .then(response => response.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            document.body.innerHTML = doc.body.innerHTML;
+          })
+          .catch(error => console.error('Error fetching race', error));
+      }
+
+      setInterval(update, 1000);
+    </script>
+  </body>
+</html>
+{{end}}

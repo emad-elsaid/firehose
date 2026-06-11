@@ -4,11 +4,13 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 
-	"github.com/emad-elsaid/firehose"
+	fh "github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/middlewares/actions"
 	"github.com/emad-elsaid/firehose/middlewares/callbacks"
 	"github.com/emad-elsaid/firehose/middlewares/destinations"
@@ -16,7 +18,21 @@ import (
 )
 
 func main() {
-	logger := slog.New(devslog.NewHandler(os.Stdout, nil))
+	port := flag.String("port", ":3000", "HTTP server port")
+	flag.Parse()
+	slogOpts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+
+	// new logger with options
+	opts := &devslog.Options{
+		HandlerOptions:    slogOpts,
+		SortKeys:          true,
+		NewLineAfterLog:   true,
+		StringerFormatter: true,
+	}
+
+	logger := slog.New(devslog.NewHandler(os.Stdout, opts))
 	slog.SetDefault(logger)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -25,11 +41,12 @@ func main() {
 	registry := activateRules(ctx)
 
 	errs := make(chan error)
-	firehose.Start(ctx, registry, errs)
+	fh.Start(ctx, registry, errs)
 
 	slog.Info("All sources started, waiting for them to finish...")
 
-	go firehose.Wait(registry, errs)
+	go http.ListenAndServe(*port, nil)
+	go fh.Wait(registry, errs)
 
 	for i := range errs {
 		if errors.Is(i, context.Canceled) {
@@ -40,23 +57,41 @@ func main() {
 	}
 }
 
-func callbackMiddlewares[In, Out firehose.Event]() []firehose.CallbackMiddleware[In, Out] {
-	return []firehose.CallbackMiddleware[In, Out]{
+func callbackMw[In, Out fh.Event]() []fh.CallbackMiddleware[In, Out] {
+	return []fh.CallbackMiddleware[In, Out]{
 		&callbacks.Slog[In, Out]{},
 	}
 }
 
-func actionMiddlewares[In, Out firehose.Event]() []firehose.ActionMiddleware[In, Out] {
-	return []firehose.ActionMiddleware[In, Out]{
+func actionMw[In, Out fh.Event]() []fh.ActionMiddleware[In, Out] {
+	return []fh.ActionMiddleware[In, Out]{
 		&actions.Panic[In, Out]{},
 		&actions.If[In, Out]{},
 	}
 }
 
-func destinationMiddlewares[In, Out firehose.Event]() []firehose.DestinationMiddleware[In, Out] {
-	return []firehose.DestinationMiddleware[In, Out]{
+func destinationMw[In, Out fh.Event]() []fh.DestinationMiddleware[In, Out] {
+	return []fh.DestinationMiddleware[In, Out]{
 		&destinations.Panic[In, Out]{},
 	}
+}
+
+func addRule[In, Out fh.Event](
+	ctx context.Context,
+	reg fh.Registry,
+	rule *fh.Rule[In, Out],
+	in In,
+	out Out,
+) fh.Registry {
+	return must(
+		fh.AddRule(
+			ctx, reg, rule,
+			callbackMw[In, Out],
+			actionMw[In, Out],
+			destinationMw[In, Out],
+			in, out,
+		),
+	)
 }
 
 func must[T any](v T, err error) T {

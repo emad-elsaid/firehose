@@ -10,12 +10,7 @@ import (
 	"github.com/emad-elsaid/firehose"
 )
 
-const (
-	// StatusConditionError indicates an error occurred while evaluating the conditional expression.
-	StatusConditionError firehose.Status = "Condition error"
-	// StatusNoMatch indicates the conditional expression evaluated to false.
-	StatusNoMatch firehose.Status = "No match"
-)
+const ()
 
 // If is an action middleware that conditionally executes actions based on boolean
 // expressions evaluated against event attributes.
@@ -58,13 +53,13 @@ func (c *If[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbo
 	if err != nil {
 		var zero Out
 
-		return zero, firehose.NewAbortReport(StatusConditionError, err)
+		return zero, firehose.NewAbortReport(firehose.StatusConditionError, err)
 	}
 
 	if !shouldProcess {
 		var zero Out
 
-		return zero, firehose.NewAbortReport(StatusNoMatch, nil)
+		return zero, firehose.NewAbortReport(firehose.StatusNoMatch, nil)
 	}
 
 	return c.downstream.Process(ctx, event, syms)

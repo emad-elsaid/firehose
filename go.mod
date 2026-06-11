@@ -9,6 +9,7 @@ tool go.uber.org/nilaway/cmd/nilaway
 require (
 	github.com/emad-elsaid/boolexpr v0.0.0-20240828071547-090fef4bb165
 	github.com/emad-elsaid/types v0.0.6
+	github.com/gempir/go-twitch-irc/v4 v4.4.1
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/golang-cz/devslog v0.0.15
 	github.com/stretchr/testify v1.11.1
@@ -29,7 +30,7 @@ require (
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260508192327-42602be52be6 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
