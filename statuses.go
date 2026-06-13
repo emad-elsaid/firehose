@@ -1,10 +1,5 @@
 package firehose
 
-import (
-	"fmt"
-	"log/slog"
-)
-
 // Status represents the outcome of processing an event through a rule,
 // indicating whether it was successful, if there was an error, or if there was
 // no match.
@@ -30,10 +25,10 @@ type Report struct {
 
 func (r Report) String() string {
 	if r.Err == nil {
-		return fmt.Sprintf("%c  %s", r.StatusSymbol(), r.Rule)
+		return string(r.StatusSymbol()) + " " + r.Rule
 	}
 
-	return fmt.Sprintf("%c  %s: %s", r.StatusSymbol(), r.Rule, r.Err)
+	return string(r.StatusSymbol()) + "  " + r.Rule + ": " + r.Err.Error()
 }
 
 func (r Report) StatusSymbol() rune {
@@ -51,15 +46,6 @@ func (r Report) StatusSymbol() rune {
 	}
 
 	return '?'
-}
-
-func (r Report) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("rule", r.Rule),
-		slog.String("status", string(r.Status)),
-		slog.Bool("abort", r.Abort),
-		slog.String("error", r.Err.Error()),
-	)
 }
 
 // NewReport creates a new Report with the given status and error.

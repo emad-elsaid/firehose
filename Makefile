@@ -1,13 +1,20 @@
 run:
 	@go run ./cmd/firehose/
 
-lint:
-	@go fmt ./...
-	-@go build -gcflags -m . 2>&1 | grep -E "escapes to heap|moved to heap"
-	@go tool deadcode ./...
-	@go tool nilaway ./...
+lint: fmt escapes deadcode nilaway
 	@golangci-lint run
 
+fmt:
+	@go fmt ./...
+
+escapes:
+	-@go build -gcflags -m . 2>&1 | grep -E "escapes to heap|moved to heap"
+
+deadcode:
+	@go tool deadcode ./...
+
+nilaway:
+	@go tool nilaway ./...
 
 fix:
 	@go fmt ./...

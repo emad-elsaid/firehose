@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"html/template"
+	"net/http"
 
 	"github.com/emad-elsaid/boolexpr"
 	"github.com/emad-elsaid/firehose"
@@ -23,7 +24,7 @@ func (tr TwitchRace) Process(ctx context.Context, event events.HTTPReq, syms boo
 	t, err := template.ParseFS(templates, "templates/*.html")
 	if err != nil {
 		return events.HTTPRes{
-			StatusCode: 500,
+			StatusCode: http.StatusInternalServerError,
 			Header:     map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}},
 			Body:       []byte(err.Error()),
 		}, firehose.NewReport(firehose.StatusActionError, err)
@@ -37,7 +38,7 @@ func (tr TwitchRace) Process(ctx context.Context, event events.HTTPReq, syms boo
 	})
 
 	return events.HTTPRes{
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Content-Type": {"text/html; charset=utf-8"}},
 		Body:       body.Bytes(),
 	}, firehose.NewReport(firehose.StatusSuccess, nil)

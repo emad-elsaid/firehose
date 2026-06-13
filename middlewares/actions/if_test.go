@@ -148,7 +148,7 @@ func TestIf_Process(t *testing.T) {
 		out, report := outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
 
 		require.Nil(t, out)
-		require.Equal(t, StatusNoMatch, report.Status)
+		require.Equal(t, firehose.StatusNoMatch, report.Status)
 		require.True(t, report.Abort)
 	})
 
@@ -177,7 +177,7 @@ func TestIf_Process(t *testing.T) {
 		out, report := outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
 
 		require.Nil(t, out)
-		require.Equal(t, StatusConditionError, report.Status)
+		require.Equal(t, firehose.StatusConditionError, report.Status)
 		require.True(t, report.Abort)
 	})
 }

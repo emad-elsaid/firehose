@@ -15,13 +15,13 @@ type TwitchChat struct {
 	Channel string `validate:"required"`
 }
 
-func (t TwitchChat) Start(ctx context.Context, cb fh.SourceCallback[events.TwitchMessage]) (done context.Context, err error) {
+func (t TwitchChat) Start(ctx context.Context, cb fh.Callback[events.TwitchMessage]) (done context.Context, err error) {
 	go t.connect(ctx, cb)
 
 	return ctx, nil
 }
 
-func (t TwitchChat) connect(ctx context.Context, cb fh.SourceCallback[events.TwitchMessage]) {
+func (t TwitchChat) connect(ctx context.Context, cb fh.Callback[events.TwitchMessage]) {
 	var client *twitch.Client
 
 	if t.OAuth != "" && t.BotName != "" {
@@ -30,8 +30,14 @@ func (t TwitchChat) connect(ctx context.Context, cb fh.SourceCallback[events.Twi
 		client = twitch.NewAnonymousClient()
 	}
 
+	reports := make(chan fh.Report)
+	go func() {
+		for range reports {
+		}
+	}()
+
 	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
-		t.ProcessMessage(ctx, message, cb)
+		t.ProcessMessage(ctx, message, cb, reports)
 	})
 
 	client.Join(t.Channel)
@@ -42,14 +48,11 @@ func (t TwitchChat) connect(ctx context.Context, cb fh.SourceCallback[events.Twi
 	}
 }
 
-func (t TwitchChat) ProcessMessage(ctx context.Context, message twitch.PrivateMessage, cb fh.SourceCallback[events.TwitchMessage]) {
+func (t TwitchChat) ProcessMessage(ctx context.Context, message twitch.PrivateMessage, cb fh.Callback[events.TwitchMessage], reports chan<- fh.Report) {
 	msg := events.TwitchMessage{
 		User:    message.User.DisplayName,
 		Message: message.Message,
 	}
 
-	reports := cb(ctx, msg)
-
-	for range reports {
-	}
+	cb(ctx, msg, reports)
 }

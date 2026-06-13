@@ -24,7 +24,7 @@ type Rule[In, Out Event] struct {
 	nextSameSource, prevSameSource sourceRegistry
 
 	ctx             context.Context
-	wrappedCallback SourceCallback[In]
+	wrappedCallback Callback[In]
 }
 
 func (r *Rule[In, Out]) start(ctx context.Context) error {
@@ -50,18 +50,7 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 	return nil
 }
 
-// Must be from the source not called internally.
-func (r *Rule[In, Out]) callback(ctx context.Context, event In) <-chan Report {
-	reports := make(chan Report)
-
-	go r.callbackWithChan(ctx, event, reports)
-
-	return reports
-}
-
-func (r *Rule[In, Out]) callbackWithChan(ctx context.Context, event In, reports chan<- Report) {
-	defer close(reports)
-
+func (r *Rule[In, Out]) callback(ctx context.Context, event In, reports chan<- Report) {
 	attrs, err := event.Attributes(ctx)
 	if err != nil {
 		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
@@ -111,6 +100,7 @@ func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
 func (r *Rule[In, Out]) getPrev() Registry                  { return r.prev }
 func (r *Rule[In, Out]) setPrev(p Registry)                 { r.prev = p }
 func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
+func (r *Rule[In, Out]) getNextSameSource() sourceRegistry  { return r.nextSameSource }
 func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
 func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[In, Out]) getRegistry() Registry              { return r }

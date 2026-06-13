@@ -13,7 +13,7 @@ type Event interface {
 
 // Source produces events of type T.
 type Source[T any] interface {
-	Start(ctx context.Context, cb SourceCallback[T]) (done context.Context, err error)
+	Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
 }
 
 // Action transforms input events to output events.
@@ -43,15 +43,16 @@ type Registry interface {
 type sourceRegistry interface {
 	setNextSameSource(n sourceRegistry)
 	setPrevSameSource(p sourceRegistry)
+	getNextSameSource() sourceRegistry
 
 	getRegistry() Registry
 }
 
-// SourceCallback is a function type that sources use to send events to the
-// engine. It takes a context and an event of type T, and returns a channel of
+// Callback is a function type that sources use to send events to the
+// engine. It takes a context and an event of type T, and a channel of
 // Report which the engine will write to with the results of processing the
 // event through each rule.
-type SourceCallback[T any] func(context.Context, T) <-chan Report
+type Callback[T any] func(context.Context, T, chan<- Report)
 
 type runnable[In any] interface {
 	run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
@@ -71,5 +72,5 @@ type DestinationMiddleware[In, Out Event] interface {
 
 // CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.
 type CallbackMiddleware[In, Out Event] interface {
-	Wrap(ctx context.Context, rule Rule[In, Out], callback SourceCallback[In], in In) (SourceCallback[In], error)
+	Wrap(ctx context.Context, rule Rule[In, Out], callback Callback[In], in In) (Callback[In], error)
 }

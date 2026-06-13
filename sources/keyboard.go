@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	fh "github.com/emad-elsaid/firehose"
 	fs "github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/events"
 )
@@ -26,7 +27,7 @@ const (
 
 type Keyboard struct{}
 
-func (Keyboard) Start(ctx context.Context, cb fs.SourceCallback[events.KeyPress]) (done context.Context, err error) {
+func (Keyboard) Start(ctx context.Context, cb fs.Callback[events.KeyPress]) (done context.Context, err error) {
 	done, cancel := context.WithCancel(context.Background())
 
 	devicePath := "/dev/input/event9"
@@ -34,9 +35,16 @@ func (Keyboard) Start(ctx context.Context, cb fs.SourceCallback[events.KeyPress]
 	file, err := os.Open(devicePath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		fmt.Println("You likely need to run this with 'sudo' to read raw input devices.")
+		fmt.Println("You likely need to add your user to the input group to access the input devices.")
 		return
 	}
+
+	reports := make(chan fh.Report)
+
+	go func() {
+		for range reports {
+		}
+	}()
 
 	go func() {
 		defer cancel()
@@ -71,9 +79,7 @@ func (Keyboard) Start(ctx context.Context, cb fs.SourceCallback[events.KeyPress]
 						Key: ev.Code,
 					}
 
-					reports := cb(ctx, event)
-					for range reports {
-					}
+					cb(ctx, event, reports)
 				}
 			}
 		}
