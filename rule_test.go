@@ -31,7 +31,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
-		reports := chanToSlice(rule.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 		for _, report := range reports {
@@ -56,7 +59,10 @@ func TestRuleCallback(t *testing.T) {
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 
-		reports := chanToSlice(rule.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
@@ -83,7 +89,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusDestinationError, os.ErrClosed)).Once()
 
-		reports := chanToSlice(rule.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
@@ -124,7 +133,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Twice()
 
-		reports := chanToSlice(rule1.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule1.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 
@@ -166,7 +178,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
-		reports := chanToSlice(rule1.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule1.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 		require.ErrorIs(t, reports[0].Err, os.ErrClosed)
@@ -206,7 +221,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
-		reports := chanToSlice(rule1.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule1.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 		require.NoError(t, reports[0].Err)
@@ -254,7 +272,10 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Times(3)
 
-		reports := chanToSlice(rule1.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule1.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 3)
 
@@ -286,7 +307,10 @@ func TestRuleCallback(t *testing.T) {
 		// Create a mock sourceRegistry with incompatible type
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
 
-		reports := chanToSlice(rule.callback(t.Context(), in))
+		reportsChan := make(chan Report, 10)
+		rule.callback(t.Context(), in, reportsChan)
+		close(reportsChan)
+		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 

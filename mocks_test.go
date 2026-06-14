@@ -103,6 +103,7 @@ type mockIncompatibleSourceRegistry struct{}
 
 func (m *mockIncompatibleSourceRegistry) setNextSameSource(n sourceRegistry) {}
 func (m *mockIncompatibleSourceRegistry) setPrevSameSource(p sourceRegistry) {}
+func (m *mockIncompatibleSourceRegistry) getNextSameSource() sourceRegistry  { return nil }
 func (m *mockIncompatibleSourceRegistry) getRegistry() Registry {
 	return &mockIncompatibleRegistry{}
 }
