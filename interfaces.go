@@ -33,8 +33,8 @@ type Source[T any] interface {
 }
 
 // Action transforms input events to output events.
-type Action[In, Out any] interface {
-	Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report)
+type Action[I, O any] interface {
+	Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
 }
 
 // Destination consumes events of type T.
@@ -68,25 +68,25 @@ type sourceRegistry interface {
 // engine. It takes a context and an event of type T, and a channel of
 // Report which the engine will write to with the results of processing the
 // event through each rule.
-type Callback[T any] func(context.Context, T, chan<- Report)
+type Callback[I any] func(context.Context, I, chan<- Report)
 
-type runnable[In any] interface {
-	run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report)
+type runnable[I any] interface {
+	run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report)
 }
 
 // ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,
 // panic recovery, or logging.
-type ActionMiddleware[In, Out Event] interface {
-	Wrap(ctx context.Context, rule Rule[In, Out], action Action[In, Out], in In) (Action[In, Out], error)
+type ActionMiddleware[I, O Event] interface {
+	Wrap(ctx context.Context, rule Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
 }
 
 // DestinationMiddleware wraps destinations to add cross-cutting concerns such as panic recovery,
 // retry logic, or telemetry.
-type DestinationMiddleware[In, Out Event] interface {
-	Wrap(ctx context.Context, rule Rule[In, Out], destination Destination[Out], out Out) (Destination[Out], error)
+type DestinationMiddleware[I, O Event] interface {
+	Wrap(ctx context.Context, rule Rule[I, O], destination Destination[O], out O) (Destination[O], error)
 }
 
 // CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.
-type CallbackMiddleware[In, Out Event] interface {
-	Wrap(ctx context.Context, rule Rule[In, Out], callback Callback[In], in In) (Callback[In], error)
+type CallbackMiddleware[I, O Event] interface {
+	Wrap(ctx context.Context, rule Rule[I, O], callback Callback[I], in I) (Callback[I], error)
 }

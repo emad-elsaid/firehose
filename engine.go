@@ -6,15 +6,15 @@ import (
 )
 
 // AddRule registers a new processing rule in the context.
-func AddRule[In, Out Event](
+func AddRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
-	rule *Rule[In, Out],
-	callbackMiddlewares func() []CallbackMiddleware[In, Out],
-	actionsMiddlewares func() []ActionMiddleware[In, Out],
-	destinationsMiddlewares func() []DestinationMiddleware[In, Out],
-	inInstance In,
-	outInstance Out,
+	rule *Rule[I, O],
+	callbackMiddlewares func() []CallbackMiddleware[I, O],
+	actionsMiddlewares func() []ActionMiddleware[I, O],
+	destinationsMiddlewares func() []DestinationMiddleware[I, O],
+	inInstance I,
+	outInstance O,
 ) (Registry, error) {
 	err := IsValid(rule)
 	if err != nil {
@@ -39,11 +39,11 @@ func AddRule[In, Out Event](
 	return addRuleToRegistry(registry, rule), nil
 }
 
-func wrapCallbackMiddlewares[In, Out Event](
+func wrapCallbackMiddlewares[I, O Event](
 	ctx context.Context,
-	rule *Rule[In, Out],
-	inInstance In,
-	callbackMiddlewares func() []CallbackMiddleware[In, Out],
+	rule *Rule[I, O],
+	inInstance I,
+	callbackMiddlewares func() []CallbackMiddleware[I, O],
 ) error {
 	if callbackMiddlewares == nil {
 		return nil
@@ -63,11 +63,11 @@ func wrapCallbackMiddlewares[In, Out Event](
 	return nil
 }
 
-func wrapActionMiddlewares[In, Out Event](
+func wrapActionMiddlewares[I, O Event](
 	ctx context.Context,
-	rule *Rule[In, Out],
-	inInstance In,
-	actionMiddlewares func() []ActionMiddleware[In, Out],
+	rule *Rule[I, O],
+	inInstance I,
+	actionMiddlewares func() []ActionMiddleware[I, O],
 ) error {
 	if actionMiddlewares == nil {
 		return nil
@@ -85,11 +85,11 @@ func wrapActionMiddlewares[In, Out Event](
 	return nil
 }
 
-func wrapDestinationMiddlewares[In, Out Event](
+func wrapDestinationMiddlewares[I, O Event](
 	ctx context.Context,
-	rule *Rule[In, Out],
-	out Out,
-	destinationMiddlewares func() []DestinationMiddleware[In, Out],
+	rule *Rule[I, O],
+	out O,
+	destinationMiddlewares func() []DestinationMiddleware[I, O],
 ) error {
 	if destinationMiddlewares == nil {
 		return nil
@@ -107,7 +107,7 @@ func wrapDestinationMiddlewares[In, Out Event](
 	return nil
 }
 
-func addRuleToRegistry[In, Out Event](registry Registry, rule *Rule[In, Out]) Registry {
+func addRuleToRegistry[I, O Event](registry Registry, rule *Rule[I, O]) Registry {
 	if registry == nil {
 		rule.setNext(rule)
 		rule.setPrev(rule)

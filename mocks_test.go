@@ -66,14 +66,14 @@ func (m *SourceMock[T]) Stop() {
 	}
 }
 
-type ActionMock[In, Out any] struct {
+type ActionMock[I, O any] struct {
 	mock.Mock
 }
 
-func (m *ActionMock[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, Report) {
+func (m *ActionMock[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
 	args := m.Called(ctx, event, syms)
 
-	return args.Get(0).(Out), args.Get(1).(Report)
+	return args.Get(0).(O), args.Get(1).(Report)
 }
 
 type DestinationMock[T any] struct {

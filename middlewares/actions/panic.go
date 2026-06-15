@@ -17,17 +17,17 @@ var ErrPanicRecovered = errors.New("action panicked")
 
 // Panic is an action middleware that recovers from panics during action processing
 // and reports them with StatusPanicRecovered.
-type Panic[In, Out firehose.Event] struct {
-	downstream firehose.Action[In, Out]
+type Panic[I, O firehose.Event] struct {
+	downstream firehose.Action[I, O]
 }
 
 // Wrap stores the downstream action to be wrapped with panic recovery.
-func (p *Panic[In, Out]) Wrap(
+func (p *Panic[I, O]) Wrap(
 	_ context.Context,
-	_ firehose.Rule[In, Out],
-	action firehose.Action[In, Out],
-	_ In,
-) (firehose.Action[In, Out], error) {
+	_ firehose.Rule[I, O],
+	action firehose.Action[I, O],
+	_ I,
+) (firehose.Action[I, O], error) {
 	p.downstream = action
 
 	return p, nil
@@ -35,12 +35,12 @@ func (p *Panic[In, Out]) Wrap(
 
 // Process executes the downstream action with panic recovery, returning a Report with
 // StatusPanicRecovered if a panic occurs.
-func (p *Panic[In, Out]) Process(
+func (p *Panic[I, O]) Process(
 	ctx context.Context,
-	event In,
+	event I,
 	syms boolexpr.Symbols,
-) (Out, firehose.Report) {
-	var output Out
+) (O, firehose.Report) {
+	var output O
 
 	var report firehose.Report
 

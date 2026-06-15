@@ -8,11 +8,11 @@ import (
 )
 
 // Event is an action that emits a static event when processed.
-type Event[In, Out firehose.Event] struct {
-	Output Out
+type Event[I, O firehose.Event] struct {
+	Output O
 }
 
 // Process returns the configured event as output.
-func (e Event[In, Out]) Process(_ context.Context, _ In, _ boolexpr.Symbols) (Out, firehose.Report) {
+func (e Event[I, O]) Process(_ context.Context, _ I, _ boolexpr.Symbols) (O, firehose.Report) {
 	return e.Output, firehose.NewReport(firehose.StatusSuccess, nil)
 }

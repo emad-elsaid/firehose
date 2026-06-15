@@ -25,21 +25,22 @@ func (e *event) Attributes(ctx context.Context) (map[string]any, error) {
 	return r1, args.Error(1)
 }
 
-type action[In, Out firehose.Event] struct {
+type action[I, O firehose.Event] struct {
 	mock.Mock
 }
 
-func (a *action[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, firehose.Report) {
+func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, firehose.Report) {
 	args := a.Called(ctx, event, syms)
-	r1, ok := args.Get(0).(Out)
+	r1, ok := args.Get(0).(O)
 	if !ok {
-		var zero Out
+		var zero O
 		r1 = zero
 	}
 	r2, ok := args.Get(1).(firehose.Report)
 	if !ok {
 		r2 = firehose.Report{}
 	}
+
 	return r1, r2
 }
 

@@ -57,7 +57,7 @@ processing remaining rules.
 
 ## Features
 
-- ✅ Type-safe generic pipelines (`Rule[In, Out]`)
+- ✅ Type-safe generic pipelines (`Rule[I, O]`)
 - ✅ Boolean expression conditions using event attributes
 - ✅ Panic recovery middleware (actions and destinations)
 - ✅ Rate limiting with token bucket algorithm
@@ -79,7 +79,7 @@ processing remaining rules.
 
 ### Actions
 - `actions.Yield[T]` - Pass-through (no transformation)
-- `actions.Event[In, Out]` - Emit static event
+- `actions.Event[I, O]` - Emit static event
 - `actions.TwitchScore` - Calculate score from Twitch message
 - `actions.KeypressToAddScore` - Convert keypresses to scores
 
@@ -209,12 +209,12 @@ If: `tags contains "production" and roles excludes "guest"`
 ### Rule Structure
 
 ```go
-type Rule[In, Out Event] struct {
+type Rule[I, O Event] struct {
     ID   string       // Unique identifier
-    When Source[In]   // Event producer
+    When Source[I]   // Event producer
     If   string       // Boolean expression (optional)
-    Then Action[In, Out] // Event transformer
-    To   Destination[Out] // Side-effect applicator
+    Then Action[I, O] // Event transformer
+    To   Destination[O] // Side-effect applicator
 }
 ```
 
@@ -230,8 +230,8 @@ type Source[T Event] interface {
     Start(context.Context, Callback[T]) (context.Context, error)
 }
 
-type Action[In, Out Event] interface {
-    Process(context.Context, In, map[string]any) (Out, Report)
+type Action[I, O Event] interface {
+    Process(context.Context, I, map[string]any) (O, Report)
 }
 
 type Destination[T Event] interface {

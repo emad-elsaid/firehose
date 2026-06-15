@@ -9,19 +9,19 @@ import (
 
 // Slog is a callback middleware that logs the events and reports using Go
 // structured logging.
-type Slog[In, Out fh.Event] struct {
-	downstream fh.Callback[In]
-	source     fh.Source[In]
+type Slog[I, O fh.Event] struct {
+	downstream fh.Callback[I]
+	source     fh.Source[I]
 }
 
 // Wrap stores the downstream callback to be wrapped with logging and returns
 // the callback function to be used by the source.
-func (s *Slog[In, Out]) Wrap(
+func (s *Slog[I, O]) Wrap(
 	_ context.Context,
-	rule fh.Rule[In, Out],
-	callback fh.Callback[In],
-	_ In,
-) (fh.Callback[In], error) {
+	rule fh.Rule[I, O],
+	callback fh.Callback[I],
+	_ I,
+) (fh.Callback[I], error) {
 	s.downstream = callback
 	s.source = rule.When
 

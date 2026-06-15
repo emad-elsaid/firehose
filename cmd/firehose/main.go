@@ -59,41 +59,41 @@ func main() {
 	}
 }
 
-func callbackMw[In, Out fh.Event]() []fh.CallbackMiddleware[In, Out] {
-	return []fh.CallbackMiddleware[In, Out]{
-		&callbacks.Slog[In, Out]{},
+func callbackMw[I, O fh.Event]() []fh.CallbackMiddleware[I, O] {
+	return []fh.CallbackMiddleware[I, O]{
+		&callbacks.Slog[I, O]{},
 	}
 }
 
-func actionMw[In, Out fh.Event]() []fh.ActionMiddleware[In, Out] {
-	return []fh.ActionMiddleware[In, Out]{
-		&actions.Panic[In, Out]{},
-		&actions.If[In, Out]{},
-		&actions.RateLimit[In, Out]{},
-		&actions.Once[In, Out]{Cache: cache.NewMemory[string](time.Minute, time.Minute)},
-		&actions.Cache[In, Out]{Cache: cache.NewMemory[Out](time.Minute, time.Minute)},
+func actionMw[I, O fh.Event]() []fh.ActionMiddleware[I, O] {
+	return []fh.ActionMiddleware[I, O]{
+		&actions.Panic[I, O]{},
+		&actions.If[I, O]{},
+		&actions.RateLimit[I, O]{},
+		&actions.Once[I, O]{Cache: cache.NewMemory[string](time.Minute, time.Minute)},
+		&actions.Cache[I, O]{Cache: cache.NewMemory[O](time.Minute, time.Minute)},
 	}
 }
 
-func destinationMw[In, Out fh.Event]() []fh.DestinationMiddleware[In, Out] {
-	return []fh.DestinationMiddleware[In, Out]{
-		&destinations.Panic[In, Out]{},
+func destinationMw[I, O fh.Event]() []fh.DestinationMiddleware[I, O] {
+	return []fh.DestinationMiddleware[I, O]{
+		&destinations.Panic[I, O]{},
 	}
 }
 
-func addRule[In, Out fh.Event](
+func addRule[I, O fh.Event](
 	ctx context.Context,
 	reg fh.Registry,
-	rule *fh.Rule[In, Out],
-	in In,
-	out Out,
+	rule *fh.Rule[I, O],
+	in I,
+	out O,
 ) fh.Registry {
 	return must(
 		fh.AddRule(
 			ctx, reg, rule,
-			callbackMw[In, Out],
-			actionMw[In, Out],
-			destinationMw[In, Out],
+			callbackMw[I, O],
+			actionMw[I, O],
+			destinationMw[I, O],
 			in, out,
 		),
 	)

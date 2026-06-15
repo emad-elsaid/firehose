@@ -14,19 +14,19 @@ const ()
 
 // If is an action middleware that conditionally executes actions based on boolean
 // expressions evaluated against event attributes.
-type If[In, Out fh.Event] struct {
+type If[I, O fh.Event] struct {
 	parsedIf   *boolexpr.Expression
-	downstream fh.Action[In, Out]
+	downstream fh.Action[I, O]
 }
 
 // Wrap parses and validates the conditional expression from the rule, wrapping the downstream action
 // to be executed only when the condition evaluates to true.
-func (c *If[In, Out]) Wrap(
+func (c *If[I, O]) Wrap(
 	ctx context.Context,
-	rule fh.Rule[In, Out],
-	action fh.Action[In, Out],
-	inInstance In,
-) (fh.Action[In, Out], error) {
+	rule fh.Rule[I, O],
+	action fh.Action[I, O],
+	inInstance I,
+) (fh.Action[I, O], error) {
 	if rule.If == "" {
 		return action, nil
 	}
@@ -48,16 +48,16 @@ func (c *If[In, Out]) Wrap(
 
 // Process evaluates the conditional expression and processes the event through the downstream action
 // only if the condition is true, otherwise returns an abort report with StatusNoMatch.
-func (c *If[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbols) (Out, fh.Report) {
+func (c *If[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
 	shouldProcess, err := c.shouldProcess(syms)
 	if err != nil {
-		var zero Out
+		var zero O
 
 		return zero, fh.NewAbortReport(fh.StatusConditionError, err)
 	}
 
 	if !shouldProcess {
-		var zero Out
+		var zero O
 
 		return zero, fh.NewAbortReport(fh.StatusNoMatch, nil)
 	}
@@ -65,7 +65,7 @@ func (c *If[In, Out]) Process(ctx context.Context, event In, syms boolexpr.Symbo
 	return c.downstream.Process(ctx, event, syms)
 }
 
-func (c *If[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
+func (c *If[I, O]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
 	shouldProcess, err := boolexpr.EvalExpression(*c.parsedIf, syms)
 	if err != nil {
 		return false, err
@@ -74,7 +74,7 @@ func (c *If[In, Out]) shouldProcess(syms boolexpr.Symbols) (bool, error) {
 	return shouldProcess, nil
 }
 
-func (c *If[In, Out]) parseCondition(r fh.Rule[In, Out]) error {
+func (c *If[I, O]) parseCondition(r fh.Rule[I, O]) error {
 	parsedIf, err := boolexpr.Parse(r.If)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (c *If[In, Out]) parseCondition(r fh.Rule[In, Out]) error {
 	return nil
 }
 
-func (c *If[In, Out]) isValidCondition(ctx context.Context, instance In) error {
+func (c *If[I, O]) isValidCondition(ctx context.Context, instance I) error {
 	symsList := boolexpr.ListSymbols(*c.parsedIf)
 
 	attrs, err := fh.EventAttributes(ctx, instance)
