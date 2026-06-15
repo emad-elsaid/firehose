@@ -72,6 +72,7 @@ type Callback[I any] func(context.Context, I, chan<- Report)
 
 type runnable[I any] interface {
 	run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report)
+	nextRunnable() runnable[I]
 }
 
 // ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,

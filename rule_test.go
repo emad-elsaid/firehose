@@ -308,14 +308,12 @@ func TestRuleCallback(t *testing.T) {
 		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
 
 		reportsChan := make(chan Report, 10)
-		rule.callback(t.Context(), in, reportsChan)
+		require.Panics(t, func() { rule.callback(t.Context(), in, reportsChan) })
 		close(reportsChan)
 		reports := chanToSlice(reportsChan)
 		require.NotNil(t, reports)
-		require.Len(t, reports, 2)
+		require.Len(t, reports, 1)
 
-		require.NoError(t, reports[0].Err)
-		require.ErrorIs(t, reports[1].Err, ErrIncompatibleSource)
 	})
 }
 

@@ -76,27 +76,13 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 	}
 
 	syms := boolexpr.NewSymbolsCached(attrs)
-	r.run(ctx, event, syms, reports)
+
+	for current := runnable[I](r); current != nil; current = current.nextRunnable() {
+		current.run(ctx, event, syms, reports)
+	}
 }
 
 func (r *Rule[I, O]) run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
-	r.runCurrent(ctx, event, syms, reports)
-
-	if !r.hasNextRunnable() {
-		return
-	}
-
-	nextRunnable, err := r.nextRunnable()
-	if err != nil {
-		reports <- NewRuleReport(r.ID, StatusError, err)
-
-		return
-	}
-
-	nextRunnable.run(ctx, event, syms, reports)
-}
-
-func (r *Rule[I, O]) runCurrent(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
 	report.Rule = r.ID
 
@@ -124,15 +110,10 @@ func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.When }
 
-func (r *Rule[I, O]) hasNextRunnable() bool {
-	return r.nextSameSource != nil
-}
-
-func (r *Rule[I, O]) nextRunnable() (runnable[I], error) {
-	runnable, ok := r.nextSameSource.getRegistry().(runnable[I])
-	if !ok {
-		return nil, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
+func (r *Rule[I, O]) nextRunnable() runnable[I] {
+	if r.nextSameSource == nil {
+		return nil
 	}
 
-	return runnable, nil
+	return r.nextSameSource.getRegistry().(runnable[I])
 }
