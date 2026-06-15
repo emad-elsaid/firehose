@@ -16,16 +16,26 @@ var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[I, O Event] struct {
-	ID   string
+	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
+	ID string
+	// When is the source that produces events to be processed by this rule.
 	When Source[I] `validate:"required"`
-
-	If        string
-	RateLimit rate.Limit    // events per second, 0 means no rate limit
-	OnceEvery time.Duration // duration to allow only one event with the same ID, 0 means no once
-	CacheFor  time.Duration // duration to cache the output of the action, 0 means no caching
-
-	Then Action[I, O]   `validate:"required"`
-	To   Destination[O] `validate:"required"`
+	// If is a boolean expression that determines whether the rule should be
+	// executed for a given event.
+	If string
+	// RateLimit is the maximum rate at which events can be processed by this
+	// rule, 0 means no rate limit.
+	RateLimit rate.Limit
+	// OnceEvery is the duration to allow only one event with the same ID to be
+	// processed by this rule, 0 means no once constraint.
+	OnceEvery time.Duration
+	// CacheFor is the duration to cache the output of the Then action for the
+	// same input event, 0 means no caching.
+	CacheFor time.Duration
+	// Then is the action to process the event if the When source produces an event
+	Then Action[I, O] `validate:"required"`
+	// To is the destination to send the output of the Then action
+	To Destination[O] `validate:"required"`
 
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry

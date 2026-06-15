@@ -8,9 +8,9 @@ import (
 )
 
 // Event represents an event with attributes that can be evaluated in conditions.
-type Event interface{}
+type Event any
 
-func EventID(event any) (uint64, error) {
+func EventID(event Event) (uint64, error) {
 	return hashstructure.Hash(event, hashstructure.FormatV2, nil)
 }
 
