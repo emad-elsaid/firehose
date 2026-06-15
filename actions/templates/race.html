@@ -31,18 +31,32 @@
         align-items: center;
         transition: flex-grow 0.5s ease; /* Smooth transition when scores change */
         padding: 0 20px;
+        animation-duration: 1s;
+        animation-timing-function: linear;
+        background-size: 40px 40px;
       }
 
-      /* Left Side: Me */
-      .me {
-        background: linear-gradient(90deg, #1e3c72, #2a5298);
+     @keyframes scroll {
+         from {background-position: 0 0;}
+         to {background-position: 80px 0px;}
+     }
+     @keyframes scroll-reverse {
+         from {background-position: 0 0;}
+         to {background-position: -80px 0px;}
+     }
+
+     /* Left Side: Me */
+     .me {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IArs4c6QAAAGNQTFRFAAAAIiA0RSg8Zjkxj1Y733Em2aBm7sOa+/I2meVQar4wN5RuS2kvUkskMjw5Pz90MGCCW27hY5v/X83ky9v8////m623hH6HaWpqWVZSdkKKrDIy2Vdj13u6j5dKim8wAAAA+XnZwgAAACF0Uk5TAP//////////////////////////////////////////RvROpAAAAGRJREFUGJVdjlEOwDAIQrmBge7+Zx1i22TjQ/SVaPGsryDJpmtIXT1qkQZpu1sqKkCZXWsnxDAewFHvbIMfLM4VI1TZa7aYERMOSYtOG9iyyAlt0FecAi+ZFDjkgELlFzVig59ed8IRWYuWzGUAAAAASUVORK5CYII=');
         justify-content: flex-start;
-      }
+        animation-name: scroll;
+     }
 
-      /* Right Side: Chat */
-      .chat {
-        background: linear-gradient(90deg, #f12711, #f5af19);
+     /* Right Side: Chat */
+     .chat {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IArs4c6QAAAMNQTFRFBgYIFBATOxclcxcttCAq3z4j+moK+aMb/9VB//xA1vJknNtDWcE1FKAuGno+JFI7EiAgFDRkKFzEJJ/eINbHpvzb/////vPA+ta49aCX6GpzvEqbeTqAQDNTJCI0IhwaMisocUE7u3VH26Rj9NKc2uDqs7nRi5OvbXWNSlRiMzlBQiQzWzE4jlJSunVq6bWj4+b/ub/7hJvkWI2+R32FI2dOMoRkXa+Nkty6zffi5NKqx7CLoIZieWdVWk5EQjk0AAAAJi4clQAAAEF0Uk5TAP////////////////////////////////////////////////////////////////////////////////////+uzSukAAAAY0lEQVQYlV2OUQ7AMAhCidDd/8hDbJtsfIi+Ei2e9RUk2XQNqatHLdIgbXdLRQUos2vthBjGAzjqnW3wg8W5YoQqe80WM2LCIWnRaQNbFjmhDfqKU+AlkwKHHFCo/KJGbPDTCxMCA4y+ldISAAAAAElFTkSuQmCC');
         justify-content: flex-end;
+        animation-name: scroll-reverse;
       }
 
       .score {

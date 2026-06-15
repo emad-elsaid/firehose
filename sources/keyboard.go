@@ -25,14 +25,14 @@ const (
 	VALUE_DP = 1    // Value for key down/press (0 is release, 2 is repeat)
 )
 
-type Keyboard struct{}
+type Keyboard struct {
+	EventDevice string
+}
 
-func (Keyboard) Start(ctx context.Context, cb fs.Callback[events.KeyPress]) (done context.Context, err error) {
+func (k Keyboard) Start(ctx context.Context, cb fs.Callback[events.KeyPress]) (done context.Context, err error) {
 	done, cancel := context.WithCancel(context.Background())
 
-	devicePath := "/dev/input/event9"
-
-	file, err := os.Open(devicePath)
+	file, err := os.Open(k.EventDevice)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		fmt.Println("You likely need to add your user to the input group to access the input devices.")
@@ -63,7 +63,7 @@ func (Keyboard) Start(ctx context.Context, cb fs.Callback[events.KeyPress]) (don
 				_, err := file.Read(buffer)
 				if err != nil {
 					slog.Error("Failed to read input event", "error", err)
-					break OUTER
+					return
 				}
 
 				var ev inputEvent

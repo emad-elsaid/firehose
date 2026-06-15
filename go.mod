@@ -7,23 +7,25 @@ tool golang.org/x/tools/cmd/deadcode
 tool go.uber.org/nilaway/cmd/nilaway
 
 require (
-	github.com/emad-elsaid/boolexpr v0.0.0-20240828071547-090fef4bb165
+	github.com/emad-elsaid/boolexpr v0.0.0-20260609055429-1c1e0a16e3f3
 	github.com/emad-elsaid/types v0.0.6
 	github.com/gempir/go-twitch-irc/v4 v4.4.1
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/golang-cz/devslog v0.0.15
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/time v0.15.0
 )
 
 require (
-	github.com/alecthomas/participle/v2 v2.1.1 // indirect
+	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emad-elsaid/memoize v0.0.0-20240524185039-a963118906c5 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/nilaway v0.0.0-20260528182042-490362de4fb6 // indirect

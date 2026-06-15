@@ -4,11 +4,27 @@ import (
 	"context"
 
 	"github.com/emad-elsaid/boolexpr"
+	"github.com/mitchellh/hashstructure/v2"
 )
 
 // Event represents an event with attributes that can be evaluated in conditions.
-type Event interface {
+type Event interface{}
+
+func EventID(event any) (uint64, error) {
+	return hashstructure.Hash(event, hashstructure.FormatV2, nil)
+}
+
+// Interface for providing attributes for an event
+type Attributer interface {
 	Attributes(ctx context.Context) (map[string]any, error)
+}
+
+func EventAttributes(ctx context.Context, event any) (map[string]any, error) {
+	if attributer, ok := event.(Attributer); ok {
+		return attributer.Attributes(ctx)
+	}
+
+	return nil, nil
 }
 
 // Source produces events of type T.

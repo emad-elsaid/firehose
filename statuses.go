@@ -25,27 +25,10 @@ type Report struct {
 
 func (r Report) String() string {
 	if r.Err == nil {
-		return string(r.StatusSymbol()) + " " + r.Rule
+		return string(r.Status) + " " + r.Rule
 	}
 
-	return string(r.StatusSymbol()) + "  " + r.Rule + ": " + r.Err.Error()
-}
-
-func (r Report) StatusSymbol() rune {
-	switch r.Status {
-	case StatusSuccess:
-		return '✔'
-	case StatusError, StatusActionError, StatusDestinationError, StatusConditionError:
-		return '✘'
-	case StatusNoMatch:
-		return '⎯'
-	}
-
-	if r.Err != nil {
-		return '✘'
-	}
-
-	return '?'
+	return string(r.Status) + "  " + r.Rule + ": " + r.Err.Error()
 }
 
 // NewReport creates a new Report with the given status and error.

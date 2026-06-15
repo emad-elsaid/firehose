@@ -5,29 +5,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/emad-elsaid/boolexpr"
+	"golang.org/x/time/rate"
 )
 
 // ErrIncompatibleSource is returned when the next rule in the same source chain doesn't have the same source type.
 var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 // Rule defines an event processing pipeline from source to destination.
-type Rule[In, Out Event] struct {
+type Rule[I, O Event] struct {
 	ID   string
-	When Source[In] `validate:"required"`
-	If   string
-	Then Action[In, Out]  `validate:"required"`
-	To   Destination[Out] `validate:"required"`
+	When Source[I] `validate:"required"`
+
+	If        string
+	RateLimit rate.Limit    // events per second, 0 means no rate limit
+	OnceEvery time.Duration // duration to allow only one event with the same ID, 0 means no once
+	CacheFor  time.Duration // duration to cache the output of the action, 0 means no caching
+
+	Then Action[I, O]   `validate:"required"`
+	To   Destination[O] `validate:"required"`
 
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
 	ctx             context.Context
-	wrappedCallback Callback[In]
+	wrappedCallback Callback[I]
 }
 
-func (r *Rule[In, Out]) start(ctx context.Context) error {
+func (r *Rule[I, O]) start(ctx context.Context) error {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
 		return nil
@@ -50,8 +57,8 @@ func (r *Rule[In, Out]) start(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rule[In, Out]) callback(ctx context.Context, event In, reports chan<- Report) {
-	attrs, err := event.Attributes(ctx)
+func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Report) {
+	attrs, err := EventAttributes(ctx, event)
 	if err != nil {
 		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
 
@@ -62,7 +69,7 @@ func (r *Rule[In, Out]) callback(ctx context.Context, event In, reports chan<- R
 	r.run(ctx, event, syms, reports)
 }
 
-func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
+func (r *Rule[I, O]) run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	r.runCurrent(ctx, event, syms, reports)
 
 	if !r.hasNextRunnable() {
@@ -79,7 +86,7 @@ func (r *Rule[In, Out]) run(ctx context.Context, event In, syms boolexpr.Symbols
 	nextRunnable.run(ctx, event, syms, reports)
 }
 
-func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.Symbols, reports chan<- Report) {
+func (r *Rule[I, O]) runCurrent(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
 	report.Rule = r.ID
 
@@ -95,24 +102,24 @@ func (r *Rule[In, Out]) runCurrent(ctx context.Context, event In, syms boolexpr.
 	reports <- report
 }
 
-func (r *Rule[In, Out]) getNext() Registry                  { return r.next }
-func (r *Rule[In, Out]) setNext(n Registry)                 { r.next = n }
-func (r *Rule[In, Out]) getPrev() Registry                  { return r.prev }
-func (r *Rule[In, Out]) setPrev(p Registry)                 { r.prev = p }
-func (r *Rule[In, Out]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
-func (r *Rule[In, Out]) getNextSameSource() sourceRegistry  { return r.nextSameSource }
-func (r *Rule[In, Out]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
-func (r *Rule[In, Out]) getSourceRegistry() sourceRegistry  { return r }
-func (r *Rule[In, Out]) getRegistry() Registry              { return r }
-func (r *Rule[In, Out]) getCtx() context.Context            { return r.ctx }
-func (r *Rule[In, Out]) getSource() any                     { return r.When }
+func (r *Rule[I, O]) getNext() Registry                  { return r.next }
+func (r *Rule[I, O]) setNext(n Registry)                 { r.next = n }
+func (r *Rule[I, O]) getPrev() Registry                  { return r.prev }
+func (r *Rule[I, O]) setPrev(p Registry)                 { r.prev = p }
+func (r *Rule[I, O]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
+func (r *Rule[I, O]) getNextSameSource() sourceRegistry  { return r.nextSameSource }
+func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
+func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
+func (r *Rule[I, O]) getRegistry() Registry              { return r }
+func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
+func (r *Rule[I, O]) getSource() any                     { return r.When }
 
-func (r *Rule[In, Out]) hasNextRunnable() bool {
+func (r *Rule[I, O]) hasNextRunnable() bool {
 	return r.nextSameSource != nil
 }
 
-func (r *Rule[In, Out]) nextRunnable() (runnable[In], error) {
-	runnable, ok := r.nextSameSource.getRegistry().(runnable[In])
+func (r *Rule[I, O]) nextRunnable() (runnable[I], error) {
+	runnable, ok := r.nextSameSource.getRegistry().(runnable[I])
 	if !ok {
 		return nil, fmt.Errorf("%w: rule %#v, next %#v", ErrIncompatibleSource, r, r.nextSameSource)
 	}

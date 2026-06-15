@@ -11,8 +11,10 @@ import (
 var MeScore int = 0
 
 var Me = firehose.Rule[events.KeyPress, events.AddScore]{
-	ID:   "me",
-	When: sources.Keyboard{},
+	ID: "me",
+	When: sources.Keyboard{
+		EventDevice: "/dev/input/event22",
+	},
 	If:   ``,
 	Then: actions.KeyPressToAddScore{},
 	To: destinations.Score{

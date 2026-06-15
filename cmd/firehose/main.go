@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	fh "github.com/emad-elsaid/firehose"
+	"github.com/emad-elsaid/firehose/cache"
 	"github.com/emad-elsaid/firehose/middlewares/actions"
 	"github.com/emad-elsaid/firehose/middlewares/callbacks"
 	"github.com/emad-elsaid/firehose/middlewares/destinations"
@@ -67,6 +69,9 @@ func actionMw[In, Out fh.Event]() []fh.ActionMiddleware[In, Out] {
 	return []fh.ActionMiddleware[In, Out]{
 		&actions.Panic[In, Out]{},
 		&actions.If[In, Out]{},
+		&actions.RateLimit[In, Out]{},
+		&actions.Once[In, Out]{Cache: cache.NewMemory[string](time.Minute, time.Minute)},
+		&actions.Cache[In, Out]{Cache: cache.NewMemory[Out](time.Minute, time.Minute)},
 	}
 }
 
