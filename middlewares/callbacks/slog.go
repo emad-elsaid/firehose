@@ -18,7 +18,7 @@ type Slog[I, O fh.Event] struct {
 // the callback function to be used by the source.
 func (s *Slog[I, O]) Wrap(
 	_ context.Context,
-	rule fh.Rule[I, O],
+	rule *fh.Rule[I, O],
 	callback fh.Callback[I],
 	_ I,
 ) (fh.Callback[I], error) {

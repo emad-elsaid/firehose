@@ -54,7 +54,7 @@ func wrapCallbackMiddlewares[I, O Event](
 	for _, v := range slices.Backward(callbackMiddlewares()) {
 		var err error
 
-		rule.wrappedCallback, err = v.Wrap(ctx, *rule, rule.wrappedCallback, inInstance)
+		rule.wrappedCallback, err = v.Wrap(ctx, rule, rule.wrappedCallback, inInstance)
 		if err != nil {
 			return err
 		}

@@ -16,6 +16,7 @@ import (
 	"github.com/emad-elsaid/firehose/middlewares/actions"
 	"github.com/emad-elsaid/firehose/middlewares/callbacks"
 	"github.com/emad-elsaid/firehose/middlewares/destinations"
+	"github.com/emad-elsaid/firehose/runner"
 	"github.com/golang-cz/devslog"
 )
 
@@ -62,6 +63,7 @@ func main() {
 func callbackMw[I, O fh.Event]() []fh.CallbackMiddleware[I, O] {
 	return []fh.CallbackMiddleware[I, O]{
 		&callbacks.Slog[I, O]{},
+		&callbacks.Parallel[I, O]{Runner: runner.Basic{}},
 	}
 }
 

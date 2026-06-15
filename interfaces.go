@@ -70,9 +70,9 @@ type sourceRegistry interface {
 // event through each rule.
 type Callback[I any] func(context.Context, I, chan<- Report)
 
-type runnable[I any] interface {
-	run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report)
-	nextRunnable() runnable[I]
+type Runnable[I any] interface {
+	Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report)
+	NextRunnable() Runnable[I]
 }
 
 // ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,
@@ -89,5 +89,5 @@ type DestinationMiddleware[I, O Event] interface {
 
 // CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.
 type CallbackMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule Rule[I, O], callback Callback[I], in I) (Callback[I], error)
+	Wrap(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
 }

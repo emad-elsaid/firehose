@@ -73,12 +73,12 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 
 	syms := boolexpr.NewSymbolsCached(attrs)
 
-	for current := runnable[I](r); current != nil; current = current.nextRunnable() {
-		current.run(ctx, event, syms, reports)
+	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {
+		current.Run(ctx, event, syms, reports)
 	}
 }
 
-func (r *Rule[I, O]) run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
+func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
 	report.Rule = r.ID
 
@@ -94,6 +94,14 @@ func (r *Rule[I, O]) run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	reports <- report
 }
 
+func (r *Rule[I, O]) NextRunnable() Runnable[I] {
+	if r.nextSameSource == nil {
+		return nil
+	}
+
+	return r.nextSameSource.getRegistry().(Runnable[I])
+}
+
 func (r *Rule[I, O]) getNext() Registry                  { return r.next }
 func (r *Rule[I, O]) setNext(n Registry)                 { r.next = n }
 func (r *Rule[I, O]) getPrev() Registry                  { return r.prev }
@@ -105,11 +113,3 @@ func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.When }
-
-func (r *Rule[I, O]) nextRunnable() runnable[I] {
-	if r.nextSameSource == nil {
-		return nil
-	}
-
-	return r.nextSameSource.getRegistry().(runnable[I])
-}

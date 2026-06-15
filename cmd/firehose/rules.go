@@ -27,7 +27,7 @@ func activateRules(ctx context.Context) fh.Registry {
 	registry = addRule(ctx, registry, &games.DeadCells, proc, tsi)
 	registry = addRule(ctx, registry, &games.MortalKombat1, proc, tsi)
 	registry = addRule(ctx, registry, &apps.Emacs, proc, tsi)
-	registry = addRule(ctx, nil, &twitch.Race, httpReq, httpRes)
+	registry = addRule(ctx, registry, &twitch.Race, httpReq, httpRes)
 	registry = addRule(ctx, registry, &twitch.Me, kp, as)
 	registry = addRule(ctx, registry, &twitch.Chat, tm, as)
 
