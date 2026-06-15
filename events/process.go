@@ -15,21 +15,8 @@ type Process struct {
 // Attributes returns the attributes of the process.
 func (p Process) Attributes(_ context.Context) (map[string]any, error) {
 	return map[string]any{
-		"pid": p.PID,
-		"cwd": p.Cwd,
-		"exe": p.Exe,
 		"cmd": p.Cmdline,
 	}, nil
-}
-
-// Cwd returns the current working directory of the process.
-func (p Process) Cwd() (string, error) {
-	return os.Readlink(fmt.Sprintf("/proc/%d/cwd", p.PID))
-}
-
-// Exe returns the executable path of the process.
-func (p Process) Exe() (string, error) {
-	return os.Readlink(fmt.Sprintf("/proc/%d/exe", p.PID))
 }
 
 // Cmdline returns the command line of the process.

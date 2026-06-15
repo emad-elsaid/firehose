@@ -13,7 +13,7 @@ var MeScore int = 0
 var Me = firehose.Rule[events.KeyPress, events.AddScore]{
 	ID: "me",
 	When: sources.Keyboard{
-		EventDevice: "/dev/input/event22",
+		EventDevice: "/dev/input/event14",
 	},
 	If:   ``,
 	Then: actions.KeyPressToAddScore{},

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/emad-elsaid/firehose"
-	"github.com/emad-elsaid/firehose/events"
 )
 
 // Time is a source that emits events at regular intervals.
@@ -15,7 +14,7 @@ type Time struct {
 }
 
 // Start begins emitting time events at the configured period.
-func (t Time) Start(ctx context.Context, callback firehose.Callback[events.Time]) (context.Context, error) {
+func (t Time) Start(ctx context.Context, callback firehose.Callback[time.Time]) (context.Context, error) {
 	done, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(t.Period)
 	t.tick(ctx, done, cancel, ticker, callback)
@@ -27,13 +26,13 @@ func (t Time) tick(
 	ctx, done context.Context,
 	cancel context.CancelFunc,
 	ticker *time.Ticker,
-	callback firehose.Callback[events.Time],
+	callback firehose.Callback[time.Time],
 ) {
 	reports := make(chan firehose.Report)
 	for {
 		select {
 		case now := <-ticker.C:
-			callback(ctx, events.Time(now), reports)
+			callback(ctx, now, reports)
 		case <-ctx.Done():
 		case <-done.Done():
 			ticker.Stop()
