@@ -3,16 +3,12 @@ package firehose
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/emad-elsaid/boolexpr"
 	"golang.org/x/time/rate"
 )
-
-// ErrIncompatibleSource is returned when the next rule in the same source chain doesn't have the same source type.
-var ErrIncompatibleSource = errors.New("next rule doesn't have the same source")
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[I, O Event] struct {
