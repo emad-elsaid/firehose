@@ -15,7 +15,7 @@ type Rule[I, O Event] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
 	ID string
 	// When is the source that produces events to be processed by this rule.
-	When Source[I] `validate:"required"`
+	When Source[I] `validate:"required_without=SubRules"`
 	// If is a boolean expression that determines whether the rule should be
 	// executed for a given event.
 	If string
@@ -29,9 +29,11 @@ type Rule[I, O Event] struct {
 	// same input event, 0 means no caching.
 	CacheFor time.Duration
 	// Then is the action to process the event if the When source produces an event
-	Then Action[I, O] `validate:"required"`
+	Then Action[I, O] `validate:"required_without=SubRules"`
 	// To is the destination to send the output of the Then action
-	To Destination[O] `validate:"required"`
+	To Destination[O] `validate:"required_without=SubRules"`
+	// SubRules are the child rules that will inherit the parent fields if set
+	SubRules []Rule[I, O]
 
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry

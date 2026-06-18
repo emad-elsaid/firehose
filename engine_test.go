@@ -460,3 +460,130 @@ func TestStart(t *testing.T) {
 		require.Len(t, receivedErrors, 1) // Only one context.Canceled since source is shared
 	})
 }
+
+func Test_inherit(t *testing.T) {
+	tcs := []struct {
+		name     string
+		parent   *MockRule
+		child    *MockRule
+		expected *MockRule
+	}{
+		{
+			name: "child inherits parent's exported fields",
+			parent: &MockRule{
+				ID:   "parent",
+				When: newSourceMock[*EventMock]("source1"),
+				If:   "parent condition",
+				Then: &MockAction{ID: "parent action"},
+				To:   &MockDestination{ID: "parent destination"},
+			},
+			child: &MockRule{},
+			expected: &MockRule{
+				ID:   "parent/1",
+				When: newSourceMock[*EventMock]("source1"),
+				If:   "parent condition",
+				Then: &MockAction{ID: "parent action"},
+				To:   &MockDestination{ID: "parent destination"},
+			},
+		},
+
+		{
+			name: "child does not override its own fields",
+			parent: &MockRule{
+				ID:   "parent",
+				When: newSourceMock[*EventMock]("source1"),
+				If:   "parent condition",
+				Then: &MockAction{},
+				To:   &MockDestination{},
+			},
+			child: &MockRule{
+				ID:   "child",
+				When: newSourceMock[*EventMock]("source2"),
+				If:   "child condition",
+				Then: &MockAction{ID: "child action"},
+				To:   &MockDestination{ID: "child destination"},
+			},
+			expected: &MockRule{
+				ID:   "parent/child",
+				When: newSourceMock[*EventMock]("source2"),
+				If:   "(parent condition) and (child condition)",
+				Then: &MockAction{ID: "child action"},
+				To:   &MockDestination{ID: "child destination"},
+			},
+		},
+
+		{
+			name: "child inherits only missing fields from parent",
+			parent: &MockRule{
+				ID:   "parent",
+				When: newSourceMock[*EventMock]("source1"),
+				If:   "parent condition",
+				Then: &MockAction{},
+				To:   &MockDestination{},
+			},
+			child: &MockRule{
+				ID:   "child",
+				When: newSourceMock[*EventMock]("source2"),
+				Then: &MockAction{ID: "child action"},
+				To:   &MockDestination{ID: "child destination"},
+			},
+			expected: &MockRule{
+				ID:   "parent/child",
+				When: newSourceMock[*EventMock]("source2"),
+				If:   "parent condition",
+				Then: &MockAction{ID: "child action"},
+				To:   &MockDestination{ID: "child destination"},
+			},
+		},
+
+		{
+			name: "child condition should be anded with parent condition if child has its own condition",
+			parent: &MockRule{
+				If: "parent condition",
+			},
+			child: &MockRule{
+				If: "child condition",
+			},
+			expected: &MockRule{
+				ID: "1",
+				If: "(parent condition) and (child condition)",
+			},
+		},
+		{
+			name: "parent ID should be used as prefix for child ID if child has its own ID",
+			parent: &MockRule{
+				ID: "parent",
+			},
+			child: &MockRule{
+				ID: "child",
+			},
+			expected: &MockRule{
+				ID: "parent/child",
+			},
+		},
+		{
+			name: "doesn't copy subrules from parent to child",
+			parent: &MockRule{
+				ID: "parent",
+				SubRules: []MockRule{
+					{
+						ID: "subrule1",
+					},
+				},
+			},
+			child: &MockRule{
+				ID: "child",
+			},
+			expected: &MockRule{
+				ID: "parent/child",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			inherit(1, tc.parent, tc.child)
+			require.Equal(t, tc.expected, tc.child)
+		})
+	}
+}

@@ -68,6 +68,7 @@ func (m *SourceMock[T]) Stop() {
 
 type ActionMock[I, O any] struct {
 	mock.Mock
+	ID string
 }
 
 func (m *ActionMock[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
@@ -78,6 +79,7 @@ func (m *ActionMock[I, O]) Process(ctx context.Context, event I, syms boolexpr.S
 
 type DestinationMock[T any] struct {
 	mock.Mock
+	ID string
 }
 
 func (m *DestinationMock[T]) Send(ctx context.Context, event T) Report {
