@@ -6,8 +6,8 @@ github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc
 github.com/alecthomas/repr v0.4.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/emad-elsaid/boolexpr v0.0.0-20260609055429-1c1e0a16e3f3 h1:g0h9bhACjjJ0wsi+n7EXN2OtDvDxM8p6foIdStkAtvA=
-github.com/emad-elsaid/boolexpr v0.0.0-20260609055429-1c1e0a16e3f3/go.mod h1:hA2cYiqOWdUQlrmzRoULY6JJCVEWnNaTSxFfEoyVzkk=
+github.com/emad-elsaid/boolexpr v0.2.0 h1:BxhftHsNF1eTTWwxE/qifWRTsh4Zdlb6OUJ0EQ0GvK4=
+github.com/emad-elsaid/boolexpr v0.2.0/go.mod h1:hA2cYiqOWdUQlrmzRoULY6JJCVEWnNaTSxFfEoyVzkk=
 github.com/emad-elsaid/types v0.0.6 h1:14A8LWqhTo6EeZF5QUHgao80aE4jA2pdce/triaZa/Q=
 github.com/emad-elsaid/types v0.0.6/go.mod h1:jZ8aCO1GjKdIbxQIhOYIgcBx+/NwGYt0Jw5TzhQ4Y/g=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
