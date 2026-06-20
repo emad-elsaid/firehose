@@ -31,6 +31,16 @@ func (r Report) String() string {
 	return string(r.Status) + "  " + r.Rule + ": " + r.Err.Error()
 }
 
+var successReport = Report{
+	Status: StatusSuccess,
+	Err:    nil,
+	Abort:  false,
+}
+
+func NewSuccessReport() Report {
+	return successReport
+}
+
 // NewReport creates a new Report with the given status and error.
 func NewReport(status Status, err error) Report {
 	return Report{

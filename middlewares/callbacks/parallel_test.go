@@ -120,7 +120,7 @@ func TestParallel_Wrap(t *testing.T) {
 			name: "wraps callback successfully",
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "test-rule",
+					Id:   "test-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -139,7 +139,7 @@ func TestParallel_Wrap(t *testing.T) {
 			name: "stores rule reference",
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "test-rule-2",
+					Id:   "test-rule-2",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -201,7 +201,7 @@ func TestParallel_Callback(t *testing.T) {
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "rule-1",
+					Id:   "rule-1",
 					When: &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,
@@ -226,7 +226,7 @@ func TestParallel_Callback(t *testing.T) {
 			name: "handles event attributes error",
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "rule-error",
+					Id:   "rule-error",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -261,7 +261,7 @@ func TestParallel_Callback(t *testing.T) {
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "concurrent-rule",
+					Id:   "concurrent-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,
@@ -353,7 +353,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 				Return(fh.NewReport(fh.StatusSuccess, nil))
 
 			rule := &fh.Rule[*mockEvent, *mockEvent]{
-				ID:   "concurrent-rule",
+				Id:   "concurrent-rule",
 				When: &mockSource[*mockEvent]{},
 				Then: action,
 				To:   dest,
@@ -408,7 +408,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "wait-rule",
+					Id:   "wait-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,

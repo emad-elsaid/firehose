@@ -35,7 +35,7 @@ func (s *Parallel[I, O]) Wrap(
 func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
 	attrs, err := fh.EventAttributes(ctx, event)
 	if err != nil {
-		reports <- fh.NewRuleReport(s.rule.ID, fh.StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+		reports <- fh.NewRuleReport(s.rule.Id, fh.StatusError, fmt.Errorf("failed to get event attributes: %w", err))
 
 		return
 	}

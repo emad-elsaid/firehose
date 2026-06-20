@@ -304,17 +304,17 @@ func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 		child.If = "(" + parent.If + ") and (" + child.If + ")"
 	}
 
-	if child.ID == "" {
-		child.ID = strconv.Itoa(index)
+	if child.Id == "" {
+		child.Id = strconv.Itoa(index)
 	}
 
-	if parent.ID != "" {
-		child.ID = parent.ID + "/" + child.ID
+	if parent.Id != "" {
+		child.Id = parent.Id + "/" + child.Id
 	}
 }
 
 func isActivatable[I, O Event](rule *Rule[I, O]) bool {
-	return rule.ID != "" &&
+	return rule.Id != "" &&
 		rule.When != nil &&
 		rule.Then != nil &&
 		rule.To != nil

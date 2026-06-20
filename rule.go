@@ -12,8 +12,8 @@ import (
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[I, O Event] struct {
-	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
-	ID string
+	// Id is a unique identifier for the rule, used for reporting and debugging purposes.
+	Id string
 	// When is the source that produces events to be processed by this rule.
 	When Source[I] `validate:"required_without=SubRules"`
 	// If is a boolean expression that determines whether the rule should be
@@ -68,7 +68,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Report) {
 	attrs, err := EventAttributes(ctx, event)
 	if err != nil {
-		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+		reports <- NewRuleReport(r.Id, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
 
 		return
 	}
@@ -82,7 +82,7 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
-	report.Rule = r.ID
+	report.Rule = r.Id
 
 	if report.Err != nil || report.Abort {
 		reports <- report
@@ -91,7 +91,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	}
 
 	report = r.To.Send(ctx, out)
-	report.Rule = r.ID
+	report.Rule = r.Id
 
 	reports <- report
 }

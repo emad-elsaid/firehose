@@ -38,7 +38,7 @@ func TestSlog_Wrap(t *testing.T) {
 			name: "wraps callback successfully",
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "log-rule",
+					Id:   "log-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -60,7 +60,7 @@ func TestSlog_Wrap(t *testing.T) {
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				source := &mockSource[*mockEvent]{}
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "log-rule-2",
+					Id:   "log-rule-2",
 					When: source,
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -120,7 +120,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "log-rule",
+					Id:   "log-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -155,7 +155,7 @@ func TestSlog_Callback(t *testing.T) {
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				source := &mockSource[*mockEvent]{}
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "source-log-rule",
+					Id:   "source-log-rule",
 					When: source,
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -188,7 +188,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "event-log-rule",
+					Id:   "event-log-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -221,7 +221,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "multi-report-rule",
+					Id:   "multi-report-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -256,7 +256,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "forward-rule",
+					Id:   "forward-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -288,7 +288,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "error-rule",
+					Id:   "error-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -323,7 +323,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "empty-rule",
+					Id:   "empty-rule",
 					When: &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
@@ -430,7 +430,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 			defer mockObj.AssertExpectations(t)
 
 			rule := &fh.Rule[*mockEvent, *mockEvent]{
-				ID:   "downstream-rule",
+				Id:   "downstream-rule",
 				When: &mockSource[*mockEvent]{},
 				Then: &mockAction[*mockEvent, *mockEvent]{},
 				To:   &mockDestination[*mockEvent]{},
@@ -493,7 +493,7 @@ func TestSlog_ChannelClosure(t *testing.T) {
 
 			downstream := tc.setupDownstream()
 			rule := &fh.Rule[*mockEvent, *mockEvent]{
-				ID:   "closure-rule",
+				Id:   "closure-rule",
 				When: &mockSource[*mockEvent]{},
 				Then: &mockAction[*mockEvent, *mockEvent]{},
 				To:   &mockDestination[*mockEvent]{},
