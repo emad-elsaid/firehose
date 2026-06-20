@@ -16,8 +16,8 @@ func TestIsValid(t *testing.T) {
 	t.Run("rule missing source is invalid", func(t *testing.T) {
 		rule := &MockRule{
 			When: nil,
-			Then: &MockAction{},
-			To:   &MockDestination{},
+			Then: &MockAction[*EventMock, *EventMock]{},
+			To:   &MockDestination[*EventMock]{},
 		}
 		require.Error(t, IsValid(rule))
 	})
@@ -27,7 +27,7 @@ func TestIsValid(t *testing.T) {
 			When: newSourceMock[*EventMock]("source1"),
 			If:   "Attr1 == 'value'",
 			Then: nil,
-			To:   &MockDestination{},
+			To:   &MockDestination[*EventMock]{},
 		}
 		require.Error(t, IsValid(rule))
 	})
@@ -35,7 +35,7 @@ func TestIsValid(t *testing.T) {
 	t.Run("rule missing destination is invalid", func(t *testing.T) {
 		rule := &MockRule{
 			When: newSourceMock[*EventMock]("source1"),
-			Then: &MockAction{},
+			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   nil,
 		}
 		require.Error(t, IsValid(rule))

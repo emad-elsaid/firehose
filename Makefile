@@ -26,3 +26,6 @@ opts:
 
 test:
 	@go test -race -coverprofile=coverage.out ./...
+
+generate:
+	@mockery

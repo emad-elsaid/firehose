@@ -3,6 +3,7 @@ package callbacks
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	fh "github.com/emad-elsaid/firehose"
 )
@@ -30,9 +31,11 @@ func (s *Slog[I, O]) Wrap(
 
 func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
 	reportsChan := make(chan fh.Report)
-	defer close(reportsChan)
-
+	
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 
 		results := []fh.Report{}
 
@@ -45,4 +48,6 @@ func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Rep
 	}()
 
 	s.downstream(ctx, event, reportsChan)
+	close(reportsChan)
+	wg.Wait()
 }

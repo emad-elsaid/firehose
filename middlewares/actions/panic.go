@@ -39,11 +39,7 @@ func (p *Panic[I, O]) Process(
 	ctx context.Context,
 	event I,
 	syms boolexpr.Symbols,
-) (O, firehose.Report) {
-	var output O
-
-	var report firehose.Report
-
+) (output O, report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
 			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))

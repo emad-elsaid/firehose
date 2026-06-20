@@ -33,9 +33,7 @@ func (p *Panic[I, O]) Wrap(
 }
 
 // Send executes the downstream destination with panic recovery, converting any panic into an error.
-func (p *Panic[I, O]) Send(ctx context.Context, event O) firehose.Report {
-	var report firehose.Report
-
+func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
 			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
