@@ -55,12 +55,12 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 		cb = r.wrappedCallback
 	}
 
-	ctx, err := r.When.Start(ctx, cb)
+	srcCtx, err := r.When.Start(ctx, cb)
 	if err != nil {
 		return fmt.Errorf("failed to start source: %w", err)
 	}
 
-	r.ctx = ctx
+	r.ctx = srcCtx
 
 	return nil
 }
@@ -101,6 +101,8 @@ func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 		return nil
 	}
 
+	// We will panic on purpose in case the next source is not a Runnable of the same type
+	// As this would indicate a bug in the engine.
 	return r.nextSameSource.getRegistry().(Runnable[I])
 }
 

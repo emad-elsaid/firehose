@@ -47,8 +47,9 @@ func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh
 		wg.Add(1)
 
 		s.Runner.Run(func() {
+			defer wg.Done()
+
 			current.Run(ctx, event, syms, reports)
-			wg.Done()
 		})
 	}
 

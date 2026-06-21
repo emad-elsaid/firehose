@@ -72,10 +72,7 @@ func addSingleRule[I, O Event](
 			return nil, err
 		}
 
-		registry, err = addRuleToRegistry(registry, rule), nil
-		if err != nil {
-			return nil, err
-		}
+		registry = addRuleToRegistry(registry, rule)
 	}
 
 	for i := range rule.SubRules {
@@ -291,8 +288,7 @@ func inherit[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 			continue
 		}
 
-		field := childValue.Field(i)
-
+		field := childValue.FieldByName(structField.Name)
 		if field.IsZero() {
 			field.Set(parentValue.Field(i))
 		}

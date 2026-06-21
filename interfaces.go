@@ -24,7 +24,7 @@ func EventAttributes(ctx context.Context, event any) (map[string]any, error) {
 		return attributer.Attributes(ctx)
 	}
 
-	return nil, nil
+	return map[string]any{}, nil
 }
 
 // Source produces events of type T.

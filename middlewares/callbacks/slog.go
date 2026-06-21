@@ -31,9 +31,13 @@ func (s *Slog[I, O]) Wrap(
 
 func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
 	reportsChan := make(chan fh.Report)
-	
+
 	var wg sync.WaitGroup
 	wg.Add(1)
+	defer wg.Wait()
+
+	defer close(reportsChan)
+
 	go func() {
 		defer wg.Done()
 
@@ -48,6 +52,4 @@ func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Rep
 	}()
 
 	s.downstream(ctx, event, reportsChan)
-	close(reportsChan)
-	wg.Wait()
 }
