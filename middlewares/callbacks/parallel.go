@@ -9,22 +9,23 @@ import (
 	fh "github.com/emad-elsaid/firehose"
 )
 
+// TaskRunner executes tasks asynchronously.
 type TaskRunner interface {
-	Run(func())
+	Run(task func())
 }
 
+// Parallel is a callback middleware that executes rules in parallel using a task runner.
 type Parallel[I, O fh.Event] struct {
 	Runner TaskRunner
 
 	rule *fh.Rule[I, O]
 }
 
-// Wrap stores the downstream callback to be wrapped with logging and returns
-// the callback function to be used by the source.
+// Wrap stores the rule and returns the parallel callback function.
 func (s *Parallel[I, O]) Wrap(
 	_ context.Context,
 	rule *fh.Rule[I, O],
-	callback fh.Callback[I],
+	_ fh.Callback[I],
 	_ I,
 ) (fh.Callback[I], error) {
 	s.rule = rule
@@ -35,23 +36,24 @@ func (s *Parallel[I, O]) Wrap(
 func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
 	attrs, err := fh.EventAttributes(ctx, event)
 	if err != nil {
-		reports <- fh.NewRuleReport(s.rule.Id, fh.StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+		reports <- fh.NewRuleReport(s.rule.ID, fh.StatusError, fmt.Errorf("failed to get event attributes: %w", err))
 
 		return
 	}
 
 	syms := boolexpr.NewSymbolsCached(attrs)
 
-	var wg sync.WaitGroup
+	var waitGroup sync.WaitGroup
+
 	for current := fh.Runnable[I](s.rule); current != nil; current = current.NextRunnable() {
-		wg.Add(1)
+		waitGroup.Add(1)
 
 		s.Runner.Run(func() {
-			defer wg.Done()
+			defer waitGroup.Done()
 
 			current.Run(ctx, event, syms, reports)
 		})
 	}
 
-	wg.Wait()
+	waitGroup.Wait()
 }

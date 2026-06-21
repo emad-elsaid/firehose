@@ -8,8 +8,11 @@ import (
 	"strconv"
 )
 
+// ErrRuleNotActivatable is returned when a rule cannot be activated because
+// it is missing required properties (Id, When, Then, To).
 var ErrRuleNotActivatable = errors.New("rule is not activatable, missing required properties")
 
+// AddRule registers a new processing rule in the context.
 func AddRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
@@ -34,57 +37,94 @@ func AddRule[I, O Event](
 	)
 }
 
-// AddRule registers a new processing rule in the context.
+// addSingleRule registers a single rule and its subrules in the registry.
 func addSingleRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
 	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionsMiddlewares func() []ActionMiddleware[I, O],
-	destinationsMiddlewares func() []DestinationMiddleware[I, O],
+	actionMiddlewares func() []ActionMiddleware[I, O],
+	destinationMiddlewares func() []DestinationMiddleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
-	err := IsValid(rule)
+	err := validateAndCheckActivatable(rule)
 	if err != nil {
 		return nil, err
 	}
 
-	isActivatable := isActivatable(rule)
+	if isActivatable(rule) {
+		var err error
 
-	if !isActivatable && len(rule.SubRules) == 0 {
-		return nil, ErrRuleNotActivatable
+		registry, err = registerActivatableRule(
+			ctx, registry, rule, inInstance, outInstance,
+			callbackMiddlewares, actionMiddlewares, destinationMiddlewares)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if isActivatable {
-		err = wrapCallbackMiddlewares(ctx, rule, inInstance, callbackMiddlewares)
-		if err != nil {
-			return nil, err
-		}
+	return registerSubRules(
+		ctx, registry, rule,
+		callbackMiddlewares, actionMiddlewares, destinationMiddlewares,
+		inInstance, outInstance)
+}
 
-		err = wrapActionMiddlewares(ctx, rule, inInstance, actionsMiddlewares)
-		if err != nil {
-			return nil, err
-		}
-
-		err = wrapDestinationMiddlewares(ctx, rule, outInstance, destinationsMiddlewares)
-		if err != nil {
-			return nil, err
-		}
-
-		registry = addRuleToRegistry(registry, rule)
+func validateAndCheckActivatable[I, O Event](rule *Rule[I, O]) error {
+	err := IsValid(rule)
+	if err != nil {
+		return err
 	}
 
+	if !isActivatable(rule) && len(rule.SubRules) == 0 {
+		return ErrRuleNotActivatable
+	}
+
+	return nil
+}
+
+func registerActivatableRule[I, O Event](
+	ctx context.Context,
+	registry Registry,
+	rule *Rule[I, O],
+	inInstance I,
+	outInstance O,
+	callbackMiddlewares func() []CallbackMiddleware[I, O],
+	actionMiddlewares func() []ActionMiddleware[I, O],
+	destinationMiddlewares func() []DestinationMiddleware[I, O],
+) (Registry, error) {
+	err := wrapMiddlewares(
+		ctx, rule, inInstance, outInstance,
+		callbackMiddlewares, actionMiddlewares, destinationMiddlewares)
+	if err != nil {
+		return nil, err
+	}
+
+	return addRuleToRegistry(registry, rule), nil
+}
+
+func registerSubRules[I, O Event](
+	ctx context.Context,
+	registry Registry,
+	rule *Rule[I, O],
+	callbackMiddlewares func() []CallbackMiddleware[I, O],
+	actionMiddlewares func() []ActionMiddleware[I, O],
+	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	inInstance I,
+	outInstance O,
+) (Registry, error) {
 	for i := range rule.SubRules {
 		subrule := &rule.SubRules[i]
+
+		var err error
 
 		registry, err = addSingleRule(
 			ctx,
 			registry,
 			subrule,
 			callbackMiddlewares,
-			actionsMiddlewares,
-			destinationsMiddlewares,
+			actionMiddlewares,
+			destinationMiddlewares,
 			inInstance,
 			outInstance,
 		)
@@ -94,6 +134,28 @@ func addSingleRule[I, O Event](
 	}
 
 	return registry, nil
+}
+
+func wrapMiddlewares[I, O Event](
+	ctx context.Context,
+	rule *Rule[I, O],
+	inInstance I,
+	outInstance O,
+	callbackMiddlewares func() []CallbackMiddleware[I, O],
+	actionMiddlewares func() []ActionMiddleware[I, O],
+	destinationMiddlewares func() []DestinationMiddleware[I, O],
+) error {
+	err := wrapCallbackMiddlewares(ctx, rule, inInstance, callbackMiddlewares)
+	if err != nil {
+		return err
+	}
+
+	err = wrapActionMiddlewares(ctx, rule, inInstance, actionMiddlewares)
+	if err != nil {
+		return err
+	}
+
+	return wrapDestinationMiddlewares(ctx, rule, outInstance, destinationMiddlewares)
 }
 
 func wrapCallbackMiddlewares[I, O Event](
@@ -275,22 +337,24 @@ func flatten[I, O Event](rule *Rule[I, O]) {
 
 func inherit[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	combine(index, parent, child)
-	childType := reflect.TypeOf(child).Elem()
+
+	childType := reflect.TypeFor[*Rule[I, O]]().Elem()
 	childValue := reflect.ValueOf(child).Elem()
 	parentValue := reflect.ValueOf(parent).Elem()
 
 	// go over child fields and if they are not set, inherit from parent
-	for i, structField := range reflect.VisibleFields(childType) {
+	for _, structField := range reflect.VisibleFields(childType) {
 		if !structField.IsExported() {
 			continue
 		}
+
 		if structField.Name == "SubRules" {
 			continue
 		}
 
 		field := childValue.FieldByName(structField.Name)
 		if field.IsZero() {
-			field.Set(parentValue.Field(i))
+			field.Set(parentValue.FieldByName(structField.Name))
 		}
 	}
 }
@@ -300,17 +364,17 @@ func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 		child.If = "(" + parent.If + ") and (" + child.If + ")"
 	}
 
-	if child.Id == "" {
-		child.Id = strconv.Itoa(index)
+	if child.ID == "" {
+		child.ID = strconv.Itoa(index)
 	}
 
-	if parent.Id != "" {
-		child.Id = parent.Id + "/" + child.Id
+	if parent.ID != "" {
+		child.ID = parent.ID + "/" + child.ID
 	}
 }
 
 func isActivatable[I, O Event](rule *Rule[I, O]) bool {
-	return rule.Id != "" &&
+	return rule.ID != "" &&
 		rule.When != nil &&
 		rule.Then != nil &&
 		rule.To != nil

@@ -32,14 +32,15 @@ func (s *Slog[I, O]) Wrap(
 func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
 	reportsChan := make(chan fh.Report)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	defer wg.Wait()
+	var waitGroup sync.WaitGroup
 
+	waitGroup.Add(1)
+
+	defer waitGroup.Wait()
 	defer close(reportsChan)
 
 	go func() {
-		defer wg.Done()
+		defer waitGroup.Done()
 
 		results := []fh.Report{}
 

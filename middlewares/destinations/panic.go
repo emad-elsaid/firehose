@@ -33,6 +33,8 @@ func (p *Panic[I, O]) Wrap(
 }
 
 // Send executes the downstream destination with panic recovery, converting any panic into an error.
+//
+//nolint:nonamedreturns // Named return allows defer to modify return value on panic recovery
 func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {

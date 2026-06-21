@@ -10,15 +10,17 @@ import (
 // Event represents an event with attributes that can be evaluated in conditions.
 type Event any
 
+// EventID computes a hash-based identifier for an event.
 func EventID(event Event) (uint64, error) {
 	return hashstructure.Hash(event, hashstructure.FormatV2, nil)
 }
 
-// Interface for providing attributes for an event
+// Attributer is an interface for providing attributes for an event that can be used in condition evaluation.
 type Attributer interface {
 	Attributes(ctx context.Context) (map[string]any, error)
 }
 
+// EventAttributes extracts attributes from an event if it implements the Attributer interface.
 func EventAttributes(ctx context.Context, event any) (map[string]any, error) {
 	if attributer, ok := event.(Attributer); ok {
 		return attributer.Attributes(ctx)
@@ -70,6 +72,7 @@ type sourceRegistry interface {
 // event through each rule.
 type Callback[I any] func(context.Context, I, chan<- Report)
 
+// Runnable represents a rule that can be executed to process events.
 type Runnable[I any] interface {
 	Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report)
 	NextRunnable() Runnable[I]

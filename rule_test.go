@@ -112,14 +112,14 @@ func TestRuleCallback(t *testing.T) {
 		defer destination.AssertExpectations(t)
 
 		rule1 := &MockRule{
-			Id:   "rule1",
+			ID:   "rule1",
 			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
-			Id:   "rule2",
+			ID:   "rule2",
 			When: source,
 			Then: action,
 			To:   destination,
@@ -158,14 +158,14 @@ func TestRuleCallback(t *testing.T) {
 		defer destination.AssertExpectations(t)
 
 		rule1 := &MockRule{
-			Id:   "rule1",
+			ID:   "rule1",
 			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
-			Id:   "rule2",
+			ID:   "rule2",
 			When: source,
 			Then: action,
 			To:   destination,
@@ -203,14 +203,14 @@ func TestRuleCallback(t *testing.T) {
 		defer destination.AssertExpectations(t)
 
 		rule1 := &MockRule{
-			Id:   "rule1",
+			ID:   "rule1",
 			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
-			Id:   "rule2",
+			ID:   "rule2",
 			When: source,
 			Then: action,
 			To:   destination,
@@ -248,21 +248,21 @@ func TestRuleCallback(t *testing.T) {
 		defer destination.AssertExpectations(t)
 
 		rule1 := &MockRule{
-			Id:   "rule1",
+			ID:   "rule1",
 			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
-			Id:   "rule2",
+			ID:   "rule2",
 			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule3 := &MockRule{
-			Id:   "rule3",
+			ID:   "rule3",
 			When: source,
 			Then: action,
 			To:   destination,
@@ -346,15 +346,15 @@ func TestRule_NextRunnable(t *testing.T) {
 		{
 			name: "returns nil when nextSameSource is nil",
 			setup: func() *MockRule {
-				return &MockRule{Id: "rule1"}
+				return &MockRule{ID: "rule1"}
 			},
 			expected: false,
 		},
 		{
 			name: "returns next runnable when nextSameSource is set",
 			setup: func() *MockRule {
-				rule1 := &MockRule{Id: "rule1"}
-				rule2 := &MockRule{Id: "rule2"}
+				rule1 := &MockRule{ID: "rule1"}
+				rule2 := &MockRule{ID: "rule2"}
 				rule1.setNextSameSource(rule2)
 				return rule1
 			},
@@ -391,7 +391,7 @@ func TestRule_Run(t *testing.T) {
 				event := new(EventMock)
 
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					Then: action,
 					To:   destination,
 				}
@@ -418,7 +418,7 @@ func TestRule_Run(t *testing.T) {
 				event := new(EventMock)
 
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					Then: action,
 					To:   destination,
 				}
@@ -443,7 +443,7 @@ func TestRule_Run(t *testing.T) {
 				event := new(EventMock)
 
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					Then: action,
 					To:   destination,
 				}
@@ -469,7 +469,7 @@ func TestRule_Run(t *testing.T) {
 				event := new(EventMock)
 
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					Then: action,
 					To:   destination,
 				}
@@ -529,7 +529,7 @@ func TestRule_Start(t *testing.T) {
 			setup: func() (*MockRule, *SourceMock[*EventMock]) {
 				source := newSourceMock[*EventMock]("test-source")
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					When: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).
@@ -543,8 +543,8 @@ func TestRule_Start(t *testing.T) {
 			name: "does not start when prevSameSource is set (not first in chain)",
 			setup: func() (*MockRule, *SourceMock[*EventMock]) {
 				source := newSourceMock[*EventMock]("test-source")
-				rule1 := &MockRule{Id: "rule1", When: source}
-				rule2 := &MockRule{Id: "rule2", When: source}
+				rule1 := &MockRule{ID: "rule1", When: source}
+				rule2 := &MockRule{ID: "rule2", When: source}
 				rule2.setPrevSameSource(rule1)
 				return rule2, source
 			},
@@ -556,7 +556,7 @@ func TestRule_Start(t *testing.T) {
 			setup: func() (*MockRule, *SourceMock[*EventMock]) {
 				source := newSourceMock[*EventMock]("test-source")
 				rule := &MockRule{
-					Id:   "test-rule",
+					ID:   "test-rule",
 					When: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).

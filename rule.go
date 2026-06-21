@@ -12,8 +12,8 @@ import (
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[I, O Event] struct {
-	// Id is a unique identifier for the rule, used for reporting and debugging purposes.
-	Id string
+	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
+	ID string
 	// When is the source that produces events to be processed by this rule.
 	When Source[I] `validate:"required_without=SubRules"`
 	// If is a boolean expression that determines whether the rule should be
@@ -68,7 +68,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Report) {
 	attrs, err := EventAttributes(ctx, event)
 	if err != nil {
-		reports <- NewRuleReport(r.Id, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
+		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
 
 		return
 	}
@@ -80,9 +80,10 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 	}
 }
 
+// Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
 	out, report := r.Then.Process(ctx, event, syms)
-	report.Rule = r.Id
+	report.Rule = r.ID
 
 	if report.Err != nil || report.Abort {
 		reports <- report
@@ -91,11 +92,12 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	}
 
 	report = r.To.Send(ctx, out)
-	report.Rule = r.Id
+	report.Rule = r.ID
 
 	reports <- report
 }
 
+// NextRunnable returns the next runnable rule with the same source.
 func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 	if r.nextSameSource == nil {
 		return nil

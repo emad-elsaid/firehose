@@ -23,20 +23,14 @@ type Report struct {
 	Err    error
 }
 
-func (r Report) String() string {
-	if r.Err == nil {
-		return string(r.Status) + " " + r.Rule
-	}
-
-	return string(r.Status) + "  " + r.Rule + ": " + r.Err.Error()
-}
-
 var successReport = Report{
+	Rule:   "",
 	Status: StatusSuccess,
 	Err:    nil,
 	Abort:  false,
 }
 
+// NewSuccessReport creates a new Report for a successful operation.
 func NewSuccessReport() Report {
 	return successReport
 }
@@ -70,4 +64,12 @@ func NewAbortReport(status Status, err error) Report {
 		Err:    err,
 		Abort:  true,
 	}
+}
+
+func (r Report) String() string {
+	if r.Err == nil {
+		return string(r.Status) + " " + r.Rule
+	}
+
+	return string(r.Status) + "  " + r.Rule + ": " + r.Err.Error()
 }

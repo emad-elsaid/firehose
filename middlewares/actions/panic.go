@@ -35,6 +35,8 @@ func (p *Panic[I, O]) Wrap(
 
 // Process executes the downstream action with panic recovery, returning a Report with
 // StatusPanicRecovered if a panic occurs.
+//
+//nolint:nonamedreturns // Named returns allow defer to modify return values on panic recovery
 func (p *Panic[I, O]) Process(
 	ctx context.Context,
 	event I,
@@ -42,6 +44,9 @@ func (p *Panic[I, O]) Process(
 ) (output O, report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
+			var zero O
+
+			output = zero
 			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()

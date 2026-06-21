@@ -8,14 +8,22 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// StatusRateLimitError indicates an action was aborted due to rate limiting.
 var StatusRateLimitError fh.Status = "rate_limit_error"
 
+// RateLimit is an action middleware that limits the rate of action execution.
 type RateLimit[I, O fh.Event] struct {
 	limiter    *rate.Limiter
 	downstream fh.Action[I, O]
 }
 
-func (a *RateLimit[I, O]) Wrap(ctx context.Context, rule fh.Rule[I, O], action fh.Action[I, O], in I) (fh.Action[I, O], error) {
+// Wrap wraps an action with rate limiting if RateLimit is configured on the rule.
+func (a *RateLimit[I, O]) Wrap(
+	_ context.Context,
+	rule fh.Rule[I, O],
+	action fh.Action[I, O],
+	_ I,
+) (fh.Action[I, O], error) {
 	if rule.RateLimit <= 0 {
 		return action, nil
 	}
@@ -26,8 +34,10 @@ func (a *RateLimit[I, O]) Wrap(ctx context.Context, rule fh.Rule[I, O], action f
 	return a, nil
 }
 
+// Process waits for rate limiter permission before executing the downstream action.
 func (a *RateLimit[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
-	if err := a.limiter.Wait(ctx); err != nil {
+	err := a.limiter.Wait(ctx)
+	if err != nil {
 		var zero O
 
 		return zero, fh.NewAbortReport(StatusRateLimitError, err)
