@@ -16,39 +16,39 @@ import (
 
 func TestRateLimit_Wrap(t *testing.T) {
 	tests := []struct {
-		name          string
-		rateLimit     rate.Limit
-		wantWrapped   bool
+		name           string
+		rateLimit      rate.Limit
+		wantWrapped    bool
 		wantLimiterNil bool
 	}{
 		{
-			name:          "returns original action when rate limit is zero",
-			rateLimit:     0,
-			wantWrapped:   false,
+			name:           "returns original action when rate limit is zero",
+			rateLimit:      0,
+			wantWrapped:    false,
 			wantLimiterNil: true,
 		},
 		{
-			name:          "returns original action when rate limit is negative",
-			rateLimit:     -1,
-			wantWrapped:   false,
+			name:           "returns original action when rate limit is negative",
+			rateLimit:      -1,
+			wantWrapped:    false,
 			wantLimiterNil: true,
 		},
 		{
-			name:          "wraps action when rate limit is positive",
-			rateLimit:     10,
-			wantWrapped:   true,
+			name:           "wraps action when rate limit is positive",
+			rateLimit:      10,
+			wantWrapped:    true,
 			wantLimiterNil: false,
 		},
 		{
-			name:          "wraps action with rate limit of 1",
-			rateLimit:     1,
-			wantWrapped:   true,
+			name:           "wraps action with rate limit of 1",
+			rateLimit:      1,
+			wantWrapped:    true,
 			wantLimiterNil: false,
 		},
 		{
-			name:          "wraps action with high rate limit",
-			rateLimit:     1000,
-			wantWrapped:   true,
+			name:           "wraps action with high rate limit",
+			rateLimit:      1000,
+			wantWrapped:    true,
 			wantLimiterNil: false,
 		},
 	}
@@ -85,34 +85,34 @@ func TestRateLimit_Wrap(t *testing.T) {
 
 func TestRateLimit_Process(t *testing.T) {
 	tests := []struct {
-		name           string
-		rateLimit      rate.Limit
-		eventCount     int
-		timeBetween    time.Duration
-		cancelContext  bool
-		wantSuccess    int
+		name            string
+		rateLimit       rate.Limit
+		eventCount      int
+		timeBetween     time.Duration
+		cancelContext   bool
+		wantSuccess     int
 		wantRateLimited int
 	}{
 		{
-			name:           "allows single event under rate limit",
-			rateLimit:      10,
-			eventCount:     1,
-			wantSuccess:    1,
+			name:            "allows single event under rate limit",
+			rateLimit:       10,
+			eventCount:      1,
+			wantSuccess:     1,
 			wantRateLimited: 0,
 		},
 		{
-			name:           "allows burst of 1 event immediately",
-			rateLimit:      1,
-			eventCount:     1,
-			wantSuccess:    1,
+			name:            "allows burst of 1 event immediately",
+			rateLimit:       1,
+			eventCount:      1,
+			wantSuccess:     1,
 			wantRateLimited: 0,
 		},
 		{
-			name:           "handles context cancellation",
-			rateLimit:      1,
-			eventCount:     1,
-			cancelContext:  true,
-			wantSuccess:    0,
+			name:            "handles context cancellation",
+			rateLimit:       1,
+			eventCount:      1,
+			cancelContext:   true,
+			wantSuccess:     0,
 			wantRateLimited: 1,
 		},
 	}

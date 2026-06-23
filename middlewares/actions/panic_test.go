@@ -40,9 +40,9 @@ func TestPanic_Wrap(t *testing.T) {
 
 // panicAction is a custom action implementation for testing panics
 type panicAction struct {
-	panicValue any
-	shouldPanic bool
-	returnEvent *event
+	panicValue   any
+	shouldPanic  bool
+	returnEvent  *event
 	returnReport firehose.Report
 }
 
@@ -65,8 +65,8 @@ func TestPanic_Process(t *testing.T) {
 		{
 			name: "calls downstream action successfully without panic",
 			action: &panicAction{
-				shouldPanic: false,
-				returnEvent: &event{},
+				shouldPanic:  false,
+				returnEvent:  &event{},
 				returnReport: firehose.Report{Status: firehose.StatusSuccess},
 			},
 			wantStatus:    firehose.StatusSuccess,
@@ -77,7 +77,7 @@ func TestPanic_Process(t *testing.T) {
 			name: "recovers from panic in downstream action",
 			action: &panicAction{
 				shouldPanic: true,
-				panicValue: "something went wrong",
+				panicValue:  "something went wrong",
 			},
 			wantStatus:     StatusPanicRecovered,
 			wantAbort:      true,
@@ -88,7 +88,7 @@ func TestPanic_Process(t *testing.T) {
 			name: "recovers from nil panic",
 			action: &panicAction{
 				shouldPanic: true,
-				panicValue: nil,
+				panicValue:  nil,
 			},
 			wantStatus:     StatusPanicRecovered,
 			wantAbort:      true,
@@ -153,7 +153,7 @@ func TestPanic_ErrPanicRecovered(t *testing.T) {
 			ev := new(event)
 			panicAct := &panicAction{
 				shouldPanic: true,
-				panicValue: "test panic",
+				panicValue:  "test panic",
 			}
 			mw := &Panic[*event, *event]{downstream: panicAct}
 			syms := boolexpr.NewSymbolsCached(map[string]any{})

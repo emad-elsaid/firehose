@@ -71,13 +71,13 @@ func TestOnce_Wrap(t *testing.T) {
 
 func TestOnce_Process(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupCache     func(*MockCacheStorage[string], string)
-		setupAction    func(*action[*event, *event], *event)
-		wantStatus     firehose.Status
-		wantAbort      bool
-		wantNilOutput  bool
-		wantCacheSet   bool
+		name          string
+		setupCache    func(*MockCacheStorage[string], string)
+		setupAction   func(*action[*event, *event], *event)
+		wantStatus    firehose.Status
+		wantAbort     bool
+		wantNilOutput bool
+		wantCacheSet  bool
 	}{
 		{
 			name: "allows first event and caches it",
@@ -169,10 +169,10 @@ func TestOnce_Process(t *testing.T) {
 
 func TestOnce_Process_MultipleCalls(t *testing.T) {
 	tests := []struct {
-		name              string
-		eventCount        int
-		wantSuccessCount  int
-		wantBlockedCount  int
+		name             string
+		eventCount       int
+		wantSuccessCount int
+		wantBlockedCount int
 	}{
 		{
 			name:             "first call succeeds, second blocked",

@@ -104,5 +104,3 @@ func TestReport_String(t *testing.T) {
 		})
 	}
 }
-
-

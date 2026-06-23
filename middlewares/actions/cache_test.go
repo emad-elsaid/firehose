@@ -166,9 +166,9 @@ type simpleEvent struct {
 
 func TestCache_Process_DifferentEventIDs(t *testing.T) {
 	tests := []struct {
-		name              string
-		createEvents      func() []*simpleEvent
-		wantActionCalls   int
+		name            string
+		createEvents    func() []*simpleEvent
+		wantActionCalls int
 	}{
 		{
 			name: "different events have different cache keys",
@@ -185,7 +185,7 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 			type simpleCacheStorage struct {
 				mock.Mock
 			}
-			
+
 			mockCache := new(simpleCacheStorage)
 			defer mockCache.AssertExpectations(t)
 
@@ -193,7 +193,7 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 			type simpleAction struct {
 				mock.Mock
 			}
-			
+
 			mockAction := new(simpleAction)
 			defer mockAction.AssertExpectations(t)
 
