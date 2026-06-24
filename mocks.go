@@ -1153,7 +1153,7 @@ func (_m *MockActionMiddleware[I, O]) EXPECT() *MockActionMiddleware_Expecter[I,
 }
 
 // Wrap provides a mock function for the type MockActionMiddleware
-func (_mock *MockActionMiddleware[I, O]) Wrap(ctx context.Context, rule Rule[I, O], action Action[I, O], in I) (Action[I, O], error) {
+func (_mock *MockActionMiddleware[I, O]) Wrap(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error) {
 	ret := _mock.Called(ctx, rule, action, in)
 
 	if len(ret) == 0 {
@@ -1162,17 +1162,17 @@ func (_mock *MockActionMiddleware[I, O]) Wrap(ctx context.Context, rule Rule[I, 
 
 	var r0 Action[I, O]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Rule[I, O], Action[I, O], I) (Action[I, O], error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *Rule[I, O], Action[I, O], I) (Action[I, O], error)); ok {
 		return returnFunc(ctx, rule, action, in)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Rule[I, O], Action[I, O], I) Action[I, O]); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *Rule[I, O], Action[I, O], I) Action[I, O]); ok {
 		r0 = returnFunc(ctx, rule, action, in)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(Action[I, O])
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, Rule[I, O], Action[I, O], I) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *Rule[I, O], Action[I, O], I) error); ok {
 		r1 = returnFunc(ctx, rule, action, in)
 	} else {
 		r1 = ret.Error(1)
@@ -1187,22 +1187,22 @@ type MockActionMiddleware_Wrap_Call[I Event, O Event] struct {
 
 // Wrap is a helper method to define mock.On call
 //   - ctx context.Context
-//   - rule Rule[I, O]
+//   - rule *Rule[I, O]
 //   - action Action[I, O]
 //   - in I
 func (_e *MockActionMiddleware_Expecter[I, O]) Wrap(ctx any, rule any, action any, in any) *MockActionMiddleware_Wrap_Call[I, O] {
 	return &MockActionMiddleware_Wrap_Call[I, O]{Call: _e.mock.On("Wrap", ctx, rule, action, in)}
 }
 
-func (_c *MockActionMiddleware_Wrap_Call[I, O]) Run(run func(ctx context.Context, rule Rule[I, O], action Action[I, O], in I)) *MockActionMiddleware_Wrap_Call[I, O] {
+func (_c *MockActionMiddleware_Wrap_Call[I, O]) Run(run func(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I)) *MockActionMiddleware_Wrap_Call[I, O] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 Rule[I, O]
+		var arg1 *Rule[I, O]
 		if args[1] != nil {
-			arg1 = args[1].(Rule[I, O])
+			arg1 = args[1].(*Rule[I, O])
 		}
 		var arg2 Action[I, O]
 		if args[2] != nil {
@@ -1227,7 +1227,7 @@ func (_c *MockActionMiddleware_Wrap_Call[I, O]) Return(action1 Action[I, O], err
 	return _c
 }
 
-func (_c *MockActionMiddleware_Wrap_Call[I, O]) RunAndReturn(run func(ctx context.Context, rule Rule[I, O], action Action[I, O], in I) (Action[I, O], error)) *MockActionMiddleware_Wrap_Call[I, O] {
+func (_c *MockActionMiddleware_Wrap_Call[I, O]) RunAndReturn(run func(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)) *MockActionMiddleware_Wrap_Call[I, O] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1260,7 +1260,7 @@ func (_m *MockDestinationMiddleware[I, O]) EXPECT() *MockDestinationMiddleware_E
 }
 
 // Wrap provides a mock function for the type MockDestinationMiddleware
-func (_mock *MockDestinationMiddleware[I, O]) Wrap(ctx context.Context, rule Rule[I, O], destination Destination[O], out O) (Destination[O], error) {
+func (_mock *MockDestinationMiddleware[I, O]) Wrap(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error) {
 	ret := _mock.Called(ctx, rule, destination, out)
 
 	if len(ret) == 0 {
@@ -1269,17 +1269,17 @@ func (_mock *MockDestinationMiddleware[I, O]) Wrap(ctx context.Context, rule Rul
 
 	var r0 Destination[O]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Rule[I, O], Destination[O], O) (Destination[O], error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *Rule[I, O], Destination[O], O) (Destination[O], error)); ok {
 		return returnFunc(ctx, rule, destination, out)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Rule[I, O], Destination[O], O) Destination[O]); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *Rule[I, O], Destination[O], O) Destination[O]); ok {
 		r0 = returnFunc(ctx, rule, destination, out)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(Destination[O])
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, Rule[I, O], Destination[O], O) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *Rule[I, O], Destination[O], O) error); ok {
 		r1 = returnFunc(ctx, rule, destination, out)
 	} else {
 		r1 = ret.Error(1)
@@ -1294,22 +1294,22 @@ type MockDestinationMiddleware_Wrap_Call[I Event, O Event] struct {
 
 // Wrap is a helper method to define mock.On call
 //   - ctx context.Context
-//   - rule Rule[I, O]
+//   - rule *Rule[I, O]
 //   - destination Destination[O]
 //   - out O
 func (_e *MockDestinationMiddleware_Expecter[I, O]) Wrap(ctx any, rule any, destination any, out any) *MockDestinationMiddleware_Wrap_Call[I, O] {
 	return &MockDestinationMiddleware_Wrap_Call[I, O]{Call: _e.mock.On("Wrap", ctx, rule, destination, out)}
 }
 
-func (_c *MockDestinationMiddleware_Wrap_Call[I, O]) Run(run func(ctx context.Context, rule Rule[I, O], destination Destination[O], out O)) *MockDestinationMiddleware_Wrap_Call[I, O] {
+func (_c *MockDestinationMiddleware_Wrap_Call[I, O]) Run(run func(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O)) *MockDestinationMiddleware_Wrap_Call[I, O] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 Rule[I, O]
+		var arg1 *Rule[I, O]
 		if args[1] != nil {
-			arg1 = args[1].(Rule[I, O])
+			arg1 = args[1].(*Rule[I, O])
 		}
 		var arg2 Destination[O]
 		if args[2] != nil {
@@ -1334,7 +1334,7 @@ func (_c *MockDestinationMiddleware_Wrap_Call[I, O]) Return(destination1 Destina
 	return _c
 }
 
-func (_c *MockDestinationMiddleware_Wrap_Call[I, O]) RunAndReturn(run func(ctx context.Context, rule Rule[I, O], destination Destination[O], out O) (Destination[O], error)) *MockDestinationMiddleware_Wrap_Call[I, O] {
+func (_c *MockDestinationMiddleware_Wrap_Call[I, O]) RunAndReturn(run func(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)) *MockDestinationMiddleware_Wrap_Call[I, O] {
 	_c.Call.Return(run)
 	return _c
 }

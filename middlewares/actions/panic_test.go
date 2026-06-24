@@ -25,7 +25,7 @@ func TestPanic_Wrap(t *testing.T) {
 			mw := &Panic[*event, *event]{}
 			mockAction := new(action[*event, *event])
 			in := new(event)
-			rule := firehose.Rule[*event, *event]{}
+			rule := &firehose.Rule[*event, *event]{}
 
 			wrappedAction, err := mw.Wrap(context.Background(), rule, mockAction, in)
 

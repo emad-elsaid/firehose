@@ -23,7 +23,7 @@ type Panic[I, O firehose.Event] struct {
 // Wrap stores the downstream destination to be wrapped with panic recovery.
 func (p *Panic[I, O]) Wrap(
 	_ context.Context,
-	_ firehose.Rule[I, O],
+	_ *firehose.Rule[I, O],
 	destination firehose.Destination[O],
 	_ O,
 ) (firehose.Destination[O], error) {

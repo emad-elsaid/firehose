@@ -36,8 +36,8 @@ func (_m *MockTaskRunner) EXPECT() *MockTaskRunner_Expecter {
 }
 
 // Run provides a mock function for the type MockTaskRunner
-func (_mock *MockTaskRunner) Run(fn func()) {
-	_mock.Called(fn)
+func (_mock *MockTaskRunner) Run(task func()) {
+	_mock.Called(task)
 	return
 }
 
@@ -47,12 +47,12 @@ type MockTaskRunner_Run_Call struct {
 }
 
 // Run is a helper method to define mock.On call
-//   - fn func()
-func (_e *MockTaskRunner_Expecter) Run(fn any) *MockTaskRunner_Run_Call {
-	return &MockTaskRunner_Run_Call{Call: _e.mock.On("Run", fn)}
+//   - task func()
+func (_e *MockTaskRunner_Expecter) Run(task any) *MockTaskRunner_Run_Call {
+	return &MockTaskRunner_Run_Call{Call: _e.mock.On("Run", task)}
 }
 
-func (_c *MockTaskRunner_Run_Call) Run(run func(fn func())) *MockTaskRunner_Run_Call {
+func (_c *MockTaskRunner_Run_Call) Run(run func(task func())) *MockTaskRunner_Run_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 func()
 		if args[0] != nil {
@@ -70,7 +70,7 @@ func (_c *MockTaskRunner_Run_Call) Return() *MockTaskRunner_Run_Call {
 	return _c
 }
 
-func (_c *MockTaskRunner_Run_Call) RunAndReturn(run func(fn func())) *MockTaskRunner_Run_Call {
+func (_c *MockTaskRunner_Run_Call) RunAndReturn(run func(task func())) *MockTaskRunner_Run_Call {
 	_c.Run(run)
 	return _c
 }

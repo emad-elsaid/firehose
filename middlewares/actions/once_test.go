@@ -48,7 +48,7 @@ func TestOnce_Wrap(t *testing.T) {
 			mw := &Once[*event, *event]{Cache: mockCache}
 			mockAction := new(action[*event, *event])
 			in := new(event)
-			rule := firehose.Rule[*event, *event]{
+			rule := &firehose.Rule[*event, *event]{
 				OnceEvery: tc.onceEvery,
 			}
 

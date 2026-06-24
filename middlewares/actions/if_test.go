@@ -49,7 +49,7 @@ func TestIf_Wrap(t *testing.T) {
 		action := new(action[*event, *event])
 		mw := new(If[*event, *event])
 		in := new(event)
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			Then: action,
 		}
 
@@ -63,7 +63,7 @@ func TestIf_Wrap(t *testing.T) {
 		action := new(action[*event, *event])
 		mw := new(If[*event, *event])
 		in := new(event)
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			If:   `a =`,
 			Then: action,
 		}
@@ -81,7 +81,7 @@ func TestIf_Wrap(t *testing.T) {
 		in := new(event)
 		defer in.AssertExpectations(t)
 
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			If:   `a = 1`,
 			Then: action,
 		}
@@ -105,7 +105,7 @@ func TestIf_Process(t *testing.T) {
 		in := new(event)
 		defer in.AssertExpectations(t)
 
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			If:   `a = 1`,
 			Then: action,
 		}
@@ -133,7 +133,7 @@ func TestIf_Process(t *testing.T) {
 		in := new(event)
 		defer in.AssertExpectations(t)
 
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			If:   `a = 1`,
 			Then: action,
 		}
@@ -162,7 +162,7 @@ func TestIf_Process(t *testing.T) {
 		in := new(event)
 		defer in.AssertExpectations(t)
 
-		rule := firehose.Rule[*event, *event]{
+		rule := &firehose.Rule[*event, *event]{
 			If:   `a = 1`,
 			Then: action,
 		}
@@ -181,4 +181,109 @@ func TestIf_Process(t *testing.T) {
 		require.Equal(t, firehose.StatusConditionError, report.Status)
 		require.True(t, report.Abort)
 	})
+
+	t.Run("evaluates condition dynamically when If field changes at runtime", func(t *testing.T) {
+		action := new(action[*event, *event])
+		defer action.AssertExpectations(t)
+
+		mw := new(If[*event, *event])
+
+		in := new(event)
+		defer in.AssertExpectations(t)
+
+		rule := &firehose.Rule[*event, *event]{
+			If:   `a = 1`,
+			Then: action,
+		}
+
+		attrs := map[string]any{"a": 1, "b": 2}
+		in.On("Attributes", t.Context()).Return(attrs, nil).Once()
+
+		outAction, err := mw.Wrap(t.Context(), rule, action, in)
+
+		require.NoError(t, err)
+		require.IsType(t, (*If[*event, *event])(nil), outAction)
+
+		// First call with a = 1, should process
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, firehose.Report{}).Once()
+		out, report := outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		require.Equal(t, in, out)
+		require.Equal(t, firehose.Report{}, report)
+
+		// Change the condition at runtime in the original rule
+		rule.If = `b = 2`
+
+		// Second call with new condition b = 2, should process
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, firehose.Report{}).Once()
+		out, report = outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		require.Equal(t, in, out)
+		require.Equal(t, firehose.Report{}, report)
+
+		// Change to failing condition in the original rule
+		rule.If = `a = 2`
+
+		// Third call with failing condition, should not process
+		out, report = outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		require.Nil(t, out)
+		require.Equal(t, firehose.StatusNoMatch, report.Status)
+		require.True(t, report.Abort)
+	})
+
+	t.Run("caches parsed condition and only reparses when condition changes", func(t *testing.T) {
+		action := new(action[*event, *event])
+		defer action.AssertExpectations(t)
+
+		mw := new(If[*event, *event])
+
+		in := new(event)
+		defer in.AssertExpectations(t)
+
+		rule := &firehose.Rule[*event, *event]{
+			If:   `a = 1`,
+			Then: action,
+		}
+
+		attrs := map[string]any{"a": 1}
+		in.On("Attributes", t.Context()).Return(attrs, nil).Once()
+
+		outAction, err := mw.Wrap(t.Context(), rule, action, in)
+
+		require.NoError(t, err)
+		ifMiddleware := outAction.(*If[*event, *event])
+
+		// Verify condition was parsed during Wrap
+		require.Equal(t, `a = 1`, ifMiddleware.lastCondition)
+		require.NotNil(t, ifMiddleware.parsedCondition)
+		initialParsed := ifMiddleware.parsedCondition
+
+		// First process - should use cached parsed condition
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, firehose.Report{}).Once()
+		_, _ = outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		// Verify same parsed condition (not re-parsed)
+		require.Equal(t, initialParsed, ifMiddleware.parsedCondition)
+		require.Equal(t, `a = 1`, ifMiddleware.lastCondition)
+
+		// Second process with same condition - should still use cached
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, firehose.Report{}).Once()
+		_, _ = outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		// Still the same parsed condition
+		require.Equal(t, initialParsed, ifMiddleware.parsedCondition)
+		require.Equal(t, `a = 1`, ifMiddleware.lastCondition)
+
+		// Now change the condition
+		rule.If = `a = 2`
+
+		// Process with changed condition - should re-parse
+		_, _ = outAction.Process(t.Context(), in, boolexpr.NewSymbolsCached(attrs))
+
+		// Verify condition was re-parsed
+		require.NotEqual(t, initialParsed, ifMiddleware.parsedCondition)
+		require.Equal(t, `a = 2`, ifMiddleware.lastCondition)
+	})
 }
+

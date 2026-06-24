@@ -59,7 +59,7 @@ func TestPanic_Wrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mw := new(Panic[*event, *event])
 			in := &event{Value: "test"}
-			rule := firehose.Rule[*event, *event]{}
+			rule := &firehose.Rule[*event, *event]{}
 
 			outDest, err := mw.Wrap(context.Background(), rule, tc.destination, in)
 
@@ -116,7 +116,7 @@ func TestPanic_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mw := new(Panic[*event, *event])
 			in := &event{Value: "test"}
-			rule := firehose.Rule[*event, *event]{}
+			rule := &firehose.Rule[*event, *event]{}
 
 			wrappedDest, err := mw.Wrap(context.Background(), rule, tc.destination, in)
 			require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestPanic_Send_MultipleInvocations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mw := new(Panic[*event, *event])
 			in := &event{Value: "test"}
-			rule := firehose.Rule[*event, *event]{}
+			rule := &firehose.Rule[*event, *event]{}
 
 			wrappedDest, err := mw.Wrap(context.Background(), rule, tc.destination, in)
 			require.NoError(t, err)

@@ -27,7 +27,7 @@ type Cache[I, O fh.Event] struct {
 // Wrap wraps an action with caching if CacheFor is configured on the rule.
 func (c *Cache[I, O]) Wrap(
 	_ context.Context,
-	rule fh.Rule[I, O],
+	rule *fh.Rule[I, O],
 	action fh.Action[I, O],
 	_ I,
 ) (fh.Action[I, O], error) {

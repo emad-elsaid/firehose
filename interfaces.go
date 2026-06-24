@@ -81,13 +81,13 @@ type Runnable[I any] interface {
 // ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,
 // panic recovery, or logging.
 type ActionMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
+	Wrap(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
 }
 
 // DestinationMiddleware wraps destinations to add cross-cutting concerns such as panic recovery,
 // retry logic, or telemetry.
 type DestinationMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule Rule[I, O], destination Destination[O], out O) (Destination[O], error)
+	Wrap(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
 }
 
 // CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.

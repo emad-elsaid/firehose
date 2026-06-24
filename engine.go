@@ -197,7 +197,7 @@ func wrapActionMiddlewares[I, O Event](
 	for _, v := range slices.Backward(actionMiddlewares()) {
 		var err error
 
-		rule.actionWrappers, err = v.Wrap(ctx, *rule, rule.actionWrappers, inInstance)
+		rule.actionWrappers, err = v.Wrap(ctx, rule, rule.actionWrappers, inInstance)
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func wrapDestinationMiddlewares[I, O Event](
 	for _, v := range slices.Backward(destinationMiddlewares()) {
 		var err error
 
-		rule.destinationWrappers, err = v.Wrap(ctx, *rule, rule.destinationWrappers, out)
+		rule.destinationWrappers, err = v.Wrap(ctx, rule, rule.destinationWrappers, out)
 		if err != nil {
 			return err
 		}
