@@ -9,7 +9,7 @@ import (
 )
 
 // StatusRateLimitError indicates an action was aborted due to rate limiting.
-var StatusRateLimitError fh.Status = "rate_limit_error"
+const StatusRateLimitError fh.Status = "rate_limit_error"
 
 // RateLimit is an action middleware that limits the rate of action execution.
 type RateLimit[I, O fh.Event] struct {

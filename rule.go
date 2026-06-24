@@ -121,6 +121,7 @@ func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 
 	// We will panic on purpose in case the next source is not a Runnable of the same type
 	// As this would indicate a bug in the engine.
+	//nolint:forcetypeassert // Intentional panic on type mismatch
 	return r.nextSameSource.getRegistry().(Runnable[I])
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 // StatusOnceHit indicates an event was skipped because it was already processed within the time window.
-var StatusOnceHit fh.Status = "once_hit"
+const StatusOnceHit fh.Status = "once_hit"
 
 // Once is an action middleware that ensures actions are executed at most once per event within a time window.
 type Once[I, O fh.Event] struct {

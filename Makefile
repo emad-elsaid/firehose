@@ -1,4 +1,6 @@
-lint: fmt escapes deadcode nilaway
+check: fmt escapes deadcode nilaway lint
+
+lint:
 	@golangci-lint run
 
 fmt:

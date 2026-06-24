@@ -23,16 +23,14 @@ type Report struct {
 	Err    error
 }
 
-var successReport = Report{
-	Rule:   "",
-	Status: StatusSuccess,
-	Err:    nil,
-	Abort:  false,
-}
-
 // NewSuccessReport creates a new Report for a successful operation.
 func NewSuccessReport() Report {
-	return successReport
+	return Report{
+		Rule:   "",
+		Status: StatusSuccess,
+		Err:    nil,
+		Abort:  false,
+	}
 }
 
 // NewReport creates a new Report with the given status and error.
