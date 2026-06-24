@@ -24,7 +24,7 @@ func TestIsValid(t *testing.T) {
 
 	t.Run("rule missing action is invalid", func(t *testing.T) {
 		rule := &MockRule{
-			When: newSourceMock[*EventMock]("source1"),
+			When: NewMockSource[*EventMock](t),
 			If:   "Attr1 == 'value'",
 			Then: nil,
 			To:   &MockDestination[*EventMock]{},
@@ -34,7 +34,7 @@ func TestIsValid(t *testing.T) {
 
 	t.Run("rule missing destination is invalid", func(t *testing.T) {
 		rule := &MockRule{
-			When: newSourceMock[*EventMock]("source1"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   nil,
 		}

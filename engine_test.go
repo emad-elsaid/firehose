@@ -36,7 +36,7 @@ func TestAddRule(t *testing.T) {
 	t.Run("add first rule to nil registry", func(t *testing.T) {
 		rule := &MockRule{
 			ID:   "rule1",
-			When: newSourceMock[*EventMock]("source1"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -52,7 +52,7 @@ func TestAddRule(t *testing.T) {
 	t.Run("add second rule to existing registry", func(t *testing.T) {
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: newSourceMock[*EventMock]("source1"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -60,7 +60,7 @@ func TestAddRule(t *testing.T) {
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: newSourceMock[*EventMock]("source2"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -85,7 +85,7 @@ func TestAddRule(t *testing.T) {
 	t.Run("add third rule to registry with two rules", func(t *testing.T) {
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: newSourceMock[*EventMock]("source1"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -93,7 +93,7 @@ func TestAddRule(t *testing.T) {
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: newSourceMock[*EventMock]("source2"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -101,7 +101,7 @@ func TestAddRule(t *testing.T) {
 
 		rule3 := &MockRule{
 			ID:   "rule3",
-			When: newSourceMock[*EventMock]("source3"),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -130,7 +130,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	t.Parallel()
 
 	t.Run("first rule with a source has no same-source links", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
+		source := NewMockSource[*EventMock](t)
 		rule := &MockRule{
 			ID:   "rule1",
 			When: source,
@@ -149,8 +149,8 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("two rules with different sources have no same-source links", func(t *testing.T) {
-		source1 := newSourceMock[*EventMock]("source1")
-		source2 := newSourceMock[*EventMock]("source2")
+		source1 := NewMockSource[*EventMock](t)
+		source2 := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -182,7 +182,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("two rules with same source are linked", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
+		source := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -218,7 +218,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("three rules with same source form a chain", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
+		source := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -273,8 +273,8 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 	})
 
 	t.Run("mixed sources: two with sourceA, one with sourceB, one more with sourceA", func(t *testing.T) {
-		sourceA := newSourceMock[*EventMock]("sourceA")
-		sourceB := newSourceMock[*EventMock]("sourceB")
+		sourceA := NewMockSource[*EventMock](t)
+		sourceB := NewMockSource[*EventMock](t)
 
 		// Add first rule with sourceA
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
@@ -318,12 +318,12 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			current = current.getNext()
 		}
 
-		// Identify rules by source
+		// Identify rules by source instance (pointer comparison)
 		var sourceARules []*Rule[*EventMock, *EventMock]
 		var sourceBRules []*Rule[*EventMock, *EventMock]
 
 		for _, r := range rules {
-			if r.When.(*SourceMock[*EventMock]).id == "sourceA" {
+			if r.When == sourceA {
 				sourceARules = append(sourceARules, r)
 			} else {
 				sourceBRules = append(sourceBRules, r)
@@ -355,8 +355,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	t.Run("start single rule successfully", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
-		defer source.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -365,31 +364,28 @@ func TestStart(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}, nil, nil, nil, new(EventMock), new(EventMock))
 
-		ctx := t.Context()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 		errChan := make(chan error, 10)
 
 		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 
 		Start(ctx, registry, errChan)
 
-		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
-
-		source.Stop()
+		cancel()
 		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
-		require.Len(t, receivedErrors, 1) // context.Canceled when we stop the source
+		require.Len(t, receivedErrors, 1) // context.Canceled when we cancel the context
 
 		rule := registry.(*Rule[*EventMock, *EventMock])
 		require.NotNil(t, rule.ctx)
 	})
 
 	t.Run("start multiple rules with different sources", func(t *testing.T) {
-		source1 := newSourceMock[*EventMock]("source1")
-		defer source1.AssertExpectations(t)
-		source2 := newSourceMock[*EventMock]("source2")
-		defer source2.AssertExpectations(t)
+		source1 := NewMockSource[*EventMock](t)
+		source2 := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -404,7 +400,8 @@ func TestStart(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}, nil, nil, nil, new(EventMock), new(EventMock))
 
-		ctx := t.Context()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 		errChan := make(chan error, 10)
 
 		source1.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
@@ -412,11 +409,7 @@ func TestStart(t *testing.T) {
 
 		Start(ctx, registry, errChan)
 
-		require.Eventually(t, source1.isStarted, time.Second, time.Millisecond*100)
-		require.Eventually(t, source2.isStarted, time.Second, time.Millisecond*100)
-
-		source1.Stop()
-		source2.Stop()
+		cancel()
 		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
@@ -425,8 +418,7 @@ func TestStart(t *testing.T) {
 	})
 
 	t.Run("start rule with source error", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
-		defer source.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -442,8 +434,6 @@ func TestStart(t *testing.T) {
 
 		Start(ctx, registry, errChan)
 
-		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
-
 		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
@@ -452,8 +442,7 @@ func TestStart(t *testing.T) {
 	})
 
 	t.Run("start multiple rules with same source", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("source1")
-		defer source.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
 
 		registry, _ := AddRule(t.Context(), nil, &MockRule{
 			ID:   "rule1",
@@ -468,25 +457,38 @@ func TestStart(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}, nil, nil, nil, new(EventMock), new(EventMock))
 
-		ctx := t.Context()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 		errChan := make(chan error, 10)
 
 		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
 
 		Start(ctx, registry, errChan)
 
-		require.Eventually(t, source.isStarted, time.Second, time.Millisecond*100)
-		source.Stop()
-
+		cancel()
 		go Wait(registry, errChan)
 
 		receivedErrors := drainErrorChannel(t, errChan, 1*time.Second)
 
-		require.Len(t, receivedErrors, 1) // Only one context.Canceled since source is shared
+		require.Len(t, receivedErrors, 1) // Only one context.Canceled because source is shared
 	})
 }
 
 func Test_inherit(t *testing.T) {
+	parentSource1 := NewMockSource[*EventMock](t)
+	parentAction1 := NewMockAction[*EventMock, *EventMock](t)
+	parentDest1 := NewMockDestination[*EventMock](t)
+
+	parentSource2 := NewMockSource[*EventMock](t)
+	childSource2 := NewMockSource[*EventMock](t)
+	childAction2 := NewMockAction[*EventMock, *EventMock](t)
+	childDest2 := NewMockDestination[*EventMock](t)
+
+	parentSource3 := NewMockSource[*EventMock](t)
+	childSource3 := NewMockSource[*EventMock](t)
+	childAction3 := NewMockAction[*EventMock, *EventMock](t)
+	childDest3 := NewMockDestination[*EventMock](t)
+
 	tcs := []struct {
 		name     string
 		parent   *MockRule
@@ -497,18 +499,18 @@ func Test_inherit(t *testing.T) {
 			name: "child inherits parent's exported fields",
 			parent: &MockRule{
 				ID:   "parent",
-				When: newSourceMock[*EventMock]("source1"),
+				When: parentSource1,
 				If:   "parent condition",
-				Then: &TestAction{ID: "parent action"},
-				To:   &TestDestination{ID: "parent destination"},
+				Then: parentAction1,
+				To:   parentDest1,
 			},
 			child: &MockRule{},
 			expected: &MockRule{
 				ID:   "parent/1",
-				When: newSourceMock[*EventMock]("source1"),
+				When: parentSource1,
 				If:   "parent condition",
-				Then: &TestAction{ID: "parent action"},
-				To:   &TestDestination{ID: "parent destination"},
+				Then: parentAction1,
+				To:   parentDest1,
 			},
 		},
 
@@ -516,24 +518,24 @@ func Test_inherit(t *testing.T) {
 			name: "child does not override its own fields",
 			parent: &MockRule{
 				ID:   "parent",
-				When: newSourceMock[*EventMock]("source1"),
+				When: parentSource2,
 				If:   "parent condition",
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 			},
 			child: &MockRule{
 				ID:   "child",
-				When: newSourceMock[*EventMock]("source2"),
+				When: childSource2,
 				If:   "child condition",
-				Then: &TestAction{ID: "child action"},
-				To:   &TestDestination{ID: "child destination"},
+				Then: childAction2,
+				To:   childDest2,
 			},
 			expected: &MockRule{
 				ID:   "parent/child",
-				When: newSourceMock[*EventMock]("source2"),
+				When: childSource2,
 				If:   "(parent condition) and (child condition)",
-				Then: &TestAction{ID: "child action"},
-				To:   &TestDestination{ID: "child destination"},
+				Then: childAction2,
+				To:   childDest2,
 			},
 		},
 
@@ -541,23 +543,23 @@ func Test_inherit(t *testing.T) {
 			name: "child inherits only missing fields from parent",
 			parent: &MockRule{
 				ID:   "parent",
-				When: newSourceMock[*EventMock]("source1"),
+				When: parentSource3,
 				If:   "parent condition",
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 			},
 			child: &MockRule{
 				ID:   "child",
-				When: newSourceMock[*EventMock]("source2"),
-				Then: &TestAction{ID: "child action"},
-				To:   &TestDestination{ID: "child destination"},
+				When: childSource3,
+				Then: childAction3,
+				To:   childDest3,
 			},
 			expected: &MockRule{
 				ID:   "parent/child",
-				When: newSourceMock[*EventMock]("source2"),
+				When: childSource3,
 				If:   "parent condition",
-				Then: &TestAction{ID: "child action"},
-				To:   &TestDestination{ID: "child destination"},
+				Then: childAction3,
+				To:   childDest3,
 			},
 		},
 
@@ -614,9 +616,13 @@ func Test_inherit(t *testing.T) {
 }
 
 func Test_flatten(t *testing.T) {
-	parentSource := newSourceMock[*EventMock]("source1")
-	parentAction := &TestAction{ID: "parent action"}
-	parentDest := &TestDestination{ID: "parent dest"}
+	parentSource := NewMockSource[*EventMock](t)
+	parentAction := NewMockAction[*EventMock, *EventMock](t)
+	parentDest := NewMockDestination[*EventMock](t)
+
+	childSource := NewMockSource[*EventMock](t)
+	childAction := NewMockAction[*EventMock, *EventMock](t)
+	childDest := NewMockDestination[*EventMock](t)
 
 	tests := []struct {
 		name     string
@@ -774,10 +780,10 @@ func Test_flatten(t *testing.T) {
 				SubRules: []MockRule{
 					{
 						ID:   "child",
-						When: newSourceMock[*EventMock]("source2"),
+						When: childSource,
 						If:   "child condition",
-						Then: &TestAction{ID: "child action"},
-						To:   &TestDestination{ID: "child dest"},
+						Then: childAction,
+						To:   childDest,
 					},
 				},
 			},
@@ -790,10 +796,10 @@ func Test_flatten(t *testing.T) {
 				SubRules: []MockRule{
 					{
 						ID:   "parent/child",
-						When: newSourceMock[*EventMock]("source2"),
+						When: childSource,
 						If:   "(parent condition) and (child condition)",
-						Then: &TestAction{ID: "child action"},
-						To:   &TestDestination{ID: "child dest"},
+						Then: childAction,
+						To:   childDest,
 					},
 				},
 			},
@@ -845,7 +851,7 @@ func Test_addSingleRule_Errors(t *testing.T) {
 			name: "returns error for rule missing Then",
 			rule: &MockRule{
 				ID:   "missing-then",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				To:   &MockDestination[*EventMock]{},
 			},
 			expectError: true,
@@ -854,7 +860,7 @@ func Test_addSingleRule_Errors(t *testing.T) {
 			name: "returns error for rule missing To",
 			rule: &MockRule{
 				ID:   "missing-to",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 			},
 			expectError: true,
@@ -862,7 +868,7 @@ func Test_addSingleRule_Errors(t *testing.T) {
 		{
 			name: "returns error for rule missing ID",
 			rule: &MockRule{
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 			},
@@ -903,13 +909,13 @@ func Test_addSingleRule_WithSubRules(t *testing.T) {
 			name: "adds parent with valid subrules",
 			rule: &MockRule{
 				ID:   "parent",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 				SubRules: []MockRule{
 					{
 						ID:   "child1",
-						When: newSourceMock[*EventMock]("source2"),
+						When: NewMockSource[*EventMock](t),
 						Then: &MockAction[*EventMock, *EventMock]{},
 						To:   &MockDestination[*EventMock]{},
 					},
@@ -925,7 +931,7 @@ func Test_addSingleRule_WithSubRules(t *testing.T) {
 				SubRules: []MockRule{
 					{
 						ID:   "child",
-						When: newSourceMock[*EventMock]("source1"),
+						When: NewMockSource[*EventMock](t),
 						Then: &MockAction[*EventMock, *EventMock]{},
 						To:   &MockDestination[*EventMock]{},
 					},
@@ -987,7 +993,7 @@ func Test_isActivatable(t *testing.T) {
 			name: "rule with all required fields is activatable",
 			rule: &MockRule{
 				ID:   "complete-rule",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 			},
@@ -996,7 +1002,7 @@ func Test_isActivatable(t *testing.T) {
 		{
 			name: "rule missing ID is not activatable",
 			rule: &MockRule{
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 				To:   &MockDestination[*EventMock]{},
 			},
@@ -1015,7 +1021,7 @@ func Test_isActivatable(t *testing.T) {
 			name: "rule missing Then is not activatable",
 			rule: &MockRule{
 				ID:   "no-then",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				To:   &MockDestination[*EventMock]{},
 			},
 			expected: false,
@@ -1024,7 +1030,7 @@ func Test_isActivatable(t *testing.T) {
 			name: "rule missing To is not activatable",
 			rule: &MockRule{
 				ID:   "no-to",
-				When: newSourceMock[*EventMock]("source1"),
+				When: NewMockSource[*EventMock](t),
 				Then: &MockAction[*EventMock, *EventMock]{},
 			},
 			expected: false,
@@ -1056,7 +1062,7 @@ func Test_wrapCallbackMiddlewares(t *testing.T) {
 			setup: func() (*MockRule, func() []CallbackMiddleware[*EventMock, *EventMock]) {
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   &MockDestination[*EventMock]{},
 				}
@@ -1072,7 +1078,7 @@ func Test_wrapCallbackMiddlewares(t *testing.T) {
 			setup: func() (*MockRule, func() []CallbackMiddleware[*EventMock, *EventMock]) {
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   &MockDestination[*EventMock]{},
 				}
@@ -1098,7 +1104,7 @@ func Test_wrapCallbackMiddlewares(t *testing.T) {
 			setup: func() (*MockRule, func() []CallbackMiddleware[*EventMock, *EventMock]) {
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   &MockDestination[*EventMock]{},
 				}
@@ -1132,7 +1138,7 @@ func Test_wrapCallbackMiddlewares(t *testing.T) {
 			setup: func() (*MockRule, func() []CallbackMiddleware[*EventMock, *EventMock]) {
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   &MockDestination[*EventMock]{},
 				}
@@ -1179,7 +1185,7 @@ func Test_wrapActionMiddlewares(t *testing.T) {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: originalAction,
 					To:   &MockDestination[*EventMock]{},
 				}
@@ -1196,14 +1202,14 @@ func Test_wrapActionMiddlewares(t *testing.T) {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: originalAction,
 					To:   &MockDestination[*EventMock]{},
 				}
 
 				middleware := &MockActionMiddleware[*EventMock, *EventMock]{}
-				wrappedAction := &TestAction{ID: "wrapped"}
-				middleware.On("Wrap", mock.Anything, *rule, originalAction, mock.Anything).
+				wrappedAction := NewMockAction[*EventMock, *EventMock](t)
+				middleware.On("Wrap", mock.Anything, mock.Anything, rule, mock.Anything).
 					Return(wrappedAction, nil).Once()
 
 				return rule, func() []ActionMiddleware[*EventMock, *EventMock] {
@@ -1212,8 +1218,7 @@ func Test_wrapActionMiddlewares(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.Then)
-				require.Equal(t, "wrapped", rule.Then.(*TestAction).ID)
+				require.NotNil(t, rule.actionWrappers)
 			},
 		},
 		{
@@ -1222,13 +1227,13 @@ func Test_wrapActionMiddlewares(t *testing.T) {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: originalAction,
 					To:   &MockDestination[*EventMock]{},
 				}
 
 				middleware := &MockActionMiddleware[*EventMock, *EventMock]{}
-				middleware.On("Wrap", mock.Anything, *rule, originalAction, mock.Anything).
+				middleware.On("Wrap", mock.Anything, mock.Anything, rule, mock.Anything).
 					Return(nil, os.ErrPermission).Once()
 
 				return rule, func() []ActionMiddleware[*EventMock, *EventMock] {
@@ -1269,7 +1274,7 @@ func Test_wrapDestinationMiddlewares(t *testing.T) {
 				originalDest := &MockDestination[*EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   originalDest,
 				}
@@ -1286,14 +1291,14 @@ func Test_wrapDestinationMiddlewares(t *testing.T) {
 				originalDest := &MockDestination[*EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   originalDest,
 				}
 
 				middleware := &MockDestinationMiddleware[*EventMock, *EventMock]{}
-				wrappedDest := &TestDestination{ID: "wrapped"}
-				middleware.On("Wrap", mock.Anything, *rule, originalDest, mock.Anything).
+				wrappedDest := NewMockDestination[*EventMock](t)
+				middleware.On("Wrap", mock.Anything, mock.Anything, rule, mock.Anything).
 					Return(wrappedDest, nil).Once()
 
 				return rule, func() []DestinationMiddleware[*EventMock, *EventMock] {
@@ -1302,8 +1307,7 @@ func Test_wrapDestinationMiddlewares(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.To)
-				require.Equal(t, "wrapped", rule.To.(*TestDestination).ID)
+				require.NotNil(t, rule.destinationWrappers)
 			},
 		},
 		{
@@ -1312,13 +1316,13 @@ func Test_wrapDestinationMiddlewares(t *testing.T) {
 				originalDest := &MockDestination[*EventMock]{}
 				rule := &MockRule{
 					ID:   "test-rule",
-					When: newSourceMock[*EventMock]("source1"),
+					When: NewMockSource[*EventMock](t),
 					Then: &MockAction[*EventMock, *EventMock]{},
 					To:   originalDest,
 				}
 
 				middleware := &MockDestinationMiddleware[*EventMock, *EventMock]{}
-				middleware.On("Wrap", mock.Anything, *rule, originalDest, mock.Anything).
+				middleware.On("Wrap", mock.Anything, mock.Anything, rule, mock.Anything).
 					Return(nil, os.ErrInvalid).Once()
 
 				return rule, func() []DestinationMiddleware[*EventMock, *EventMock] {

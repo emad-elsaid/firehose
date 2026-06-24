@@ -1,6 +1,3 @@
-run:
-	@go run ./cmd/firehose/
-
 lint: fmt escapes deadcode nilaway
 	@golangci-lint run
 
@@ -25,7 +22,7 @@ opts:
 
 
 test:
-	@go test -race -coverprofile=coverage.out ./...
+	@go test -v -race -coverprofile=coverage.out ./...
 
 generate:
 	@mockery

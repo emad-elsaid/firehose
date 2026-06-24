@@ -12,11 +12,9 @@ func TestRuleCallback(t *testing.T) {
 	t.Parallel()
 
 	t.Run("successful callback with action and destination", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("")
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
 			When: source,
@@ -24,8 +22,7 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
+		in := NewMockAttributer(t)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
@@ -43,18 +40,15 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with action error", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("")
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
 			When: source,
 			Then: action,
 			To:   destination,
 		}
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
+		in := NewMockAttributer(t)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
@@ -72,18 +66,15 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with destination error", func(t *testing.T) {
-		source := newSourceMock[*EventMock]("")
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
 			When: source,
 			Then: action,
 			To:   destination,
 		}
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
+		in := NewMockAttributer(t)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
@@ -102,14 +93,10 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chains to next rule with same source", func(t *testing.T) {
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
-		source := newSourceMock[*EventMock]("")
-		defer source.AssertExpectations(t)
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		in := NewMockAttributer(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule1 := &MockRule{
 			ID:   "rule1",
@@ -148,14 +135,10 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chain continue on action error in first rule", func(t *testing.T) {
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
-		source := newSourceMock[*EventMock]("")
-		defer source.AssertExpectations(t)
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		in := NewMockAttributer(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule1 := &MockRule{
 			ID:   "rule1",
@@ -193,14 +176,10 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
-		source := newSourceMock[*EventMock]("")
-		defer source.AssertExpectations(t)
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		in := NewMockAttributer(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule1 := &MockRule{
 			ID:   "rule1",
@@ -238,14 +217,10 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
-		in := new(EventMock)
-		defer in.AssertExpectations(t)
-		source := newSourceMock[*EventMock]("")
-		defer source.AssertExpectations(t)
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		in := NewMockAttributer(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule1 := &MockRule{
 			ID:   "rule1",
@@ -294,14 +269,10 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
-		in := &EventMock{}
-		defer in.AssertExpectations(t)
-		source := newSourceMock[*EventMock]("")
-		defer source.AssertExpectations(t)
-		action := &MockAction[*EventMock, *EventMock]{}
-		defer action.AssertExpectations(t)
-		destination := &MockDestination[*EventMock]{}
-		defer destination.AssertExpectations(t)
+		in := NewMockAttributer(t)
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
 			When: source,
@@ -313,8 +284,12 @@ func TestRuleCallback(t *testing.T) {
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
-		// Create a mock sourceRegistry with incompatible type
-		rule.nextSameSource = &mockIncompatibleSourceRegistry{}
+		// Create a Rule with a different type (string instead of *EventMock)
+		// This will cause a panic when type-asserting to Runnable[*EventMock]
+		incompatibleRule := &Rule[string, string]{}
+		incompatibleSourceRegistry := newMocksourceRegistry(t)
+		incompatibleSourceRegistry.On("getRegistry").Return(incompatibleRule).Once()
+		rule.nextSameSource = incompatibleSourceRegistry
 
 		reportsChan := make(chan Report, 10)
 		require.Panics(t, func() { rule.callback(t.Context(), in, reportsChan) })
@@ -333,6 +308,80 @@ func chanToSlice[T any](ch <-chan T) []T {
 	}
 
 	return result
+}
+
+func TestRuleActionOverride(t *testing.T) {
+	source := NewMockSource[*MockAttributer](t)
+	oldAction := NewMockAction[*MockAttributer, *MockAttributer](t)
+	newAction := NewMockAction[*MockAttributer, *MockAttributer](t)
+	destination := NewMockDestination[*MockAttributer](t)
+	event := NewMockAttributer(t)
+
+	rule := &Rule[*MockAttributer, *MockAttributer]{
+		ID:   "test-rule",
+		When: source,
+		Then: oldAction,
+		To:   destination,
+	}
+
+	// Register the rule
+	_, err := AddRule(t.Context(), nil, rule, nil, nil, nil, event, event)
+	require.NoError(t, err)
+
+	// Override the action after registration
+	rule.Then = newAction
+
+	event.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
+	newAction.On("Process", t.Context(), event, mock.Anything).
+		Return(event, NewReport(StatusSuccess, nil)).Once()
+	destination.On("Send", t.Context(), event).
+		Return(NewReport(StatusSuccess, nil)).Once()
+
+	reportsChan := make(chan Report, 10)
+	rule.callback(t.Context(), event, reportsChan)
+	close(reportsChan)
+
+	reports := chanToSlice(reportsChan)
+	require.NotNil(t, reports)
+	require.Len(t, reports, 1)
+	require.NoError(t, reports[0].Err)
+}
+
+func TestRuleDestinationOverride(t *testing.T) {
+	source := NewMockSource[*MockAttributer](t)
+	action := NewMockAction[*MockAttributer, *MockAttributer](t)
+	oldDestination := NewMockDestination[*MockAttributer](t)
+	newDestination := NewMockDestination[*MockAttributer](t)
+	event := NewMockAttributer(t)
+
+	rule := &Rule[*MockAttributer, *MockAttributer]{
+		ID:   "test-rule",
+		When: source,
+		Then: action,
+		To:   oldDestination,
+	}
+
+	// Register the rule
+	_, err := AddRule(t.Context(), nil, rule, nil, nil, nil, event, event)
+	require.NoError(t, err)
+
+	// Override the destination after registration
+	rule.To = newDestination
+
+	event.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
+	action.On("Process", t.Context(), event, mock.Anything).
+		Return(event, NewReport(StatusSuccess, nil)).Once()
+	newDestination.On("Send", t.Context(), event).
+		Return(NewReport(StatusSuccess, nil)).Once()
+
+	reportsChan := make(chan Report, 10)
+	rule.callback(t.Context(), event, reportsChan)
+	close(reportsChan)
+
+	reports := chanToSlice(reportsChan)
+	require.NotNil(t, reports)
+	require.Len(t, reports, 1)
+	require.NoError(t, reports[0].Err)
 }
 
 // Getter/setter methods are trivial one-line property accessors - testing omitted
@@ -386,9 +435,9 @@ func TestRule_Run(t *testing.T) {
 		{
 			name: "successful action and destination",
 			setupMocks: func() (*MockRule, *EventMock) {
-				action := &MockAction[*EventMock, *EventMock]{}
-				destination := &MockDestination[*EventMock]{}
-				event := new(EventMock)
+				action := NewMockAction[*EventMock, *EventMock](t)
+				destination := NewMockDestination[*EventMock](t)
+				event := NewMockAttributer(t)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -413,9 +462,9 @@ func TestRule_Run(t *testing.T) {
 		{
 			name: "action error stops destination call",
 			setupMocks: func() (*MockRule, *EventMock) {
-				action := &MockAction[*EventMock, *EventMock]{}
-				destination := &MockDestination[*EventMock]{}
-				event := new(EventMock)
+				action := NewMockAction[*EventMock, *EventMock](t)
+				destination := NewMockDestination[*EventMock](t)
+				event := NewMockAttributer(t)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -438,9 +487,9 @@ func TestRule_Run(t *testing.T) {
 		{
 			name: "abort stops destination call",
 			setupMocks: func() (*MockRule, *EventMock) {
-				action := &MockAction[*EventMock, *EventMock]{}
-				destination := &MockDestination[*EventMock]{}
-				event := new(EventMock)
+				action := NewMockAction[*EventMock, *EventMock](t)
+				destination := NewMockDestination[*EventMock](t)
+				event := NewMockAttributer(t)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -464,9 +513,9 @@ func TestRule_Run(t *testing.T) {
 		{
 			name: "destination error is reported",
 			setupMocks: func() (*MockRule, *EventMock) {
-				action := &MockAction[*EventMock, *EventMock]{}
-				destination := &MockDestination[*EventMock]{}
-				event := new(EventMock)
+				action := NewMockAction[*EventMock, *EventMock](t)
+				destination := NewMockDestination[*EventMock](t)
+				event := NewMockAttributer(t)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -493,13 +542,6 @@ func TestRule_Run(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			rule, event := tc.setupMocks()
-			defer event.AssertExpectations(t)
-			if action, ok := rule.Then.(*MockAction[*EventMock, *EventMock]); ok {
-				defer action.AssertExpectations(t)
-			}
-			if dest, ok := rule.To.(*MockDestination[*EventMock]); ok {
-				defer dest.AssertExpectations(t)
-			}
 
 			reportsChan := make(chan Report, 10)
 
@@ -520,14 +562,14 @@ func TestRule_Run(t *testing.T) {
 func TestRule_Start(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func() (*MockRule, *SourceMock[*EventMock])
+		setup       func() (*MockRule, *MockSource[*EventMock])
 		expectStart bool
 		expectError bool
 	}{
 		{
 			name: "starts when prevSameSource is nil (first in chain)",
-			setup: func() (*MockRule, *SourceMock[*EventMock]) {
-				source := newSourceMock[*EventMock]("test-source")
+			setup: func() (*MockRule, *MockSource[*EventMock]) {
+				source := NewMockSource[*EventMock](t)
 				rule := &MockRule{
 					ID:   "test-rule",
 					When: source,
@@ -541,8 +583,8 @@ func TestRule_Start(t *testing.T) {
 		},
 		{
 			name: "does not start when prevSameSource is set (not first in chain)",
-			setup: func() (*MockRule, *SourceMock[*EventMock]) {
-				source := newSourceMock[*EventMock]("test-source")
+			setup: func() (*MockRule, *MockSource[*EventMock]) {
+				source := NewMockSource[*EventMock](t)
 				rule1 := &MockRule{ID: "rule1", When: source}
 				rule2 := &MockRule{ID: "rule2", When: source}
 				rule2.setPrevSameSource(rule1)
@@ -553,8 +595,8 @@ func TestRule_Start(t *testing.T) {
 		},
 		{
 			name: "returns error when source fails to start",
-			setup: func() (*MockRule, *SourceMock[*EventMock]) {
-				source := newSourceMock[*EventMock]("test-source")
+			setup: func() (*MockRule, *MockSource[*EventMock]) {
+				source := NewMockSource[*EventMock](t)
 				rule := &MockRule{
 					ID:   "test-rule",
 					When: source,
@@ -570,10 +612,7 @@ func TestRule_Start(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rule, source := tc.setup()
-			if tc.expectStart {
-				defer source.AssertExpectations(t)
-			}
+			rule, _ := tc.setup()
 
 			err := rule.start(t.Context())
 

@@ -38,8 +38,24 @@ type Rule[I, O Event] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	ctx             context.Context
-	wrappedCallback Callback[I]
+	ctx                 context.Context
+	wrappedCallback     Callback[I]
+	actionWrappers      Action[I, O]
+	destinationWrappers Destination[O]
+}
+
+// Process implements the Action interface. it allows using the rule as an action during the wrapping
+// of the action. so that when the action field changes it called the new action.
+// When called it calls the current action without any middlewares.
+func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+	return r.Then.Process(ctx, event, syms)
+}
+
+// Send implements the Destination interface. it allows using the rule as a
+// destination during the wrapping of the destination. so that when the
+// destination field changes it called the new destination.
+func (r *Rule[I, O]) Send(ctx context.Context, event O) Report {
+	return r.To.Send(ctx, event)
 }
 
 func (r *Rule[I, O]) start(ctx context.Context) error {
@@ -82,7 +98,7 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
-	out, report := r.Then.Process(ctx, event, syms)
+	out, report := r.Process(ctx, event, syms)
 	report.Rule = r.ID
 
 	if report.Err != nil || report.Abort {
@@ -91,7 +107,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		return
 	}
 
-	report = r.To.Send(ctx, out)
+	report = r.Send(ctx, out)
 	report.Rule = r.ID
 
 	reports <- report
