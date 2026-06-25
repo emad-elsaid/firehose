@@ -868,6 +868,52 @@ func (_c *mocksourceRegistry_getNextSameSource_Call) RunAndReturn(run func() sou
 	return _c
 }
 
+// getPrevSameSource provides a mock function for the type mocksourceRegistry
+func (_mock *mocksourceRegistry) getPrevSameSource() sourceRegistry {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for getPrevSameSource")
+	}
+
+	var r0 sourceRegistry
+	if returnFunc, ok := ret.Get(0).(func() sourceRegistry); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(sourceRegistry)
+		}
+	}
+	return r0
+}
+
+// mocksourceRegistry_getPrevSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getPrevSameSource'
+type mocksourceRegistry_getPrevSameSource_Call struct {
+	*mock.Call
+}
+
+// getPrevSameSource is a helper method to define mock.On call
+func (_e *mocksourceRegistry_Expecter) getPrevSameSource() *mocksourceRegistry_getPrevSameSource_Call {
+	return &mocksourceRegistry_getPrevSameSource_Call{Call: _e.mock.On("getPrevSameSource")}
+}
+
+func (_c *mocksourceRegistry_getPrevSameSource_Call) Run(run func()) *mocksourceRegistry_getPrevSameSource_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *mocksourceRegistry_getPrevSameSource_Call) Return(sourceRegistryMoqParam sourceRegistry) *mocksourceRegistry_getPrevSameSource_Call {
+	_c.Call.Return(sourceRegistryMoqParam)
+	return _c
+}
+
+func (_c *mocksourceRegistry_getPrevSameSource_Call) RunAndReturn(run func() sourceRegistry) *mocksourceRegistry_getPrevSameSource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // getRegistry provides a mock function for the type mocksourceRegistry
 func (_mock *mocksourceRegistry) getRegistry() Registry {
 	ret := _mock.Called()

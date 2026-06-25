@@ -132,7 +132,9 @@ func (r *Rule[I, O]) setPrev(p Registry)                 { r.prev = p }
 func (r *Rule[I, O]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
 func (r *Rule[I, O]) getNextSameSource() sourceRegistry  { return r.nextSameSource }
 func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
+func (r *Rule[I, O]) getPrevSameSource() sourceRegistry  { return r.prevSameSource }
 func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
+func (r *Rule[I, O]) setCtx(ctx context.Context)         { r.ctx = ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.When }

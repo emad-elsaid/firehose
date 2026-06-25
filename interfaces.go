@@ -62,6 +62,7 @@ type sourceRegistry interface {
 	setNextSameSource(n sourceRegistry)
 	setPrevSameSource(p sourceRegistry)
 	getNextSameSource() sourceRegistry
+	getPrevSameSource() sourceRegistry
 
 	getRegistry() Registry
 }
