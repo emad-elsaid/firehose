@@ -112,10 +112,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -154,10 +154,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -195,10 +195,10 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -243,13 +243,13 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule3, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule3, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -325,7 +325,7 @@ func TestRuleActionOverride(t *testing.T) {
 	}
 
 	// Register the rule
-	_, err := AddRule(t.Context(), nil, rule, nil, event, event)
+	_, err := AddRule(t.Context(), nil, rule, event, event)
 	require.NoError(t, err)
 
 	// Override the action after registration
@@ -362,7 +362,7 @@ func TestRuleDestinationOverride(t *testing.T) {
 	}
 
 	// Register the rule
-	_, err := AddRule(t.Context(), nil, rule, nil, event, event)
+	_, err := AddRule(t.Context(), nil, rule, event, event)
 	require.NoError(t, err)
 
 	// Override the destination after registration

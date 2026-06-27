@@ -17,7 +17,6 @@ func AddRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -27,7 +26,6 @@ func AddRule[I, O Event](
 		ctx,
 		registry,
 		rule,
-		middlewares,
 		inInstance,
 		outInstance,
 	)
@@ -38,7 +36,6 @@ func addSingleRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -50,14 +47,13 @@ func addSingleRule[I, O Event](
 	if isActivatable(rule) {
 		var err error
 
-		registry, err = registerActivatableRule(
-			ctx, registry, rule, inInstance, outInstance, middlewares)
+		registry, err = registerActivatableRule(ctx, registry, rule, inInstance, outInstance)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return registerSubRules(ctx, registry, rule, middlewares, inInstance, outInstance)
+	return registerSubRules(ctx, registry, rule, inInstance, outInstance)
 }
 
 func validateAndCheckActivatable[I, O Event](rule *Rule[I, O]) error {
@@ -79,9 +75,8 @@ func registerActivatableRule[I, O Event](
 	rule *Rule[I, O],
 	inInstance I,
 	outInstance O,
-	middlewares func() []Middleware[I, O],
 ) (Registry, error) {
-	err := wrapMiddlewares(ctx, rule, inInstance, outInstance, middlewares)
+	err := wrapMiddlewares(ctx, rule, inInstance, outInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +88,6 @@ func registerSubRules[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -106,7 +100,6 @@ func registerSubRules[I, O Event](
 			ctx,
 			registry,
 			subrule,
-			middlewares,
 			inInstance,
 			outInstance,
 		)
@@ -123,9 +116,9 @@ func wrapMiddlewares[I, O Event](
 	rule *Rule[I, O],
 	inInstance I,
 	outInstance O,
-	middlewares func() []Middleware[I, O],
 ) error {
-	if middlewares == nil {
+	middlewares := rule.Middlewares
+	if len(middlewares) == 0 {
 		return nil
 	}
 
@@ -133,7 +126,7 @@ func wrapMiddlewares[I, O Event](
 	rule.actionWrappers = rule
 	rule.destinationWrappers = rule
 
-	for _, mw := range slices.Backward(middlewares()) {
+	for _, mw := range slices.Backward(middlewares) {
 		var err error
 
 		rule.wrappedCallback, err = mw.WrapCallback(ctx, rule, rule.wrappedCallback, inInstance)
@@ -292,6 +285,10 @@ func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	// Prepend parent conditions to child conditions
 	if len(parent.If) > 0 {
 		child.If = append(parent.If, child.If...)
+	}
+
+	if len(parent.Middlewares) > 0 {
+		child.Middlewares = append(parent.Middlewares, child.Middlewares...)
 	}
 
 	if child.ID == "" {

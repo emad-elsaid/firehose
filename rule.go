@@ -24,6 +24,11 @@ type Rule[I, O Event] struct {
 	To Destination[O] `validate:"required_without=SubRules"`
 	// SubRules are the child rules that will inherit the parent fields if set
 	SubRules []Rule[I, O]
+	// Middlewares are the middlewares that will be applied to the action and
+	// destination and callback of the rule. The first middleware wraps the
+	// second middleware, and so on. The last middleware wraps the
+	// actions/destination/callback of the rule.
+	Middlewares []Middleware[I, O]
 
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
