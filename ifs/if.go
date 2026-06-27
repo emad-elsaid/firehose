@@ -12,11 +12,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// Event is the interface that events with attributes must implement.
-type Event interface {
-	Attributes(ctx context.Context) (map[string]any, error)
-}
-
 // CacheStorage is an interface for storing and retrieving cached values.
 type CacheStorage[V any] interface {
 	Get(ctx context.Context, key string) (value V, report firehose.Report, ok bool)
@@ -24,7 +19,7 @@ type CacheStorage[V any] interface {
 }
 
 // Cond is a string-based condition that evaluates boolean expressions against event attributes.
-type Cond[I Event] string
+type Cond[I firehose.Event] string
 
 // Evaluate parses and evaluates the boolean expression against the provided symbols.
 func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, error) {
@@ -32,6 +27,9 @@ func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, 
 		return true, nil
 	}
 
+	// TODO: cache the parsed expression to avoid re-parsing on every
+	// evaluation. Consider updating the boolexpr package to support caching or
+	// using a sync.Map to store parsed expressions.
 	expr, err := boolexpr.Parse(string(c))
 	if err != nil {
 		return false, err
@@ -41,7 +39,7 @@ func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, 
 }
 
 // RateLimit limits the rate at which events can be processed.
-type RateLimit[I Event] struct {
+type RateLimit[I firehose.Event] struct {
 	// Limit is the maximum rate at which events can be processed.
 	// For example, rate.Limit(10) allows 10 events per second.
 	Limit rate.Limit
@@ -75,7 +73,7 @@ func (r *RateLimit[I]) Evaluate(ctx context.Context, _ I, _ boolexpr.Symbols) (b
 }
 
 // Once ensures events are processed at most once within a time window.
-type Once[I Event] struct {
+type Once[I firehose.Event] struct {
 	// Duration is the time window within which an event with the same ID
 	// will only be processed once. Zero means no deduplication.
 	Duration time.Duration
