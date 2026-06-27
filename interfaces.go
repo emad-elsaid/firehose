@@ -44,6 +44,13 @@ type Destination[T any] interface {
 	Send(ctx context.Context, event T) Report
 }
 
+// If evaluates whether an event should be processed by a rule.
+// It receives the context, event, and symbols extracted from the event attributes,
+// and returns true if the condition is met, false otherwise, along with any error.
+type If[I Event] interface {
+	Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
+}
+
 // Registry handler that accumulates rules and manages their execution.
 type Registry interface {
 	getNext() Registry
@@ -78,19 +85,10 @@ type Runnable[I any] interface {
 	NextRunnable() Runnable[I]
 }
 
-// ActionMiddleware wraps actions to add cross-cutting concerns such as conditional execution,
-// panic recovery, or logging.
-type ActionMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
-}
-
-// DestinationMiddleware wraps destinations to add cross-cutting concerns such as panic recovery,
-// retry logic, or telemetry.
-type DestinationMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
-}
-
-// CallbackMiddleware wraps source callbacks to add cross-cutting concerns such as conditional execution.
-type CallbackMiddleware[I, O Event] interface {
-	Wrap(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
+// Middleware wraps callbacks, actions, and destinations to add cross-cutting concerns
+// such as conditional execution, panic recovery, logging, retry logic, or telemetry.
+type Middleware[I, O Event] interface {
+	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
+	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
+	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
 }

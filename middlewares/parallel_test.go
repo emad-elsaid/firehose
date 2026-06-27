@@ -1,4 +1,4 @@
-package callbacks
+package middlewares
 
 import (
 	"context"
@@ -41,16 +41,6 @@ func (a *mockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.S
 		r1 = zero
 	}
 	return r1, args.Get(1).(fh.Report)
-}
-
-// mockDestination implements Destination interface
-type mockDestination[T fh.Event] struct {
-	mock.Mock
-}
-
-func (d *mockDestination[T]) Send(ctx context.Context, event T) fh.Report {
-	args := d.Called(ctx, event)
-	return args.Get(0).(fh.Report)
 }
 
 // mockSource implements Source interface
@@ -121,7 +111,7 @@ func TestParallel_Wrap(t *testing.T) {
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "test-rule",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
 				}
@@ -140,7 +130,7 @@ func TestParallel_Wrap(t *testing.T) {
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "test-rule-2",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
 				}
@@ -165,7 +155,7 @@ func TestParallel_Wrap(t *testing.T) {
 			event := &mockEvent{}
 			cb := func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {}
 
-			result, err := parallel.Wrap(context.Background(), rule, cb, event)
+			result, err := parallel.WrapCallback(context.Background(), rule, cb, event)
 
 			if tc.expectedError {
 				require.Error(t, err)
@@ -202,7 +192,7 @@ func TestParallel_Callback(t *testing.T) {
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "rule-1",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,
 				}
@@ -227,7 +217,7 @@ func TestParallel_Callback(t *testing.T) {
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "rule-error",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: &mockAction[*mockEvent, *mockEvent]{},
 					To:   &mockDestination[*mockEvent]{},
 				}
@@ -262,7 +252,7 @@ func TestParallel_Callback(t *testing.T) {
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "concurrent-rule",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,
 				}
@@ -290,7 +280,7 @@ func TestParallel_Callback(t *testing.T) {
 			runner := tc.setupRunner()
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
-			_, err := parallel.Wrap(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
 			require.NoError(t, err)
 
 			reports := make(chan fh.Report, 10)
@@ -354,7 +344,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 
 			rule := &fh.Rule[*mockEvent, *mockEvent]{
 				ID:   "concurrent-rule",
-				When: &mockSource[*mockEvent]{},
+				On:   &mockSource[*mockEvent]{},
 				Then: action,
 				To:   dest,
 			}
@@ -363,7 +353,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 			event.On("Attributes", mock.Anything).Return(map[string]any{"key": "value"}, nil)
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: &concurrentTaskRunner{}}
-			_, err := parallel.Wrap(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
 			require.NoError(t, err)
 
 			// Execute callback multiple times concurrently
@@ -409,7 +399,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:   "wait-rule",
-					When: &mockSource[*mockEvent]{},
+					On:   &mockSource[*mockEvent]{},
 					Then: action,
 					To:   dest,
 				}
@@ -431,7 +421,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 			runner := &syncTaskRunner{}
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
-			_, err := parallel.Wrap(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
 			require.NoError(t, err)
 
 			reports := make(chan fh.Report, 10)

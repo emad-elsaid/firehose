@@ -1,4 +1,4 @@
-package callbacks
+package middlewares
 
 import (
 	"context"
@@ -21,8 +21,8 @@ type Parallel[I, O fh.Event] struct {
 	rule *fh.Rule[I, O]
 }
 
-// Wrap stores the rule and returns the parallel callback function.
-func (s *Parallel[I, O]) Wrap(
+// WrapCallback stores the rule and returns the parallel callback function.
+func (s *Parallel[I, O]) WrapCallback(
 	_ context.Context,
 	rule *fh.Rule[I, O],
 	_ fh.Callback[I],
@@ -31,6 +31,16 @@ func (s *Parallel[I, O]) Wrap(
 	s.rule = rule
 
 	return s.callback, nil
+}
+
+// WrapAction passes through the action unchanged.
+func (s *Parallel[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O], _ I) (fh.Action[I, O], error) {
+	return action, nil
+}
+
+// WrapDestination passes through the destination unchanged.
+func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O], _ O) (fh.Destination[O], error) {
+	return destination, nil
 }
 
 func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {

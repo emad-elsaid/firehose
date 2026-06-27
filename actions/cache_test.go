@@ -11,63 +11,7 @@ import (
 	"github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
-
-func TestCache_Wrap(t *testing.T) {
-	tests := []struct {
-		name        string
-		cacheFor    time.Duration
-		wantWrapped bool
-	}{
-		{
-			name:        "returns original action when CacheFor is zero",
-			cacheFor:    0,
-			wantWrapped: false,
-		},
-		{
-			name:        "wraps action when CacheFor is positive",
-			cacheFor:    5 * time.Minute,
-			wantWrapped: true,
-		},
-		{
-			name:        "wraps action with short CacheFor duration",
-			cacheFor:    1 * time.Second,
-			wantWrapped: true,
-		},
-		{
-			name:        "wraps action with long CacheFor duration",
-			cacheFor:    24 * time.Hour,
-			wantWrapped: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockCache := new(MockCacheStorage[*event])
-			mw := &Cache[*event, *event]{Cache: mockCache}
-			mockAction := new(action[*event, *event])
-			in := new(event)
-			rule := &firehose.Rule[*event, *event]{
-				CacheFor: tc.cacheFor,
-			}
-
-			wrappedAction, err := mw.Wrap(context.Background(), rule, mockAction, in)
-
-			require.NoError(t, err)
-			require.NotNil(t, wrappedAction)
-
-			if tc.wantWrapped {
-				require.IsType(t, (*Cache[*event, *event])(nil), wrappedAction)
-				cacheMw := wrappedAction.(*Cache[*event, *event])
-				require.Equal(t, mockAction, cacheMw.downstream)
-				require.Equal(t, tc.cacheFor, cacheMw.ttl)
-			} else {
-				require.Equal(t, mockAction, wrappedAction)
-			}
-		})
-	}
-}
 
 func TestCache_Process(t *testing.T) {
 	tests := []struct {
@@ -146,9 +90,9 @@ func TestCache_Process(t *testing.T) {
 			tc.setupCache(mockCache, key, ev, mockAction)
 
 			mw := &Cache[*event, *event]{
-				Cache:      mockCache,
-				downstream: mockAction,
-				ttl:        5 * time.Minute,
+				Cache:  mockCache,
+				Action: mockAction,
+				TTL:    5 * time.Minute,
 			}
 			syms := boolexpr.NewSymbolsCached(map[string]any{})
 
@@ -280,9 +224,9 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 			}
 
 			mw := &Cache[*event, *event]{
-				Cache:      mockCache,
-				downstream: mockAction,
-				ttl:        5 * time.Minute,
+				Cache:  mockCache,
+				Action: mockAction,
+				TTL:    5 * time.Minute,
 			}
 			syms := boolexpr.NewSymbolsCached(map[string]any{})
 
@@ -341,9 +285,9 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 				Return(ev, firehose.Report{Status: firehose.StatusSuccess}, false).Once()
 
 			mw := &Cache[*event, *event]{
-				Cache:      mockCache,
-				downstream: mockAction,
-				ttl:        tc.ttl,
+				Cache:  mockCache,
+				Action: mockAction,
+				TTL:    tc.ttl,
 			}
 			syms := boolexpr.NewSymbolsCached(map[string]any{})
 

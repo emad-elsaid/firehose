@@ -17,7 +17,7 @@ func TestRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
@@ -44,7 +44,7 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
@@ -70,7 +70,7 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
@@ -100,22 +100,22 @@ func TestRuleCallback(t *testing.T) {
 
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -142,22 +142,22 @@ func TestRuleCallback(t *testing.T) {
 
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -183,22 +183,22 @@ func TestRuleCallback(t *testing.T) {
 
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -224,32 +224,32 @@ func TestRuleCallback(t *testing.T) {
 
 		rule1 := &MockRule{
 			ID:   "rule1",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockRule{
 			ID:   "rule2",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule3 := &MockRule{
 			ID:   "rule3",
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
 
-		registry, err := AddRule(t.Context(), nil, rule1, nil, nil, nil, in, in)
+		registry, err := AddRule(t.Context(), nil, rule1, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule2, nil, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule2, nil, in, in)
 		require.NoError(t, err)
 
-		registry, err = AddRule(t.Context(), registry, rule3, nil, nil, nil, in, in)
+		registry, err = AddRule(t.Context(), registry, rule3, nil, in, in)
 		require.NoError(t, err)
 
 		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
@@ -275,7 +275,7 @@ func TestRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
-			When: source,
+			On:   source,
 			Then: action,
 			To:   destination,
 		}
@@ -319,13 +319,13 @@ func TestRuleActionOverride(t *testing.T) {
 
 	rule := &Rule[*MockAttributer, *MockAttributer]{
 		ID:   "test-rule",
-		When: source,
+		On:   source,
 		Then: oldAction,
 		To:   destination,
 	}
 
 	// Register the rule
-	_, err := AddRule(t.Context(), nil, rule, nil, nil, nil, event, event)
+	_, err := AddRule(t.Context(), nil, rule, nil, event, event)
 	require.NoError(t, err)
 
 	// Override the action after registration
@@ -356,13 +356,13 @@ func TestRuleDestinationOverride(t *testing.T) {
 
 	rule := &Rule[*MockAttributer, *MockAttributer]{
 		ID:   "test-rule",
-		When: source,
+		On:   source,
 		Then: action,
 		To:   oldDestination,
 	}
 
 	// Register the rule
-	_, err := AddRule(t.Context(), nil, rule, nil, nil, nil, event, event)
+	_, err := AddRule(t.Context(), nil, rule, nil, event, event)
 	require.NoError(t, err)
 
 	// Override the destination after registration
@@ -571,8 +571,8 @@ func TestRule_Start(t *testing.T) {
 			setup: func() (*MockRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
 				rule := &MockRule{
-					ID:   "test-rule",
-					When: source,
+					ID: "test-rule",
+					On: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).
 					Return(t.Context(), nil).Once()
@@ -585,8 +585,8 @@ func TestRule_Start(t *testing.T) {
 			name: "does not start when prevSameSource is set (not first in chain)",
 			setup: func() (*MockRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
-				rule1 := &MockRule{ID: "rule1", When: source}
-				rule2 := &MockRule{ID: "rule2", When: source}
+				rule1 := &MockRule{ID: "rule1", On: source}
+				rule2 := &MockRule{ID: "rule2", On: source}
 				rule2.setPrevSameSource(rule1)
 				return rule2, source
 			},
@@ -598,8 +598,8 @@ func TestRule_Start(t *testing.T) {
 			setup: func() (*MockRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
 				rule := &MockRule{
-					ID:   "test-rule",
-					When: source,
+					ID: "test-rule",
+					On: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).
 					Return(t.Context(), os.ErrClosed).Once()

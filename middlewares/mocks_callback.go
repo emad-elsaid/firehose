@@ -2,7 +2,7 @@
 // github.com/vektra/mockery
 // template: testify
 
-package callbacks
+package middlewares
 
 import (
 	mock "github.com/stretchr/testify/mock"

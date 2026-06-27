@@ -1,4 +1,4 @@
-package callbacks
+package middlewares
 
 import (
 	"context"
@@ -15,18 +15,28 @@ type Slog[I, O fh.Event] struct {
 	source     fh.Source[I]
 }
 
-// Wrap stores the downstream callback to be wrapped with logging and returns
+// WrapCallback stores the downstream callback to be wrapped with logging and returns
 // the callback function to be used by the source.
-func (s *Slog[I, O]) Wrap(
+func (s *Slog[I, O]) WrapCallback(
 	_ context.Context,
 	rule *fh.Rule[I, O],
 	callback fh.Callback[I],
 	_ I,
 ) (fh.Callback[I], error) {
 	s.downstream = callback
-	s.source = rule.When
+	s.source = rule.On
 
 	return s.callback, nil
+}
+
+// WrapAction passes through the action unchanged.
+func (s *Slog[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O], _ I) (fh.Action[I, O], error) {
+	return action, nil
+}
+
+// WrapDestination passes through the destination unchanged.
+func (s *Slog[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O], _ O) (fh.Destination[O], error) {
+	return destination, nil
 }
 
 func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {

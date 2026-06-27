@@ -4,31 +4,21 @@ package firehose
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/emad-elsaid/boolexpr"
-	"golang.org/x/time/rate"
 )
 
 // Rule defines an event processing pipeline from source to destination.
 type Rule[I, O Event] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
 	ID string
-	// When is the source that produces events to be processed by this rule.
-	When Source[I] `validate:"required_without=SubRules"`
-	// If is a boolean expression that determines whether the rule should be
-	// executed for a given event.
-	If string
-	// RateLimit is the maximum rate at which events can be processed by this
-	// rule, 0 means no rate limit.
-	RateLimit rate.Limit
-	// OnceEvery is the duration to allow only one event with the same ID to be
-	// processed by this rule, 0 means no once constraint.
-	OnceEvery time.Duration
-	// CacheFor is the duration to cache the output of the Then action for the
-	// same input event, 0 means no caching.
-	CacheFor time.Duration
-	// Then is the action to process the event if the When source produces an event
+	// On is the source that produces events to be processed by this rule.
+	On Source[I] `validate:"required_without=SubRules"`
+	// If conditions are evaluated in sequence. If any condition returns false or an error,
+	// the rule processing is aborted. Conditions are evaluated by value, allowing you
+	// to use types like ifs.Cond (string expressions), ifs.RateLimit, and ifs.Once.
+	If []If[I]
+	// Then is the action to process the event if the On source produces an event
 	Then Action[I, O] `validate:"required_without=SubRules"`
 	// To is the destination to send the output of the Then action
 	To Destination[O] `validate:"required_without=SubRules"`
@@ -71,7 +61,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 		cb = r.wrappedCallback
 	}
 
-	srcCtx, err := r.When.Start(ctx, cb)
+	srcCtx, err := r.On.Start(ctx, cb)
 	if err != nil {
 		return fmt.Errorf("failed to start source: %w", err)
 	}
@@ -98,7 +88,26 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
-	out, report := r.Process(ctx, event, syms)
+	// Evaluate conditions first
+	for _, cond := range r.If {
+		pass, err := cond.Evaluate(ctx, event, syms)
+		if err != nil {
+			reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("condition error: %w", err))
+			return
+		}
+
+		if !pass {
+			reports <- NewRuleReport(r.ID, StatusNoMatch, nil)
+			return
+		}
+	}
+
+	// Use wrapped action if available, otherwise use the direct action
+	action := r.Then
+	if r.actionWrappers != nil {
+		action = r.actionWrappers
+	}
+	out, report := action.Process(ctx, event, syms)
 	report.Rule = r.ID
 
 	if report.Err != nil || report.Abort {
@@ -107,7 +116,12 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		return
 	}
 
-	report = r.Send(ctx, out)
+	// Use wrapped destination if available, otherwise use the direct destination
+	destination := r.To
+	if r.destinationWrappers != nil {
+		destination = r.destinationWrappers
+	}
+	report = destination.Send(ctx, out)
 	report.Rule = r.ID
 
 	reports <- report
@@ -135,4 +149,4 @@ func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p 
 func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
-func (r *Rule[I, O]) getSource() any                     { return r.When }
+func (r *Rule[I, O]) getSource() any                     { return r.On }

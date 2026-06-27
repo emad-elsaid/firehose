@@ -17,9 +17,7 @@ func AddRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionMiddlewares func() []ActionMiddleware[I, O],
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -29,9 +27,7 @@ func AddRule[I, O Event](
 		ctx,
 		registry,
 		rule,
-		callbackMiddlewares,
-		actionMiddlewares,
-		destinationMiddlewares,
+		middlewares,
 		inInstance,
 		outInstance,
 	)
@@ -42,9 +38,7 @@ func addSingleRule[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionMiddlewares func() []ActionMiddleware[I, O],
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -57,17 +51,13 @@ func addSingleRule[I, O Event](
 		var err error
 
 		registry, err = registerActivatableRule(
-			ctx, registry, rule, inInstance, outInstance,
-			callbackMiddlewares, actionMiddlewares, destinationMiddlewares)
+			ctx, registry, rule, inInstance, outInstance, middlewares)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return registerSubRules(
-		ctx, registry, rule,
-		callbackMiddlewares, actionMiddlewares, destinationMiddlewares,
-		inInstance, outInstance)
+	return registerSubRules(ctx, registry, rule, middlewares, inInstance, outInstance)
 }
 
 func validateAndCheckActivatable[I, O Event](rule *Rule[I, O]) error {
@@ -89,13 +79,9 @@ func registerActivatableRule[I, O Event](
 	rule *Rule[I, O],
 	inInstance I,
 	outInstance O,
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionMiddlewares func() []ActionMiddleware[I, O],
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	middlewares func() []Middleware[I, O],
 ) (Registry, error) {
-	err := wrapMiddlewares(
-		ctx, rule, inInstance, outInstance,
-		callbackMiddlewares, actionMiddlewares, destinationMiddlewares)
+	err := wrapMiddlewares(ctx, rule, inInstance, outInstance, middlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +93,7 @@ func registerSubRules[I, O Event](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionMiddlewares func() []ActionMiddleware[I, O],
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	middlewares func() []Middleware[I, O],
 	inInstance I,
 	outInstance O,
 ) (Registry, error) {
@@ -122,9 +106,7 @@ func registerSubRules[I, O Event](
 			ctx,
 			registry,
 			subrule,
-			callbackMiddlewares,
-			actionMiddlewares,
-			destinationMiddlewares,
+			middlewares,
 			inInstance,
 			outInstance,
 		)
@@ -141,87 +123,30 @@ func wrapMiddlewares[I, O Event](
 	rule *Rule[I, O],
 	inInstance I,
 	outInstance O,
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-	actionMiddlewares func() []ActionMiddleware[I, O],
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
+	middlewares func() []Middleware[I, O],
 ) error {
-	err := wrapCallbackMiddlewares(ctx, rule, inInstance, callbackMiddlewares)
-	if err != nil {
-		return err
-	}
-
-	err = wrapActionMiddlewares(ctx, rule, inInstance, actionMiddlewares)
-	if err != nil {
-		return err
-	}
-
-	return wrapDestinationMiddlewares(ctx, rule, outInstance, destinationMiddlewares)
-}
-
-func wrapCallbackMiddlewares[I, O Event](
-	ctx context.Context,
-	rule *Rule[I, O],
-	inInstance I,
-	callbackMiddlewares func() []CallbackMiddleware[I, O],
-) error {
-	if callbackMiddlewares == nil {
+	if middlewares == nil {
 		return nil
 	}
 
 	rule.wrappedCallback = rule.callback
-
-	for _, v := range slices.Backward(callbackMiddlewares()) {
-		var err error
-
-		rule.wrappedCallback, err = v.Wrap(ctx, rule, rule.wrappedCallback, inInstance)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func wrapActionMiddlewares[I, O Event](
-	ctx context.Context,
-	rule *Rule[I, O],
-	inInstance I,
-	actionMiddlewares func() []ActionMiddleware[I, O],
-) error {
-	if actionMiddlewares == nil {
-		return nil
-	}
-
 	rule.actionWrappers = rule
-
-	for _, v := range slices.Backward(actionMiddlewares()) {
-		var err error
-
-		rule.actionWrappers, err = v.Wrap(ctx, rule, rule.actionWrappers, inInstance)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func wrapDestinationMiddlewares[I, O Event](
-	ctx context.Context,
-	rule *Rule[I, O],
-	out O,
-	destinationMiddlewares func() []DestinationMiddleware[I, O],
-) error {
-	if destinationMiddlewares == nil {
-		return nil
-	}
-
 	rule.destinationWrappers = rule
 
-	for _, v := range slices.Backward(destinationMiddlewares()) {
+	for _, mw := range slices.Backward(middlewares()) {
 		var err error
 
-		rule.destinationWrappers, err = v.Wrap(ctx, rule, rule.destinationWrappers, out)
+		rule.wrappedCallback, err = mw.WrapCallback(ctx, rule, rule.wrappedCallback, inInstance)
+		if err != nil {
+			return err
+		}
+
+		rule.actionWrappers, err = mw.WrapAction(ctx, rule, rule.actionWrappers, inInstance)
+		if err != nil {
+			return err
+		}
+
+		rule.destinationWrappers, err = mw.WrapDestination(ctx, rule, rule.destinationWrappers, outInstance)
 		if err != nil {
 			return err
 		}
@@ -239,7 +164,7 @@ func addRuleToRegistry[I, O Event](registry Registry, rule *Rule[I, O]) Registry
 	}
 
 	tail := registry.getPrev()
-	sameSourceTail := getSameSourceTail(registry, rule.When)
+	sameSourceTail := getSameSourceTail(registry, rule.On)
 
 	linkRule(rule, registry, tail)
 	linkSameSourceRule(rule, sameSourceTail)
@@ -364,8 +289,9 @@ func inherit[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 }
 
 func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
-	if child.If != "" && parent.If != "" {
-		child.If = "(" + parent.If + ") and (" + child.If + ")"
+	// Prepend parent conditions to child conditions
+	if len(parent.If) > 0 {
+		child.If = append(parent.If, child.If...)
 	}
 
 	if child.ID == "" {
@@ -379,7 +305,7 @@ func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 
 func isActivatable[I, O Event](rule *Rule[I, O]) bool {
 	return rule.ID != "" &&
-		rule.When != nil &&
+		rule.On != nil &&
 		rule.Then != nil &&
 		rule.To != nil
 }
