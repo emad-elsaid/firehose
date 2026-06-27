@@ -15,7 +15,7 @@ import (
 // CacheStorage is an interface for storing and retrieving cached values.
 type CacheStorage[V any] interface {
 	Get(ctx context.Context, key string) (value V, report firehose.Report, ok bool)
-	Set(ctx context.Context, key string, value V, report firehose.Report, ttl time.Duration)
+	Set(ctx context.Context, key string, value V, report firehose.Report, ttl time.Duration) firehose.Report
 }
 
 // Cond is a string-based condition that evaluates boolean expressions against event attributes.

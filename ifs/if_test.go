@@ -33,8 +33,8 @@ func (m *MockCacheStorage) Get(ctx context.Context, key string) (string, firehos
 	return args.String(0), args.Get(1).(firehose.Report), args.Bool(2)
 }
 
-func (m *MockCacheStorage) Set(ctx context.Context, key string, value string, report firehose.Report, ttl time.Duration) {
-	m.Called(ctx, key, value, report, ttl)
+func (m *MockCacheStorage) Set(ctx context.Context, key string, value string, report firehose.Report, ttl time.Duration) firehose.Report {
+	return m.Called(ctx, key, value, report, ttl).Get(0).(firehose.Report)
 }
 
 func TestCond_Evaluate(t *testing.T) {
@@ -215,7 +215,7 @@ func TestOnce_Evaluate(t *testing.T) {
 				// First call: cache miss
 				cache.On("Get", context.Background(), mock.Anything).
 					Return("", firehose.NewReport("", nil), false).Once()
-				cache.On("Set", context.Background(), mock.Anything, "1", mock.Anything, time.Second).Once()
+				cache.On("Set", context.Background(), mock.Anything, "1", mock.Anything, time.Second).Once().Return(firehose.NewSuccessReport())
 
 				// Second call: cache hit
 				cache.On("Get", context.Background(), mock.Anything).
