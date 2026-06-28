@@ -14,14 +14,16 @@ import (
 )
 
 type EventMock struct {
-	attrs map[string]any
+	boolexpr.Symbols
 }
 
-func (e *EventMock) Attributes(ctx context.Context) (map[string]any, error) {
-	if e.attrs == nil {
-		return make(map[string]any), nil
+func NewEventMock(attrs map[string]any) *EventMock {
+	if attrs == nil {
+		attrs = make(map[string]any)
 	}
-	return e.attrs, nil
+	return &EventMock{
+		Symbols: boolexpr.SymbolsMap(attrs),
+	}
 }
 
 type MockCacheStorage struct {
@@ -88,7 +90,7 @@ func TestCond_Evaluate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			syms := boolexpr.NewSymbolsCached(tc.symbols)
+			syms := boolexpr.NewCachedMap(tc.symbols)
 			var event *EventMock
 			result, err := tc.cond.Evaluate(context.Background(), event, syms)
 
@@ -180,7 +182,7 @@ func TestOnce_Evaluate(t *testing.T) {
 			name: "zero duration always passes",
 			setup: func(t *testing.T) (*ifs.Once[*EventMock], *EventMock) {
 				cond := &ifs.Once[*EventMock]{Duration: 0}
-				event := &EventMock{attrs: map[string]any{"id": "1"}}
+				event := NewEventMock(map[string]any{"id": "1"})
 				return cond, event
 			},
 			validate: func(t *testing.T, cond *ifs.Once[*EventMock], event *EventMock) {
@@ -193,7 +195,7 @@ func TestOnce_Evaluate(t *testing.T) {
 			name: "missing cache returns error",
 			setup: func(t *testing.T) (*ifs.Once[*EventMock], *EventMock) {
 				cond := &ifs.Once[*EventMock]{Duration: time.Second}
-				event := &EventMock{attrs: map[string]any{"id": "1"}}
+				event := NewEventMock(map[string]any{"id": "1"})
 				return cond, event
 			},
 			validate: func(t *testing.T, cond *ifs.Once[*EventMock], event *EventMock) {
@@ -210,7 +212,7 @@ func TestOnce_Evaluate(t *testing.T) {
 					Duration: time.Second,
 					Cache:    cache,
 				}
-				event := &EventMock{attrs: map[string]any{"id": "123"}}
+				event := NewEventMock(map[string]any{"id": "123"})
 
 				// First call: cache miss
 				cache.On("Get", context.Background(), mock.Anything).

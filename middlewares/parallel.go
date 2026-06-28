@@ -2,10 +2,8 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/emad-elsaid/boolexpr"
 	fh "github.com/emad-elsaid/firehose"
 )
 
@@ -44,14 +42,7 @@ func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], de
 }
 
 func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
-	attrs, err := fh.EventAttributes(ctx, event)
-	if err != nil {
-		reports <- fh.NewRuleReport(s.rule.ID, fh.StatusError, fmt.Errorf("failed to get event attributes: %w", err))
-
-		return
-	}
-
-	syms := boolexpr.NewSymbolsCached(attrs)
+	syms := fh.EventSymbols(event)
 
 	var waitGroup sync.WaitGroup
 

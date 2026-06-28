@@ -107,7 +107,7 @@ func TestPanic_Process(t *testing.T) {
 			},
 		}
 
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewSymbolsCached(nil))
+		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
 
 		assert.Nil(t, out)
 		assert.Equal(t, StatusPanicRecovered, report.Status)
@@ -127,7 +127,7 @@ func TestPanic_Process(t *testing.T) {
 			},
 		}
 
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewSymbolsCached(nil))
+		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
 
 		assert.Equal(t, expectedOut, out)
 		assert.Equal(t, expectedReport.Status, report.Status)
@@ -142,7 +142,7 @@ func TestPanic_Process(t *testing.T) {
 			},
 		}
 
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewSymbolsCached(nil))
+		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
 
 		assert.Nil(t, out)
 		assert.Equal(t, StatusPanicRecovered, report.Status)

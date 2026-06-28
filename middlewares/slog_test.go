@@ -83,7 +83,7 @@ func TestSlog_Wrap(t *testing.T) {
 			callback := tc.setupCallback()
 			middleware := &Slog[*mockEvent, *mockEvent]{}
 
-			event := &mockEvent{}
+			event := newMockEvent(nil)
 			result, err := middleware.WrapCallback(context.Background(), rule, callback, event)
 
 			if tc.expectedError {
@@ -127,7 +127,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -162,7 +162,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -195,7 +195,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -228,7 +228,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -263,7 +263,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -295,7 +295,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -330,7 +330,7 @@ func TestSlog_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				return &mockEvent{}
+				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {
@@ -436,7 +436,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 				To:   &mockDestination[*mockEvent]{},
 			}
 
-			event := &mockEvent{}
+			event := newMockEvent(nil)
 
 			middleware := &Slog[*mockEvent, *mockEvent]{}
 			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream, event)
@@ -499,7 +499,7 @@ func TestSlog_ChannelClosure(t *testing.T) {
 				To:   &mockDestination[*mockEvent]{},
 			}
 
-			event := &mockEvent{}
+			event := newMockEvent(nil)
 
 			middleware := &Slog[*mockEvent, *mockEvent]{}
 			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream, event)

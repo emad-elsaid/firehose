@@ -41,7 +41,7 @@ type Rule[I, O any] struct {
 }
 
 // Process implements the Action interface. it allows using the rule as an action during the wrapping
-// of the action. so that when the action field changes it called the new action.
+// of the action. so that when the action field changes it calls the new action.
 // When called it calls the current action without any middlewares.
 func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
 	return r.Then.Process(ctx, event, syms)
@@ -49,7 +49,7 @@ func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols
 
 // Send implements the Destination interface. it allows using the rule as a
 // destination during the wrapping of the destination. so that when the
-// destination field changes it called the new destination.
+// destination field changes it calls the new destination.
 func (r *Rule[I, O]) Send(ctx context.Context, event O) Report {
 	return r.To.Send(ctx, event)
 }
@@ -78,14 +78,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 }
 
 func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Report) {
-	attrs, err := EventAttributes(ctx, event)
-	if err != nil {
-		reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("failed to get event attributes: %w", err))
-
-		return
-	}
-
-	syms := boolexpr.NewSymbolsCached(attrs)
+	syms := EventSymbols(event)
 
 	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {
 		current.Run(ctx, event, syms, reports)

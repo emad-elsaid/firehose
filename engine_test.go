@@ -1531,7 +1531,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		reports := make(chan Report, 1)
-		syms := boolexpr.NewSymbolsCached(map[string]any{})
+		syms := boolexpr.NewCachedMap(map[string]any{})
 		rule.Run(ctx, event, syms, reports)
 		close(reports)
 
@@ -1597,7 +1597,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		reports := make(chan Report, 1)
-		syms := boolexpr.NewSymbolsCached(map[string]any{})
+		syms := boolexpr.NewCachedMap(map[string]any{})
 		rule.Run(ctx, event, syms, reports)
 		close(reports)
 

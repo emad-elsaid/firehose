@@ -22,9 +22,8 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
@@ -48,9 +47,8 @@ func TestRuleCallback(t *testing.T) {
 			Then: action,
 			To:   destination,
 		}
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 
 		reportsChan := make(chan Report, 10)
@@ -74,9 +72,8 @@ func TestRuleCallback(t *testing.T) {
 			Then: action,
 			To:   destination,
 		}
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusDestinationError, os.ErrClosed)).Once()
 
@@ -93,7 +90,7 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chains to next rule with same source", func(t *testing.T) {
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
@@ -118,7 +115,6 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Twice()
 
@@ -135,7 +131,7 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chain continue on action error in first rule", func(t *testing.T) {
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
@@ -160,7 +156,6 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
@@ -176,7 +171,7 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
@@ -201,7 +196,6 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
@@ -217,7 +211,7 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
@@ -252,7 +246,6 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule3, in, in)
 		require.NoError(t, err)
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Times(3)
 
@@ -269,7 +262,7 @@ func TestRuleCallback(t *testing.T) {
 	})
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
-		in := NewMockAttributer(t)
+		in := NewEventMock(nil)
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
@@ -280,7 +273,6 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		in.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
 		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
 
@@ -311,13 +303,13 @@ func chanToSlice[T any](ch <-chan T) []T {
 }
 
 func TestRuleActionOverride(t *testing.T) {
-	source := NewMockSource[*MockAttributer](t)
-	oldAction := NewMockAction[*MockAttributer, *MockAttributer](t)
-	newAction := NewMockAction[*MockAttributer, *MockAttributer](t)
-	destination := NewMockDestination[*MockAttributer](t)
-	event := NewMockAttributer(t)
+	source := NewMockSource[*EventMock](t)
+	oldAction := NewMockAction[*EventMock, *EventMock](t)
+	newAction := NewMockAction[*EventMock, *EventMock](t)
+	destination := NewMockDestination[*EventMock](t)
+	event := NewEventMock(nil)
 
-	rule := &Rule[*MockAttributer, *MockAttributer]{
+	rule := &Rule[*EventMock, *EventMock]{
 		ID:   "test-rule",
 		On:   source,
 		Then: oldAction,
@@ -331,7 +323,6 @@ func TestRuleActionOverride(t *testing.T) {
 	// Override the action after registration
 	rule.Then = newAction
 
-	event.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 	newAction.On("Process", t.Context(), event, mock.Anything).
 		Return(event, NewReport(StatusSuccess, nil)).Once()
 	destination.On("Send", t.Context(), event).
@@ -348,13 +339,13 @@ func TestRuleActionOverride(t *testing.T) {
 }
 
 func TestRuleDestinationOverride(t *testing.T) {
-	source := NewMockSource[*MockAttributer](t)
-	action := NewMockAction[*MockAttributer, *MockAttributer](t)
-	oldDestination := NewMockDestination[*MockAttributer](t)
-	newDestination := NewMockDestination[*MockAttributer](t)
-	event := NewMockAttributer(t)
+	source := NewMockSource[*EventMock](t)
+	action := NewMockAction[*EventMock, *EventMock](t)
+	oldDestination := NewMockDestination[*EventMock](t)
+	newDestination := NewMockDestination[*EventMock](t)
+	event := NewEventMock(nil)
 
-	rule := &Rule[*MockAttributer, *MockAttributer]{
+	rule := &Rule[*EventMock, *EventMock]{
 		ID:   "test-rule",
 		On:   source,
 		Then: action,
@@ -368,7 +359,6 @@ func TestRuleDestinationOverride(t *testing.T) {
 	// Override the destination after registration
 	rule.To = newDestination
 
-	event.On("Attributes", t.Context()).Return(map[string]any{}, nil).Once()
 	action.On("Process", t.Context(), event, mock.Anything).
 		Return(event, NewReport(StatusSuccess, nil)).Once()
 	newDestination.On("Send", t.Context(), event).
@@ -437,7 +427,7 @@ func TestRule_Run(t *testing.T) {
 			setupMocks: func() (*MockRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
-				event := NewMockAttributer(t)
+				event := NewEventMock(nil)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -464,7 +454,7 @@ func TestRule_Run(t *testing.T) {
 			setupMocks: func() (*MockRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
-				event := NewMockAttributer(t)
+				event := NewEventMock(nil)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -489,7 +479,7 @@ func TestRule_Run(t *testing.T) {
 			setupMocks: func() (*MockRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
-				event := NewMockAttributer(t)
+				event := NewEventMock(nil)
 
 				rule := &MockRule{
 					ID:   "test-rule",
@@ -515,7 +505,7 @@ func TestRule_Run(t *testing.T) {
 			setupMocks: func() (*MockRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
-				event := NewMockAttributer(t)
+				event := NewEventMock(nil)
 
 				rule := &MockRule{
 					ID:   "test-rule",

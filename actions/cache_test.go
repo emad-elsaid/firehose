@@ -94,7 +94,7 @@ func TestCache_Process(t *testing.T) {
 				Action: mockAction,
 				TTL:    5 * time.Minute,
 			}
-			syms := boolexpr.NewSymbolsCached(map[string]any{})
+			syms := boolexpr.NewCachedMap(map[string]any{})
 
 			_, report := mw.Process(context.Background(), ev, syms)
 
@@ -228,7 +228,7 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 				Action: mockAction,
 				TTL:    5 * time.Minute,
 			}
-			syms := boolexpr.NewSymbolsCached(map[string]any{})
+			syms := boolexpr.NewCachedMap(map[string]any{})
 
 			for i := 0; i < tc.processCount; i++ {
 				_, report := mw.Process(context.Background(), ev, syms)
@@ -289,7 +289,7 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 				Action: mockAction,
 				TTL:    tc.ttl,
 			}
-			syms := boolexpr.NewSymbolsCached(map[string]any{})
+			syms := boolexpr.NewCachedMap(map[string]any{})
 
 			_, report := mw.Process(context.Background(), ev, syms)
 

@@ -13,6 +13,20 @@ type event struct {
 	Value string
 }
 
+// mockEvent implements boolexpr.Symbols for testing
+type mockEvent struct {
+	boolexpr.Symbols
+}
+
+func newMockEvent(attrs map[string]any) *mockEvent {
+	if attrs == nil {
+		attrs = make(map[string]any)
+	}
+	return &mockEvent{
+		Symbols: boolexpr.SymbolsMap(attrs),
+	}
+}
+
 // action is a simple mock action type for testing
 type action[I, O any] struct {
 	mock.Mock

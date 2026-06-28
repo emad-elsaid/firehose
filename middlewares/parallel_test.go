@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,20 +12,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// mockEvent implements the Attributer interface for testing
-type mockEvent struct {
-	mock.Mock
-}
-
-func (e *mockEvent) Attributes(ctx context.Context) (map[string]any, error) {
-	args := e.Called(ctx)
-	r1, ok := args.Get(0).(map[string]any)
-	if !ok {
-		return nil, args.Error(1)
-	}
-	return r1, args.Error(1)
-}
 
 // mockAction implements Action interface
 type mockAction[I, O any] struct {
@@ -152,7 +137,7 @@ func TestParallel_Wrap(t *testing.T) {
 			runner := tc.setupRunner()
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
 
-			event := &mockEvent{}
+			event := newMockEvent(nil)
 			cb := func(ctx context.Context, e *mockEvent, reports chan<- fh.Report) {}
 
 			result, err := parallel.WrapCallback(context.Background(), rule, cb, event)
@@ -186,7 +171,7 @@ func TestParallel_Callback(t *testing.T) {
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(&mockEvent{}, fh.NewReport(fh.StatusSuccess, nil))
+					Return(newMockEvent(nil), fh.NewReport(fh.StatusSuccess, nil))
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
@@ -198,9 +183,7 @@ func TestParallel_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				event := &mockEvent{}
-				event.On("Attributes", mock.Anything).Return(map[string]any{"key": "value"}, nil)
-				return event
+				return newMockEvent(map[string]any{"key": "value"})
 			},
 			setupRunner: func() TaskRunner {
 				return &syncTaskRunner{}
@@ -213,40 +196,13 @@ func TestParallel_Callback(t *testing.T) {
 		},
 
 		{
-			name: "handles event attributes error",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
-					ID:   "rule-error",
-					On:   &mockSource[*mockEvent]{},
-					Then: &mockAction[*mockEvent, *mockEvent]{},
-					To:   &mockDestination[*mockEvent]{},
-				}
-			},
-			setupEvent: func() *mockEvent {
-				event := &mockEvent{}
-				event.On("Attributes", mock.Anything).
-					Return(nil, errors.New("attributes error"))
-				return event
-			},
-			setupRunner: func() TaskRunner {
-				return &syncTaskRunner{}
-			},
-			expectedReports: 1,
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
-				assert.Equal(t, fh.StatusError, reports[0].Status)
-				assert.Error(t, reports[0].Err)
-				assert.Contains(t, reports[0].Err.Error(), "failed to get event attributes")
-			},
-		},
-		{
 			name: "executes callbacks concurrently with goroutine runner",
 			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
 				action := &mockAction[*mockEvent, *mockEvent]{}
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(&mockEvent{}, fh.NewReport(fh.StatusSuccess, nil))
+					Return(newMockEvent(nil), fh.NewReport(fh.StatusSuccess, nil))
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
@@ -258,9 +214,7 @@ func TestParallel_Callback(t *testing.T) {
 				}
 			},
 			setupEvent: func() *mockEvent {
-				event := &mockEvent{}
-				event.On("Attributes", mock.Anything).Return(map[string]any{"key": "value"}, nil)
-				return event
+				return newMockEvent(map[string]any{"key": "value"})
 			},
 			setupRunner: func() TaskRunner {
 				return &concurrentTaskRunner{}
@@ -337,7 +291,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 				Run(func(args mock.Arguments) {
 					atomic.AddInt32(&counter, 1)
 				}).
-				Return(&mockEvent{}, fh.NewReport(fh.StatusSuccess, nil))
+				Return(newMockEvent(nil), fh.NewReport(fh.StatusSuccess, nil))
 
 			dest.On("Send", mock.Anything, mock.Anything).
 				Return(fh.NewReport(fh.StatusSuccess, nil))
@@ -349,8 +303,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 				To:   dest,
 			}
 
-			event := &mockEvent{}
-			event.On("Attributes", mock.Anything).Return(map[string]any{"key": "value"}, nil)
+			event := newMockEvent(map[string]any{"key": "value"})
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: &concurrentTaskRunner{}}
 			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
@@ -393,7 +346,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(&mockEvent{}, fh.NewReport(fh.StatusSuccess, nil))
+					Return(newMockEvent(nil), fh.NewReport(fh.StatusSuccess, nil))
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(fh.NewReport(fh.StatusSuccess, nil))
 
@@ -413,8 +366,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setupRules()
-			event := &mockEvent{}
-			event.On("Attributes", mock.Anything).Return(map[string]any{"key": "value"}, nil)
+			event := newMockEvent(map[string]any{"key": "value"})
 
 			// Use syncTaskRunner which executes immediately
 			taskExecuted := false

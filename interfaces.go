@@ -12,18 +12,15 @@ func EventID(event any) (uint64, error) {
 	return hashstructure.Hash(event, hashstructure.FormatV2, nil)
 }
 
-// Attributer is an interface for providing attributes for an event that can be used in condition evaluation.
-type Attributer interface {
-	Attributes(ctx context.Context) (map[string]any, error)
-}
-
-// EventAttributes extracts attributes from an event if it implements the Attributer interface.
-func EventAttributes(ctx context.Context, event any) (map[string]any, error) {
-	if attributer, ok := event.(Attributer); ok {
-		return attributer.Attributes(ctx)
+// EventSymbols extracts symbols from an event if it implements boolexpr.Symbols.
+// Events can embed boolexpr.Symbols directly to provide attribute access for condition evaluation.
+// Returns a cached wrapper around the symbols for efficient repeated lookups. If the event
+// doesn't implement boolexpr.Symbols, returns an empty SymbolsMap directly (no caching needed).
+func EventSymbols(event any) boolexpr.Symbols {
+	if symbols, ok := event.(boolexpr.Symbols); ok {
+		return boolexpr.NewCachedSymbols(symbols)
 	}
-
-	return map[string]any{}, nil
+	return boolexpr.SymbolsMap{}
 }
 
 // Source produces events of type T.
