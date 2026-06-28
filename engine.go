@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // ErrRuleNotActivatable is returned when a rule cannot be activated because
@@ -303,4 +305,11 @@ func isActivatable[I, O any](rule *Rule[I, O]) bool {
 		rule.On != nil &&
 		rule.Then != nil &&
 		rule.To != nil
+}
+
+// IsValid validates the rule's fields.
+func IsValid[I, O any](rule *Rule[I, O]) error {
+	var validate = validator.New(validator.WithRequiredStructEnabled())
+
+	return validate.Struct(rule)
 }
