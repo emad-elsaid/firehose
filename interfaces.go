@@ -7,11 +7,8 @@ import (
 	"github.com/mitchellh/hashstructure/v2"
 )
 
-// Event represents an event with attributes that can be evaluated in conditions.
-type Event any
-
 // EventID computes a hash-based identifier for an event.
-func EventID(event Event) (uint64, error) {
+func EventID(event any) (uint64, error) {
 	return hashstructure.Hash(event, hashstructure.FormatV2, nil)
 }
 
@@ -47,7 +44,7 @@ type Destination[T any] interface {
 // If evaluates whether an event should be processed by a rule.
 // It receives the context, event, and symbols extracted from the event attributes,
 // and returns true if the condition is met, false otherwise, along with any error.
-type If[I Event] interface {
+type If[I any] interface {
 	Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 
@@ -87,7 +84,7 @@ type Runnable[I any] interface {
 
 // Middleware wraps callbacks, actions, and destinations to add cross-cutting concerns
 // such as conditional execution, panic recovery, logging, retry logic, or telemetry.
-type Middleware[I, O Event] interface {
+type Middleware[I, O any] interface {
 	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
 	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
 	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)

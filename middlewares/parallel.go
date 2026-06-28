@@ -15,7 +15,7 @@ type TaskRunner interface {
 }
 
 // Parallel is a callback middleware that executes rules in parallel using a task runner.
-type Parallel[I, O fh.Event] struct {
+type Parallel[I, O any] struct {
 	Runner TaskRunner
 
 	rule *fh.Rule[I, O]

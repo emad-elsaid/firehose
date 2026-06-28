@@ -19,7 +19,7 @@ type CacheStorage[V any] interface {
 }
 
 // Cond is a string-based condition that evaluates boolean expressions against event attributes.
-type Cond[I firehose.Event] string
+type Cond[I any] string
 
 // Evaluate parses and evaluates the boolean expression against the provided symbols.
 func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, error) {
@@ -39,7 +39,7 @@ func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, 
 }
 
 // RateLimit limits the rate at which events can be processed.
-type RateLimit[I firehose.Event] struct {
+type RateLimit[I any] struct {
 	// Limit is the maximum rate at which events can be processed.
 	// For example, rate.Limit(10) allows 10 events per second.
 	Limit rate.Limit
@@ -72,8 +72,27 @@ func (r *RateLimit[I]) Evaluate(ctx context.Context, _ I, _ boolexpr.Symbols) (b
 	return true, nil
 }
 
+// Ifs is a slice of If conditions that are evaluated sequentially.
+// If any condition returns false or an error, evaluation stops and returns that result.
+type Ifs[I any] []firehose.If[I]
+
+// Evaluate evaluates all conditions in sequence. Returns false on the first
+// condition that fails, or true if all conditions pass.
+func (ifs Ifs[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+	for _, cond := range ifs {
+		pass, err := cond.Evaluate(ctx, event, syms)
+		if err != nil {
+			return false, err
+		}
+		if !pass {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Once ensures events are processed at most once within a time window.
-type Once[I firehose.Event] struct {
+type Once[I any] struct {
 	// Duration is the time window within which an event with the same ID
 	// will only be processed once. Zero means no deduplication.
 	Duration time.Duration

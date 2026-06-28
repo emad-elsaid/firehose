@@ -13,7 +13,7 @@ import (
 var ErrRuleNotActivatable = errors.New("rule is not activatable, missing required properties")
 
 // AddRule registers a new processing rule in the context.
-func AddRule[I, O Event](
+func AddRule[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
@@ -32,7 +32,7 @@ func AddRule[I, O Event](
 }
 
 // addSingleRule registers a single rule and its subrules in the registry.
-func addSingleRule[I, O Event](
+func addSingleRule[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
@@ -56,7 +56,7 @@ func addSingleRule[I, O Event](
 	return registerSubRules(ctx, registry, rule, inInstance, outInstance)
 }
 
-func validateAndCheckActivatable[I, O Event](rule *Rule[I, O]) error {
+func validateAndCheckActivatable[I, O any](rule *Rule[I, O]) error {
 	err := IsValid(rule)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func validateAndCheckActivatable[I, O Event](rule *Rule[I, O]) error {
 	return nil
 }
 
-func registerActivatableRule[I, O Event](
+func registerActivatableRule[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
@@ -84,7 +84,7 @@ func registerActivatableRule[I, O Event](
 	return addRuleToRegistry(registry, rule), nil
 }
 
-func registerSubRules[I, O Event](
+func registerSubRules[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
@@ -111,7 +111,7 @@ func registerSubRules[I, O Event](
 	return registry, nil
 }
 
-func wrapMiddlewares[I, O Event](
+func wrapMiddlewares[I, O any](
 	ctx context.Context,
 	rule *Rule[I, O],
 	inInstance I,
@@ -148,7 +148,7 @@ func wrapMiddlewares[I, O Event](
 	return nil
 }
 
-func addRuleToRegistry[I, O Event](registry Registry, rule *Rule[I, O]) Registry {
+func addRuleToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 	if registry == nil {
 		rule.setNext(rule)
 		rule.setPrev(rule)
@@ -241,7 +241,7 @@ func Wait(registry Registry, errChan chan<- error) {
 }
 
 // flatten recursively inherit the properties of the parent rule to its subrules.
-func flatten[I, O Event](rule *Rule[I, O]) {
+func flatten[I, O any](rule *Rule[I, O]) {
 	if rule == nil {
 		return
 	}
@@ -257,7 +257,7 @@ func flatten[I, O Event](rule *Rule[I, O]) {
 	}
 }
 
-func inherit[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
+func inherit[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	combine(index, parent, child)
 
 	childType := reflect.TypeFor[*Rule[I, O]]().Elem()
@@ -281,11 +281,9 @@ func inherit[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	}
 }
 
-func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
-	// Prepend parent conditions to child conditions
-	if len(parent.If) > 0 {
-		child.If = append(parent.If, child.If...)
-	}
+func combine[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
+	// Combine parent and child If conditions
+	child.If = child.combineIf(parent.If, child.If)
 
 	if len(parent.Middlewares) > 0 {
 		child.Middlewares = append(parent.Middlewares, child.Middlewares...)
@@ -300,7 +298,7 @@ func combine[I, O Event](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	}
 }
 
-func isActivatable[I, O Event](rule *Rule[I, O]) bool {
+func isActivatable[I, O any](rule *Rule[I, O]) bool {
 	return rule.ID != "" &&
 		rule.On != nil &&
 		rule.Then != nil &&

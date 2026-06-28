@@ -12,7 +12,7 @@ import (
 type event struct{}
 
 // action is a simple mock action type for testing that embeds mock.Mock
-type action[I, O firehose.Event] struct {
+type action[I, O any] struct {
 	mock.Mock
 }
 

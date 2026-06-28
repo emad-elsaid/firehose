@@ -16,7 +16,7 @@ const StatusPanicRecovered firehose.Status = "Panicked"
 var ErrPanicRecovered = errors.New("panic recovered")
 
 // Panic is a middleware that recovers from panics in callbacks, actions, and destinations.
-type Panic[I, O firehose.Event] struct {
+type Panic[I, O any] struct {
 	downstreamCallback firehose.Callback[I]
 	downstreamAction   firehose.Action[I, O]
 	downstreamDest     firehose.Destination[O]

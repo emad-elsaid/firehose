@@ -10,14 +10,14 @@ import (
 )
 
 // CacheStorage defines the interface for caching action results.
-type CacheStorage[O fh.Event] interface {
+type CacheStorage[O any] interface {
 	Get(ctx context.Context, key string) (O, fh.Report, bool)
 	Set(ctx context.Context, key string, value O, report fh.Report, ttl time.Duration) fh.Report
 	GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, fh.Report)) (O, fh.Report, bool)
 }
 
 // Cache is an action that caches the results of another action based on event IDs.
-type Cache[I, O fh.Event] struct {
+type Cache[I, O any] struct {
 	// Action is the downstream action to cache
 	Action fh.Action[I, O] `validate:"required"`
 	// Cache is the storage backend for cached results

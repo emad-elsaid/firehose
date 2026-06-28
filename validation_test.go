@@ -25,7 +25,7 @@ func TestIsValid(t *testing.T) {
 	t.Run("rule missing action is invalid", func(t *testing.T) {
 		rule := &MockRule{
 			On:   NewMockSource[*EventMock](t),
-			If:   []If[*EventMock]{testCond[*EventMock]("Attr1 == 'value'")},
+			If:   testCond[*EventMock]("Attr1 == 'value'"),
 			Then: nil,
 			To:   &MockDestination[*EventMock]{},
 		}

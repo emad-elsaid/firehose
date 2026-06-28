@@ -14,7 +14,7 @@ type event struct {
 }
 
 // action is a simple mock action type for testing
-type action[I, O firehose.Event] struct {
+type action[I, O any] struct {
 	mock.Mock
 }
 
@@ -30,7 +30,7 @@ func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbo
 }
 
 // mockDestination implements Destination interface with mock.Mock for use in tests
-type mockDestination[T firehose.Event] struct {
+type mockDestination[T any] struct {
 	mock.Mock
 }
 

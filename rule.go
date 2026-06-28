@@ -9,15 +9,16 @@ import (
 )
 
 // Rule defines an event processing pipeline from source to destination.
-type Rule[I, O Event] struct {
+// I and O represent the input and output event types.
+type Rule[I, O any] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
 	ID string
 	// On is the source that produces events to be processed by this rule.
 	On Source[I] `validate:"required_without=SubRules"`
-	// If conditions are evaluated in sequence. If any condition returns false or an error,
-	// the rule processing is aborted. Conditions are evaluated by value, allowing you
-	// to use types like ifs.Cond (string expressions), ifs.RateLimit, and ifs.Once.
-	If []If[I]
+	// If is a condition that must evaluate to true for the rule to process the event.
+	// Use ifs.Cond for string expressions, ifs.RateLimit for rate limiting,
+	// ifs.Once for deduplication, or ifs.Ifs for combining multiple conditions.
+	If If[I]
 	// Then is the action to process the event if the On source produces an event
 	Then Action[I, O] `validate:"required_without=SubRules"`
 	// To is the destination to send the output of the Then action
@@ -93,11 +94,11 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Repor
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
-	// Evaluate conditions first
-	for _, cond := range r.If {
-		pass, err := cond.Evaluate(ctx, event, syms)
+	// Evaluate condition if present
+	if r.If != nil {
+		pass, err := r.If.Evaluate(ctx, event, syms)
 		if err != nil {
-			reports <- NewRuleReport(r.ID, StatusError, fmt.Errorf("condition error: %w", err))
+			reports <- NewRuleReport(r.ID, StatusConditionError, fmt.Errorf("condition error: %w", err))
 			return
 		}
 
@@ -155,3 +156,61 @@ func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.On }
+
+// combineIf combines two If conditions into a single If.
+// If both are nil, returns nil.
+// If one is nil, returns the other.
+// If both are non-nil, returns a slice-based If that evaluates both in sequence.
+func (r *Rule[I, O]) combineIf(parent, child If[I]) If[I] {
+	if parent == nil {
+		return child
+	}
+	if child == nil {
+		return parent
+	}
+
+	// Build a slice of conditions
+	var conditions []If[I]
+
+	// Extract conditions from parent
+	conditions = append(conditions, flattenIf(parent)...)
+
+	// Extract conditions from child
+	conditions = append(conditions, flattenIf(child)...)
+
+	// Return a slice that implements If[I]
+	return ifSlice[I](conditions)
+}
+
+// flattenIf extracts individual If conditions from an If value.
+// If the value is ifSlice, it returns all elements.
+// Otherwise, it returns a slice containing just the single condition.
+func flattenIf[I any](ifVal If[I]) []If[I] {
+	if ifVal == nil {
+		return nil
+	}
+
+	// Check if it's our internal ifSlice type
+	if v, ok := ifVal.(ifSlice[I]); ok {
+		return []If[I](v)
+	}
+
+	// Everything else is a single condition
+	return []If[I]{ifVal}
+}
+
+// ifSlice is a slice of If conditions that implements If[I]
+type ifSlice[I any] []If[I]
+
+func (ifs ifSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+	for _, cond := range ifs {
+		pass, err := cond.Evaluate(ctx, event, syms)
+		if err != nil {
+			return false, err
+		}
+		if !pass {
+			return false, nil
+		}
+	}
+	return true, nil
+}

@@ -219,7 +219,7 @@ func (p *panicAction) Process(ctx context.Context, event *event, syms boolexpr.S
 	return p.returnEvent, p.returnReport
 }
 
-type panicDestination[T firehose.Event] struct {
+type panicDestination[T any] struct {
 	panicValue any
 }
 
@@ -227,7 +227,7 @@ func (d *panicDestination[T]) Send(ctx context.Context, event T) firehose.Report
 	panic(d.panicValue)
 }
 
-type simpleDestination[T firehose.Event] struct {
+type simpleDestination[T any] struct {
 	returnReport firehose.Report
 }
 

@@ -29,7 +29,7 @@ func (e *mockEvent) Attributes(ctx context.Context) (map[string]any, error) {
 }
 
 // mockAction implements Action interface
-type mockAction[I, O fh.Event] struct {
+type mockAction[I, O any] struct {
 	mock.Mock
 }
 
@@ -44,7 +44,7 @@ func (a *mockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.S
 }
 
 // mockSource implements Source interface
-type mockSource[T fh.Event] struct {
+type mockSource[T any] struct {
 	mock.Mock
 }
 

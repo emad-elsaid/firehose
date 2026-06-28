@@ -10,7 +10,7 @@ import (
 
 // Slog is a callback middleware that logs the events and reports using Go
 // structured logging.
-type Slog[I, O fh.Event] struct {
+type Slog[I, O any] struct {
 	downstream fh.Callback[I]
 	source     fh.Source[I]
 }
