@@ -24,7 +24,7 @@ opts:
 
 
 test:
-	@go test -v -race -coverprofile=coverage.out ./...
+	@go test -race -coverprofile=coverage.out ./...
 
 generate:
 	@mockery

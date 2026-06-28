@@ -13,8 +13,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6N
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/emad-elsaid/boolexpr v0.2.0 h1:BxhftHsNF1eTTWwxE/qifWRTsh4Zdlb6OUJ0EQ0GvK4=
-github.com/emad-elsaid/boolexpr v0.2.0/go.mod h1:hA2cYiqOWdUQlrmzRoULY6JJCVEWnNaTSxFfEoyVzkk=
+github.com/emad-elsaid/boolexpr v0.3.0 h1:DYO4O5IFn3tm9BOPF3d6QoRpBo06d4qxoDht547hFYE=
+github.com/emad-elsaid/boolexpr v0.3.0/go.mod h1:hA2cYiqOWdUQlrmzRoULY6JJCVEWnNaTSxFfEoyVzkk=
 github.com/emad-elsaid/types v0.0.6 h1:14A8LWqhTo6EeZF5QUHgao80aE4jA2pdce/triaZa/Q=
 github.com/emad-elsaid/types v0.0.6/go.mod h1:jZ8aCO1GjKdIbxQIhOYIgcBx+/NwGYt0Jw5TzhQ4Y/g=
 github.com/fatih/structs v1.1.0 h1:Q7juDM0QtcnhCpeyLGQKyg4TOIghuNXrkL32pHAUMxo=

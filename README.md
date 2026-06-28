@@ -1,110 +1,278 @@
 Firehose
 ========
 
-A type-safe event-driven business rules engine framework in Go. Process events through composable pipelines with
-middleware support for panic recovery, conditional execution, rate limiting, and structured logging.
+A type-safe event processing framework for Go. Build composable event pipelines with conditional execution,
+hierarchical rules, and middleware support.
 
 
 ## Problem
 
-Many systems react to events (HTTP requests, process spawns, chat messages, timers) with preconditions and side
-effects. Without structure, this pattern produces tight coupling, manual instrumentation, and brittle code that's
-difficult to maintain or parallelize.
+Applications process events from various sources (HTTP requests, message queues, timers, system events, user input)
+and react with side effects. Without a structured approach, event handling becomes scattered across the codebase,
+difficult to test, hard to modify, and impossible to compose or reuse.
 
 ## Solution
 
-Firehose enforces a clear pattern: **Source → Condition → Action → Destination**
+Firehose provides a declarative framework for event processing pipelines:
 
-- **Source**: Event producer (HTTP server, process monitor, Twitch chat, timer, keyboard)
-- **Condition**: Boolean expression evaluated against event attributes (`hour >= 9 and blocked = false`)
-- **Action**: Event transformer (e.g., extract data, calculate scores, convert formats)
-- **Destination**: Side-effect applicator (database write, HTTP response, Twitch API call, stdout)
+**Event Source → Condition → Transformation → Destination**
 
-A **Rule** combines these four components into a type-safe pipeline. Middleware wraps rules to add cross-cutting
-concerns like logging, panic recovery, rate limiting, and caching.
+- **On**: Event source producing events of a specific type
+- **If**: Optional condition evaluated against event attributes
+- **Then**: Transformation logic converting input events to output events
+- **To**: Destination handling the output event (side effects, storage, forwarding)
+
+Define **Rules** that combine these components with full type safety. Rules support hierarchical composition through
+**SubRules** that inherit parent properties. Extend functionality with **Middlewares** that wrap any pipeline
+component.
 
 
 ## Core Concepts
 
-### Type-Safe Pipeline
+### Events
 
-Rules are strongly typed with input and output event types:
+Events are any Go type. No interface requirements. Optionally implement `boolexpr.Symbols` to expose attributes
+for condition evaluation:
 
 ```go
-Rule[events.TwitchMessage, events.AddScore]
+type OrderPlaced struct {
+    OrderID  string
+    Amount   float64
+    UserTier string
+}
+
+func (o OrderPlaced) Get(key string) (any, error) {
+    switch key {
+    case "amount":
+        return o.Amount, nil
+    case "tier":
+        return o.UserTier, nil
+    default:
+        return nil, fmt.Errorf("unknown symbol: %s", key)
+    }
+}
 ```
 
-This ensures compile-time type safety from source through action to destination.
+### Type-Safe Pipelines
 
-### Event Fanout
+Rules enforce type safety between pipeline stages. Input event type flows from source through transformation to
+destination:
 
-Multiple rules sharing the same source instance form a linked chain. The source starts once, fanning out events to
-all registered rules efficiently.
+```go
+// HTTP request events → Order events
+Rule[HTTPRequest, OrderPlaced]
 
-### Middleware Composition
+// Order events → Email notifications
+Rule[OrderPlaced, EmailSent]
 
-Middlewares wrap components in reverse registration order (last registered wraps first), creating layered execution:
-
+// Timer events → Timer events (identity transformation)
+Rule[TimerTick, TimerTick]
 ```
-Panic → If (condition) → RateLimit → Action → Destination
+
+The compiler ensures transformations match: `Action[I, O]` must accept the source's event type and produce the
+destination's event type.
+
+### Event Source Fanout
+
+Register multiple rules with the same source instance. The framework detects this and starts the source only once,
+fanning events out to all rules that share it:
+
+```go
+kafkaSource := &KafkaConsumer{Topic: "orders"}
+
+// Both rules share kafkaSource - it starts once, events fan out
+AddRule(ctx, reg, &Rule[OrderEvent, Email]{On: kafkaSource, ...}, ...)
+AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{On: kafkaSource, ...}, ...)
 ```
 
-### Report-Based Error Handling
+Different source instances (even of the same type) start independently.
 
-Operations return `Report{Status, Error, Abort}` instead of panicking. The `Abort` flag signals whether to stop
-processing remaining rules.
+### Hierarchical Event Processing
+
+Define rule families with `SubRules`. Child rules inherit parent's source, conditions, and middlewares while
+customizing their own transformations and destinations:
+
+```go
+type (
+    I = ProcessEvent
+    O any
+)
+
+&Rule[I, O]{
+    On: processMonitor,
+    If: ifs.Cond[I](`user = "production"`),
+    SubRules: []Rule[I, O]{
+        {
+            ID:   "alert_postgres",
+            If:   ifs.Cond[I](`name = "postgres"`),
+            Then: CreateAlert{Type: "database"},
+            To:   PagerDuty{},
+        },
+        {
+            ID:   "alert_nginx", 
+            If:   ifs.Cond[I](`name = "nginx"`),
+            Then: CreateAlert{Type: "webserver"},
+            To:   PagerDuty{},
+        },
+    },
+}
+```
+
+Both sub-rules inherit the parent condition and source. Final conditions become:
+- `(user = "production") AND (name = "postgres")`
+- `(user = "production") AND (name = "nginx")`
+
+### Event Processing Middleware
+
+Middlewares intercept and wrap three points in the pipeline: callbacks (event reception), actions (transformation),
+and destinations (output). Apply cross-cutting concerns like logging, metrics, retry logic, or rate limiting:
+
+```go
+type LoggingMiddleware[I, O any] struct{}
+
+func (m LoggingMiddleware[I, O]) WrapAction(
+    ctx context.Context,
+    rule *Rule[I, O],
+    action Action[I, O],
+    in I,
+) (Action[I, O], error) {
+    return ActionFunc[I, O](func(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+        log.Printf("Processing event in rule %s", rule.ID)
+        out, report := action.Process(ctx, event, syms)
+        log.Printf("Rule %s completed with status %s", rule.ID, report.Status)
+        return out, report
+    }), nil
+}
+```
+
+Middlewares compose in reverse registration order (last wraps first).
+
+### Event Processing Reports
+
+Operations return `Report` values instead of panicking. Reports communicate status, errors, and control flow:
+
+```go
+type Report struct {
+    Status Status // Success, error type, skipped, etc.
+    Err    error  // Optional error details
+    Abort  bool   // Stop processing remaining rules?
+    Rule   string // Rule ID (set by framework)
+}
+```
+
+The framework collects reports and sends them through channels for monitoring and observability.
 
 
 ## Features
 
-- ✅ Type-safe generic pipelines (`Rule[I, O]`)
-- ✅ Boolean expression conditions using event attributes
-- ✅ Panic recovery middleware (actions and destinations)
-- ✅ Rate limiting with token bucket algorithm
-- ✅ Structured logging via `log/slog`
-- ✅ Same-source event fanout optimization
-- ✅ Circular registry for efficient rule management
-- ✅ Validation framework with `go-playground/validator`
-- ✅ Context-based state passing and cancellation
+- ✅ **Type-safe event pipelines** - Generic types ensure compile-time correctness
+- ✅ **Any Go type as event** - No interface requirements, works with existing types
+- ✅ **Declarative conditions** - Boolean expressions via `boolexpr` library
+- ✅ **Hierarchical composition** - SubRules inherit and extend parent rules
+- ✅ **Unified middleware** - Single interface for callbacks, transformations, destinations
+- ✅ **Source fanout optimization** - Shared sources start once, distribute to all rules
+- ✅ **Context propagation** - Full context.Context support for cancellation and values
+- ✅ **Report-based flow control** - Structured error handling with abort semantics
+- ✅ **Struct validation** - Declarative validation with `go-playground/validator`
 
 
-## Available Components
+## Building Event Sources, Transformations, and Destinations
 
-### Sources
-- `sources.Time` - Periodic timer events
-- `sources.Process` - Linux process creation monitor (polls `/proc`)
-- `sources.TwitchChat` - Twitch IRC chat messages
-- `sources.HTTP` - HTTP endpoint handler
-- `sources.Keyboard` - Linux input device reader (`/dev/input/eventX`)
+The framework defines three core interfaces you implement for custom event processing.
 
-### Actions
-- `actions.Yield[T]` - Pass-through (no transformation)
-- `actions.Event[I, O]` - Emit static event
-- `actions.TwitchScore` - Calculate score from Twitch message
-- `actions.KeypressToAddScore` - Convert keypresses to scores
+### Event Sources
 
-### Destinations
-- `destinations.Stdout[T]` - Print to standard output
-- `destinations.Slog[T]` - Structured logging
-- `destinations.HTTP` - Write HTTP response
-- `destinations.TwitchStreamInfo` - Update Twitch stream metadata
-- `destinations.Score` - Update in-memory score counter
+Sources produce events and send them to a callback function:
 
-### Middlewares
+```go
+type Source[T any] interface {
+    Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
+}
+```
 
-**Action Middlewares:**
-- `actions.If` - Conditional execution (boolean expressions)
-- `actions.Panic` - Panic recovery
-- `actions.RateLimit` - Token bucket rate limiting
+Example - HTTP event source:
 
-**Callback Middlewares:**
-- `callbacks.Slog` - Event and report logging
+```go
+type HTTPSource struct {
+    Addr string
+}
 
-**Destination Middlewares:**
-- `destinations.Panic` - Panic recovery
+func (s HTTPSource) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
+    server := &http.Server{Addr: s.Addr}
+    
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        event := HTTPRequest{Method: r.Method, Path: r.URL.Path}
+        reports := make(chan fh.Report)
+        
+        go func() {
+            cb(r.Context(), event, reports)
+            close(reports)
+        }()
+        
+        // Process reports...
+    })
+    
+    go server.ListenAndServe()
+    return ctx, nil
+}
+```
+
+### Event Transformations
+
+Actions transform input events to output events:
+
+```go
+type Action[I, O any] interface {
+    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
+}
+```
+
+Example - Extract user data:
+
+```go
+type ExtractUser struct{}
+
+func (a ExtractUser) Process(
+    ctx context.Context,
+    req HTTPRequest,
+    syms boolexpr.Symbols,
+) (User, fh.Report) {
+    userID := req.Headers.Get("X-User-ID")
+    user := fetchUser(userID)
+    return user, fh.Report{Status: fh.StatusSuccess}
+}
+```
+
+### Event Destinations
+
+Destinations consume events and produce side effects:
+
+```go
+type Destination[T any] interface {
+    Send(ctx context.Context, event T) Report
+}
+```
+
+Example - Database writer:
+
+```go
+type DBWriter struct {
+    DB *sql.DB
+}
+
+func (d DBWriter) Send(ctx context.Context, user User) fh.Report {
+    _, err := d.DB.ExecContext(ctx, "INSERT INTO users ...", user.ID, user.Name)
+    if err != nil {
+        return fh.Report{Status: fh.StatusError, Err: err}
+    }
+    return fh.Report{Status: fh.StatusSuccess}
+}
+```
 
 
 ## Quick Start
+
+Process timer events during business hours:
 
 ```go
 package main
@@ -116,54 +284,79 @@ import (
     "time"
 
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/actions"
-    "github.com/emad-elsaid/firehose/destinations"
-    "github.com/emad-elsaid/firehose/events"
-    "github.com/emad-elsaid/firehose/middlewares/actions"
-    "github.com/emad-elsaid/firehose/sources"
+    "github.com/emad-elsaid/firehose/ifs"
 )
+
+// 1. Define your event type
+type Tick struct {
+    Time time.Time
+}
+
+// 2. Make it conditionally evaluable (optional)
+func (t Tick) Get(key string) (any, error) {
+    if key == "hour" {
+        return t.Time.Hour(), nil
+    }
+    return nil, fmt.Errorf("unknown symbol: %s", key)
+}
+
+// 3. Implement an event source
+type Timer struct {
+    Interval time.Duration
+}
+
+func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context, error) {
+    go func() {
+        ticker := time.NewTicker(t.Interval)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-ctx.Done():
+                return
+            case now := <-ticker.C:
+                reports := make(chan fh.Report, 1)
+                cb(ctx, Tick{Time: now}, reports)
+                close(reports)
+            }
+        }
+    }()
+    return ctx, nil
+}
+
+// 4. Implement a transformation
+type FormatTime struct{}
+
+func (FormatTime) Process(ctx context.Context, t Tick, _ boolexpr.Symbols) (string, fh.Report) {
+    return t.Time.Format("15:04:05"), fh.Report{Status: fh.StatusSuccess}
+}
+
+// 5. Implement a destination
+type Printer struct{}
+
+func (Printer) Send(ctx context.Context, msg string) fh.Report {
+    println(msg)
+    return fh.Report{Status: fh.StatusSuccess}
+}
 
 func main() {
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
     defer stop()
 
-    // Define middleware factories
-    actionMw := func() []fh.ActionMiddleware[events.Time, events.Time] {
-        return []fh.ActionMiddleware[events.Time, events.Time]{
-            &actions.Panic[events.Time, events.Time]{},
-            &actions.If[events.Time, events.Time]{},
-        }
+    // 6. Define a rule with a condition
+    rule := &fh.Rule[Tick, string]{
+        ID:   "print_business_hours",
+        On:   Timer{Interval: 1 * time.Second},
+        If:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        Then: FormatTime{},
+        To:   Printer{},
     }
 
-    // Define a rule
-    printTime := &fh.Rule[events.Time, events.Time]{
-        ID:   "print_time",
-        When: sources.Time{Period: 1 * time.Second},
-        If:   "hour >= 9 and hour < 17", // Only during work hours
-        Then: actions.Yield[events.Time]{},
-        To:   destinations.Stdout[events.Time]{},
-    }
-
-    // Register the rule
-    registry, err := fh.AddRule(
-        ctx,
-        nil, // First rule, no existing registry
-        printTime,
-        func() []fh.CallbackMiddleware[events.Time, events.Time] { return nil },
-        actionMw,
-        func() []fh.DestinationMiddleware[events.Time, events.Time] { return nil },
-        events.Time{}, // Input instance
-        events.Time{}, // Output instance
-    )
-    if err != nil {
-        panic(err)
-    }
-
-    // Start all sources
+    // 7. Register and start
+    registry, _ := fh.AddRule(ctx, nil, rule, Tick{}, "")
+    
     errs := make(chan error)
     fh.Start(ctx, registry, errs)
-
-    // Wait for completion
+    
     go fh.Wait(registry, errs)
     for err := range errs {
         if err != nil && err != context.Canceled {
@@ -174,130 +367,232 @@ func main() {
 ```
 
 
-## Boolean Expression Syntax
+## Conditional Event Processing
 
-The `If` field supports boolean expressions evaluated against event attributes:
+Use `ifs.Cond` to filter events based on their attributes. Events must implement `boolexpr.Symbols` interface:
 
 ```go
-// events.Time provides: second, minute, hour
-If: "hour >= 9 and hour < 17"
+type OrderEvent struct {
+    Amount   float64
+    Country  string
+    Premium  bool
+}
 
-// events.Process provides: pid, cwd, cmd
-If: `cmd = "./game" and cwd != "/tmp"`
+func (o OrderEvent) Get(key string) (any, error) {
+    switch key {
+    case "amount":
+        return o.Amount, nil
+    case "country":
+        return o.Country, nil
+    case "premium":
+        return o.Premium, nil
+    default:
+        return nil, fmt.Errorf("unknown symbol: %s", key)
+    }
+}
 
-// Custom attributes from your event's Attributes() method
-If: "username != 'bot' and score > 100"
+// Only process high-value orders
+If: ifs.Cond[OrderEvent]("amount > 1000")
 
-// String operations (new in latest boolexpr)
-If: `name starts_with "user_" and email ends_with "@example.com"`
+// Geographic filtering
+If: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
 
-// List operations
-If: `tags contains "production" and roles excludes "guest"`
+// Complex conditions
+If: ifs.Cond[OrderEvent]("premium = true and amount > 500")
 ```
 
-**Comparison Operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
+**Operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
 
-**Logical Operators:** `and`, `or`
+**Logic:** `and`, `or`, `(...)`
 
-**Value Types:** `int`, `float`, `string`, `bool`, `[]string`, `[]int`, `[]float64`, `[]bool`
+**Types:** Numbers, strings, booleans, slices
 
-**Grouping:** Use parentheses `(...)` to group logical expressions
+See [boolexpr documentation](https://github.com/emad-elsaid/boolexpr) for complete syntax.
 
 
-## Architecture
+## API Reference
 
-### Rule Structure
+### Core Types
 
 ```go
-type Rule[I, O Event] struct {
-    ID   string       // Unique identifier
-    When Source[I]   // Event producer
-    If   string       // Boolean expression (optional)
-    Then Action[I, O] // Event transformer
-    To   Destination[O] // Side-effect applicator
+// Rule defines a complete event processing pipeline
+type Rule[I, O any] struct {
+    ID          string          // Unique identifier
+    On          Source[I]       // Event source
+    If          If[I]           // Optional filter condition
+    Then        Action[I, O]    // Event transformation
+    To          Destination[O]  // Output handler
+    SubRules    []Rule[I, O]    // Child rules (inherit parent properties)
+    Middlewares []Middleware[I, O] // Pipeline interceptors
+}
+
+// Source produces events
+type Source[T any] interface {
+    Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
+}
+
+// Action transforms events
+type Action[I, O any] interface {
+    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
+}
+
+// Destination consumes events
+type Destination[T any] interface {
+    Send(ctx context.Context, event T) Report
+}
+
+// If filters events based on conditions
+type If[I any] interface {
+    Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
+}
+
+// Middleware intercepts pipeline components
+type Middleware[I, O any] interface {
+    WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
+    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
+}
+
+// Report communicates operation results
+type Report struct {
+    Status Status
+    Err    error
+    Abort  bool   // Stop processing remaining rules
+    Rule   string // Set by framework
 }
 ```
 
-### Core Interfaces
+### Core Functions
 
 ```go
-type Event interface {
-    ID() string
-    Attributes(context.Context) (map[string]any, error)
+// AddRule registers a rule and returns updated registry
+func AddRule[I, O any](
+    ctx context.Context,
+    registry Registry,
+    rule *Rule[I, O],
+    inInstance I,
+    outInstance O,
+) (Registry, error)
+
+// Start activates all registered event sources
+func Start(ctx context.Context, registry Registry, errChan chan<- error)
+
+// Wait blocks until all sources complete
+func Wait(registry Registry, errChan chan<- error)
+```
+
+### Event Symbol Interface
+
+Events optionally implement this interface for conditional processing:
+
+```go
+type Symbols interface {
+    Get(key string) (any, error)
+}
+```
+
+For convenience, you can embed `boolexpr.SymbolsMap` which implements this interface:
+
+```go
+type MyEvent struct {
+    boolexpr.SymbolsMap
 }
 
-type Source[T Event] interface {
-    Start(context.Context, Callback[T]) (context.Context, error)
-}
-
-type Action[I, O Event] interface {
-    Process(context.Context, I, map[string]any) (O, Report)
-}
-
-type Destination[T Event] interface {
-    Send(context.Context, T) Report
+event := MyEvent{
+    SymbolsMap: boolexpr.SymbolsMap{
+        "count": 42,
+        "name":  "example",
+    },
 }
 ```
 
 
-## Example: Multi-Rule System
+## Example: Hierarchical Event Processing
+
+Process system events with inherited filtering:
 
 ```go
-func buildRegistry(ctx context.Context) fh.Registry {
-    proc := events.Process{}
-    streamInfo := events.TwitchStreamInfo{}
-    
-    // Rule 1: Update stream when Dead Cells starts
-    registry := addRule(ctx, nil, &fh.Rule[events.Process, events.TwitchStreamInfo]{
-        ID:   "dead_cells",
-        When: sources.Process{},
-        If:   `cmd = "./deadcells"`,
-        Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-            Output: events.TwitchStreamInfo{
-                Title: "Playing Dead Cells",
-                Game:  "Dead Cells",
-                Tags:  []string{"roguelike", "linux"},
-            },
+type (
+    I = ProcessEvent
+    O = Alert
+)
+
+processMonitor := &ProcessMonitor{PollInterval: 1 * time.Second}
+
+parentRule := &fh.Rule[I, O]{
+    ID:   "production_alerts",
+    On:   processMonitor,
+    If:   ifs.Cond[I](`env = "production" and user = "app"`),
+    SubRules: []fh.Rule[I, O]{
+        {
+            ID:   "database_alert",
+            If:   ifs.Cond[I](`name = "postgres"`),
+            Then: CreateAlert{Severity: "high", Type: "database"},
+            To:   PagerDuty{},
         },
-        To: destinations.TwitchStreamInfo{},
-    }, proc, streamInfo)
-    
-    // Rule 2: Update stream when Emacs starts (shares same Process source)
-    registry = addRule(ctx, registry, &fh.Rule[events.Process, events.TwitchStreamInfo]{
-        ID:   "emacs",
-        When: sources.Process{}, // Same source instance = fanout
-        If:   `cmd = "emacs"`,
-        Then: actions.Event[events.Process, events.TwitchStreamInfo]{
-            Output: events.TwitchStreamInfo{
-                Title: "Coding in Emacs",
-                Game:  "Software and Game Development",
-            },
+        {
+            ID:   "cache_alert",
+            If:   ifs.Cond[I](`name = "redis"`),
+            Then: CreateAlert{Severity: "medium", Type: "cache"},
+            To:   PagerDuty{},
         },
-        To: destinations.TwitchStreamInfo{},
-    }, proc, streamInfo)
-    
-    return registry
+        {
+            ID:   "web_alert",
+            If:   ifs.Cond[I](`name = "nginx"`),
+            Then: CreateAlert{Severity: "critical", Type: "webserver"},
+            To:   PagerDuty{},
+        },
+    },
 }
+
+// All SubRules inherit: processMonitor source and production environment filter
+// Final effective conditions:
+//   database_alert: (env="production" AND user="app") AND (name="postgres")
+//   cache_alert:    (env="production" AND user="app") AND (name="redis")
+//   web_alert:      (env="production" AND user="app") AND (name="nginx")
+
+registry, _ := fh.AddRule(ctx, nil, parentRule, I{}, O{})
 ```
 
 
-## Design Goals
+## Design Principles
 
-- **Minimal primitives**: Four core concepts (Source, Action, Destination, Rule)
-- **Isolated logic**: Define components independently, compose via rules
-- **Component reusability**: Share sources, actions, destinations across rules
-- **Type safety**: Compile-time guarantees across pipelines
-- **Maximum linting**: 50+ golangci-lint rules enabled
-- **Validation**: Declarative struct validation with tags
+- **Event-first architecture** - Everything revolves around event types and their flow
+- **Minimal core concepts** - Five interfaces: Source, If, Action, Destination, Middleware
+- **Complete type safety** - Generics ensure correctness from source to destination
+- **Separation of concerns** - Components define logic, rules define composition
+- **Declarative over imperative** - Describe event flows, not execution details
+- **Reusability by default** - Share sources, transformations, and destinations across rules
+- **Hierarchical composition** - SubRules enable DRY event processing patterns
+- **Production-ready validation** - Struct validation and extensive linting (50+ rules)
 
 
 ## Use Cases
 
-- Event-driven microservices (HTTP, gRPC)
-- Stream processing (Kafka, Twitch chat, websockets)
-- System monitoring (process tracking, file watching)
-- Game engines (input handling, state machines)
-- ETL pipelines (database, queue, API integrations)
+**Event-Driven Microservices**
+- HTTP request routing and handling
+- gRPC stream processing
+- WebSocket event distribution
+
+**Stream Processing**
+- Message queue consumers (Kafka, RabbitMQ, NATS)
+- Real-time chat processing
+- Log aggregation and filtering
+
+**System Monitoring**
+- Process lifecycle tracking
+- File system watching
+- Performance metric collection
+
+**Business Process Automation**
+- Workflow orchestration
+- Rule-based decision engines
+- Event-driven ETL pipelines
+
+**Interactive Systems**
+- Game input handling
+- UI event processing
+- Hardware device integration
 
 
 ## License
