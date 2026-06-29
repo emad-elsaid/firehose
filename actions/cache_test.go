@@ -55,7 +55,6 @@ func TestCache_Process(t *testing.T) {
 					Return(nil, firehose.Report{
 						Status: firehose.StatusActionError,
 						Err:    errors.New("action failed"),
-						Abort:  true,
 					}).Once()
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
@@ -66,7 +65,6 @@ func TestCache_Process(t *testing.T) {
 					Return((*event)(nil), firehose.Report{
 						Status: firehose.StatusActionError,
 						Err:    errors.New("action failed"),
-						Abort:  true,
 					}, false).Once()
 			},
 			wantStatus:       firehose.StatusActionError,

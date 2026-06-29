@@ -19,7 +19,6 @@ const (
 type Report struct {
 	Rule   string
 	Status Status
-	Abort  bool
 	Err    error
 }
 
@@ -29,7 +28,6 @@ func NewSuccessReport() Report {
 		Rule:   "",
 		Status: StatusSuccess,
 		Err:    nil,
-		Abort:  false,
 	}
 }
 
@@ -39,7 +37,6 @@ func NewReport(status Status, err error) Report {
 		Rule:   "",
 		Status: status,
 		Err:    err,
-		Abort:  false,
 	}
 }
 
@@ -49,18 +46,6 @@ func NewRuleReport(rule string, status Status, err error) Report {
 		Rule:   rule,
 		Status: status,
 		Err:    err,
-		Abort:  false,
-	}
-}
-
-// NewAbortReport creates a new Report with the given status and error, setting Abort to true
-// to signal that processing should halt.
-func NewAbortReport(status Status, err error) Report {
-	return Report{
-		Rule:   "",
-		Status: status,
-		Err:    err,
-		Abort:  true,
 	}
 }
 

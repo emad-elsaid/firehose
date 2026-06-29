@@ -58,7 +58,7 @@ func (p *Panic[I, O]) WrapDestination(
 func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, reports chan<- firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
-			reports <- firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			reports <- firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 
@@ -77,7 +77,7 @@ func (p *Panic[I, O]) Process(
 		if r := recover(); r != nil {
 			var zero O
 			output = zero
-			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report = firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 
@@ -91,7 +91,7 @@ func (p *Panic[I, O]) Process(
 func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
-			report = firehose.NewAbortReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report = firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 

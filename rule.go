@@ -109,7 +109,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	out, report := action.Process(ctx, event, syms)
 	report.Rule = r.ID
 
-	if report.Err != nil || report.Abort {
+	if report.Err != nil {
 		reports <- report
 
 		return

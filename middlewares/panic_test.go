@@ -61,7 +61,7 @@ func TestPanic_WrapDestination(t *testing.T) {
 }
 
 func TestPanic_RecoverCallback(t *testing.T) {
-	t.Run("recovers from callback panic and sends abort report", func(t *testing.T) {
+	t.Run("recovers from callback panic and sends report", func(t *testing.T) {
 		panicValue := "callback panic!"
 		mw := &Panic[*event, *event]{
 			downstreamCallback: func(ctx context.Context, event *event, reports chan<- firehose.Report) {
@@ -75,7 +75,6 @@ func TestPanic_RecoverCallback(t *testing.T) {
 
 		report := <-reports
 		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.True(t, report.Abort)
 		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
 		assert.Contains(t, report.Err.Error(), panicValue)
 	})
@@ -98,7 +97,7 @@ func TestPanic_RecoverCallback(t *testing.T) {
 }
 
 func TestPanic_Process(t *testing.T) {
-	t.Run("recovers from action panic and returns abort report", func(t *testing.T) {
+	t.Run("recovers from action panic and returns report", func(t *testing.T) {
 		panicValue := "action panic!"
 		mw := &Panic[*event, *event]{
 			downstreamAction: &panicAction{
@@ -111,7 +110,6 @@ func TestPanic_Process(t *testing.T) {
 
 		assert.Nil(t, out)
 		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.True(t, report.Abort)
 		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
 		assert.Contains(t, report.Err.Error(), panicValue)
 	})
@@ -146,13 +144,12 @@ func TestPanic_Process(t *testing.T) {
 
 		assert.Nil(t, out)
 		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.True(t, report.Abort)
 		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
 	})
 }
 
 func TestPanic_Send(t *testing.T) {
-	t.Run("recovers from destination panic and returns abort report", func(t *testing.T) {
+	t.Run("recovers from destination panic and returns report", func(t *testing.T) {
 		panicValue := "destination panic!"
 		mw := &Panic[*event, *event]{
 			downstreamDest: &panicDestination[*event]{
@@ -163,7 +160,6 @@ func TestPanic_Send(t *testing.T) {
 		report := mw.Send(context.Background(), &event{})
 
 		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.True(t, report.Abort)
 		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
 		assert.Contains(t, report.Err.Error(), panicValue)
 	})
@@ -192,7 +188,6 @@ func TestPanic_Send(t *testing.T) {
 		report := mw.Send(context.Background(), &event{})
 
 		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.True(t, report.Abort)
 		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
 		assert.Contains(t, report.Err.Error(), panicErr.Error())
 	})

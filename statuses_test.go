@@ -15,7 +15,6 @@ func TestReportConstructors(t *testing.T) {
 		expectedRule   string
 		expectedStatus Status
 		expectedErr    error
-		expectedAbort  bool
 	}{
 		{
 			name:           "NewRuleReport with success",
@@ -23,7 +22,6 @@ func TestReportConstructors(t *testing.T) {
 			expectedRule:   "test-rule",
 			expectedStatus: StatusSuccess,
 			expectedErr:    nil,
-			expectedAbort:  false,
 		},
 		{
 			name:           "NewRuleReport with error",
@@ -31,15 +29,13 @@ func TestReportConstructors(t *testing.T) {
 			expectedRule:   "error-rule",
 			expectedStatus: StatusError,
 			expectedErr:    errors.New("test error"),
-			expectedAbort:  false,
 		},
 		{
-			name:           "NewAbortReport with error",
-			constructor:    func() Report { return NewAbortReport(StatusError, errors.New("critical")) },
+			name:           "NewReport with error",
+			constructor:    func() Report { return NewReport(StatusError, errors.New("critical")) },
 			expectedRule:   "",
 			expectedStatus: StatusError,
 			expectedErr:    errors.New("critical"),
-			expectedAbort:  true,
 		},
 		{
 			name:           "NewReport with success",
@@ -47,7 +43,6 @@ func TestReportConstructors(t *testing.T) {
 			expectedRule:   "",
 			expectedStatus: StatusSuccess,
 			expectedErr:    nil,
-			expectedAbort:  false,
 		},
 	}
 
@@ -57,7 +52,6 @@ func TestReportConstructors(t *testing.T) {
 
 			assert.Equal(t, tc.expectedRule, report.Rule)
 			assert.Equal(t, tc.expectedStatus, report.Status)
-			assert.Equal(t, tc.expectedAbort, report.Abort)
 
 			if tc.expectedErr != nil {
 				require.Error(t, report.Err)

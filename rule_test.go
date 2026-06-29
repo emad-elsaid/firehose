@@ -475,7 +475,7 @@ func TestRule_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "abort stops destination call",
+			name: "action error stops destination call",
 			setupMocks: func() (*MockRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
@@ -487,9 +487,8 @@ func TestRule_Run(t *testing.T) {
 					To:   destination,
 				}
 
-				abortReport := NewAbortReport(StatusError, os.ErrInvalid)
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, abortReport).Once()
+					Return(event, NewReport(StatusError, os.ErrInvalid)).Once()
 
 				return rule, event
 			},
@@ -497,7 +496,7 @@ func TestRule_Run(t *testing.T) {
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
 				require.ErrorIs(t, report.Err, os.ErrInvalid)
-				require.True(t, report.Abort)
+				require.Equal(t, StatusError, report.Status)
 			},
 		},
 		{

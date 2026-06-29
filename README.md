@@ -155,7 +155,6 @@ Operations return `Report` values instead of panicking. Reports communicate stat
 type Report struct {
     Status Status // Success, error type, skipped, etc.
     Err    error  // Optional error details
-    Abort  bool   // Stop processing remaining rules?
     Rule   string // Rule ID (set by framework)
 }
 ```
@@ -172,7 +171,7 @@ The framework collects reports and sends them through channels for monitoring an
 - ✅ **Unified middleware** - Single interface for callbacks, transformations, destinations
 - ✅ **Source fanout optimization** - Shared sources start once, distribute to all rules
 - ✅ **Context propagation** - Full context.Context support for cancellation and values
-- ✅ **Report-based flow control** - Structured error handling with abort semantics
+- ✅ **Report-based flow control** - Structured error handling via status and error reports
 - ✅ **Struct validation** - Declarative validation with `go-playground/validator`
 
 
@@ -457,7 +456,6 @@ type Middleware[I, O any] interface {
 type Report struct {
     Status Status
     Err    error
-    Abort  bool   // Stop processing remaining rules
     Rule   string // Set by framework
 }
 ```
