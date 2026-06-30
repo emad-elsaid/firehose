@@ -139,7 +139,7 @@ func (m LoggingMiddleware[I, O]) WrapAction(
     return ActionFunc[I, O](func(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
         log.Printf("Processing event in rule %s", rule.ID)
         out, report := action.Process(ctx, event, syms)
-        log.Printf("Rule %s completed with status %s", rule.ID, report.Status)
+        log.Printf("Rule %s completed (err=%v)", rule.ID, report.Err)
         return out, report
     }), nil
 }
@@ -149,13 +149,12 @@ Middlewares compose in reverse registration order (last wraps first).
 
 ### Event Processing Reports
 
-Operations return `Report` values instead of panicking. Reports communicate status, errors, and control flow:
+Operations return `Report` values instead of panicking. Reports communicate errors and control flow:
 
 ```go
 type Report struct {
-    Status Status // Success, error type, skipped, etc.
-    Err    error  // Optional error details
-    Rule   string // Rule ID (set by framework)
+    Err  error  // Optional error details and control-flow signals
+    Rule string // Rule ID (set by framework)
 }
 ```
 
@@ -171,7 +170,7 @@ The framework collects reports and sends them through channels for monitoring an
 - ✅ **Unified middleware** - Single interface for callbacks, transformations, destinations
 - ✅ **Source fanout optimization** - Shared sources start once, distribute to all rules
 - ✅ **Context propagation** - Full context.Context support for cancellation and values
-- ✅ **Report-based flow control** - Structured error handling via status and error reports
+- ✅ **Report-based flow control** - Structured error handling via typed errors
 - ✅ **Struct validation** - Declarative validation with `go-playground/validator`
 
 
@@ -238,7 +237,7 @@ func (a ExtractUser) Process(
 ) (User, fh.Report) {
     userID := req.Headers.Get("X-User-ID")
     user := fetchUser(userID)
-    return user, fh.Report{Status: fh.StatusSuccess}
+    return user, fh.NewReport(nil)
 }
 ```
 
@@ -262,9 +261,9 @@ type DBWriter struct {
 func (d DBWriter) Send(ctx context.Context, user User) fh.Report {
     _, err := d.DB.ExecContext(ctx, "INSERT INTO users ...", user.ID, user.Name)
     if err != nil {
-        return fh.Report{Status: fh.StatusError, Err: err}
+        return fh.NewReport(err)
     }
-    return fh.Report{Status: fh.StatusSuccess}
+    return fh.NewReport(nil)
 }
 ```
 
@@ -326,7 +325,7 @@ func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context
 type FormatTime struct{}
 
 func (FormatTime) Process(ctx context.Context, t Tick, _ boolexpr.Symbols) (string, fh.Report) {
-    return t.Time.Format("15:04:05"), fh.Report{Status: fh.StatusSuccess}
+    return t.Time.Format("15:04:05"), fh.NewReport(nil)
 }
 
 // 5. Implement a destination
@@ -334,7 +333,7 @@ type Printer struct{}
 
 func (Printer) Send(ctx context.Context, msg string) fh.Report {
     println(msg)
-    return fh.Report{Status: fh.StatusSuccess}
+    return fh.NewReport(nil)
 }
 
 func main() {
@@ -454,9 +453,8 @@ type Middleware[I, O any] interface {
 
 // Report communicates operation results
 type Report struct {
-    Status Status
-    Err    error
-    Rule   string // Set by framework
+    Err  error
+    Rule string // Set by framework
 }
 ```
 

@@ -9,9 +9,6 @@ import (
 	"github.com/emad-elsaid/firehose"
 )
 
-// StatusPanicRecovered returned when a callback, action, or destination panics.
-const StatusPanicRecovered firehose.Status = "Panicked"
-
 // ErrPanicRecovered is a static error for panic recovery.
 var ErrPanicRecovered = errors.New("panic recovered")
 
@@ -55,14 +52,14 @@ func (p *Panic[I, O]) WrapDestination(
 	return p, nil
 }
 
-func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, reports chan<- firehose.Report) {
+func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, report firehose.ReportFunc) {
 	defer func() {
 		if r := recover(); r != nil {
-			reports <- firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report(firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r)))
 		}
 	}()
 
-	p.downstreamCallback(ctx, event, reports)
+	p.downstreamCallback(ctx, event, report)
 }
 
 // Process executes the downstream action with panic recovery.
@@ -77,7 +74,7 @@ func (p *Panic[I, O]) Process(
 		if r := recover(); r != nil {
 			var zero O
 			output = zero
-			report = firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 
@@ -91,7 +88,7 @@ func (p *Panic[I, O]) Process(
 func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
 	defer func() {
 		if r := recover(); r != nil {
-			report = firehose.NewReport(StatusPanicRecovered, fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r))
 		}
 	}()
 

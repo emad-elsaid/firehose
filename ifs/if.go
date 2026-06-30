@@ -127,7 +127,7 @@ func (o *Once[I]) Evaluate(ctx context.Context, event I, _ boolexpr.Symbols) (bo
 		return false, nil
 	}
 
-	o.Cache.Set(ctx, key, "1", firehose.NewReport("", nil), o.Duration)
+	o.Cache.Set(ctx, key, "1", firehose.NewReport(nil), o.Duration)
 
 	return true, nil
 }

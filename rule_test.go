@@ -24,13 +24,12 @@ func TestRuleCallback(t *testing.T) {
 
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
 
-		reportsChan := make(chan Report, 10)
-		rule.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 		for _, report := range reports {
@@ -49,12 +48,11 @@ func TestRuleCallback(t *testing.T) {
 		}
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
 
-		reportsChan := make(chan Report, 10)
-		rule.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
@@ -74,13 +72,12 @@ func TestRuleCallback(t *testing.T) {
 		}
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusDestinationError, os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(os.ErrClosed)).Once()
 
-		reportsChan := make(chan Report, 10)
-		rule.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
@@ -115,13 +112,12 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Twice()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Twice()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Twice()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Twice()
 
-		reportsChan := make(chan Report, 10)
-		rule1.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule1.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 
@@ -156,14 +152,13 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
 
-		reportsChan := make(chan Report, 10)
-		rule1.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule1.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 		require.ErrorIs(t, reports[0].Err, os.ErrClosed)
@@ -196,14 +191,13 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule2, in, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusActionError, os.ErrClosed)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
 
-		reportsChan := make(chan Report, 10)
-		rule1.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule1.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 2)
 		require.NoError(t, reports[0].Err)
@@ -246,13 +240,12 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = AddRule(t.Context(), registry, rule3, in, in)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Times(3)
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Times(3)
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Times(3)
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Times(3)
 
-		reportsChan := make(chan Report, 10)
-		rule1.callback(t.Context(), in, reportsChan)
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		rule1.callback(t.Context(), in, collector.Collect)
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 3)
 
@@ -273,8 +266,8 @@ func TestRuleCallback(t *testing.T) {
 			To:   destination,
 		}
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(StatusSuccess, nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(StatusSuccess, nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
 
 		// Create a Rule with a different type (string instead of *EventMock)
 		// This will cause a panic when type-asserting to Runnable[*EventMock]
@@ -283,24 +276,15 @@ func TestRuleCallback(t *testing.T) {
 		incompatibleSourceRegistry.On("getRegistry").Return(incompatibleRule).Once()
 		rule.nextSameSource = incompatibleSourceRegistry
 
-		reportsChan := make(chan Report, 10)
-		require.Panics(t, func() { rule.callback(t.Context(), in, reportsChan) })
-		close(reportsChan)
-		reports := chanToSlice(reportsChan)
+		collector := newReportCollector()
+		require.Panics(t, func() { rule.callback(t.Context(), in, collector.Collect) })
+		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
 	})
 }
 
-func chanToSlice[T any](ch <-chan T) []T {
-	var result []T
-	for v := range ch {
-		result = append(result, v)
-	}
-
-	return result
-}
 
 func TestRuleActionOverride(t *testing.T) {
 	source := NewMockSource[*EventMock](t)
@@ -324,15 +308,14 @@ func TestRuleActionOverride(t *testing.T) {
 	rule.Then = newAction
 
 	newAction.On("Process", t.Context(), event, mock.Anything).
-		Return(event, NewReport(StatusSuccess, nil)).Once()
+		Return(event, NewReport(nil)).Once()
 	destination.On("Send", t.Context(), event).
-		Return(NewReport(StatusSuccess, nil)).Once()
+		Return(NewReport(nil)).Once()
 
-	reportsChan := make(chan Report, 10)
-	rule.callback(t.Context(), event, reportsChan)
-	close(reportsChan)
+	collector := newReportCollector()
+	rule.callback(t.Context(), event, collector.Collect)
 
-	reports := chanToSlice(reportsChan)
+	reports := collector.Reports()
 	require.NotNil(t, reports)
 	require.Len(t, reports, 1)
 	require.NoError(t, reports[0].Err)
@@ -360,15 +343,14 @@ func TestRuleDestinationOverride(t *testing.T) {
 	rule.To = newDestination
 
 	action.On("Process", t.Context(), event, mock.Anything).
-		Return(event, NewReport(StatusSuccess, nil)).Once()
+		Return(event, NewReport(nil)).Once()
 	newDestination.On("Send", t.Context(), event).
-		Return(NewReport(StatusSuccess, nil)).Once()
+		Return(NewReport(nil)).Once()
 
-	reportsChan := make(chan Report, 10)
-	rule.callback(t.Context(), event, reportsChan)
-	close(reportsChan)
+	collector := newReportCollector()
+	rule.callback(t.Context(), event, collector.Collect)
 
-	reports := chanToSlice(reportsChan)
+	reports := collector.Reports()
 	require.NotNil(t, reports)
 	require.Len(t, reports, 1)
 	require.NoError(t, reports[0].Err)
@@ -436,9 +418,9 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(StatusSuccess, nil)).Once()
+					Return(event, NewReport(nil)).Once()
 				destination.On("Send", mock.Anything, event).
-					Return(NewReport(StatusSuccess, nil)).Once()
+					Return(NewReport(nil)).Once()
 
 				return rule, event
 			},
@@ -446,7 +428,6 @@ func TestRule_Run(t *testing.T) {
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
 				require.NoError(t, report.Err)
-				require.Equal(t, StatusSuccess, report.Status)
 			},
 		},
 		{
@@ -463,15 +444,16 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(StatusActionError, os.ErrClosed)).Once()
+					Return(event, NewReport(os.ErrClosed)).Once()
 
 				return rule, event
 			},
 			expectedReports: 1,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
+				var actionErr ActionError
+				require.ErrorAs(t, report.Err, &actionErr)
 				require.ErrorIs(t, report.Err, os.ErrClosed)
-				require.Equal(t, StatusActionError, report.Status)
 			},
 		},
 		{
@@ -488,15 +470,16 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(StatusError, os.ErrInvalid)).Once()
+					Return(event, NewReport(os.ErrInvalid)).Once()
 
 				return rule, event
 			},
 			expectedReports: 1,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
+				var actionErr ActionError
+				require.ErrorAs(t, report.Err, &actionErr)
 				require.ErrorIs(t, report.Err, os.ErrInvalid)
-				require.Equal(t, StatusError, report.Status)
 			},
 		},
 		{
@@ -513,17 +496,18 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(StatusSuccess, nil)).Once()
+					Return(event, NewReport(nil)).Once()
 				destination.On("Send", mock.Anything, event).
-					Return(NewReport(StatusDestinationError, os.ErrPermission)).Once()
+					Return(NewReport(os.ErrPermission)).Once()
 
 				return rule, event
 			},
 			expectedReports: 1,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
+				var destinationErr DestinationError
+				require.ErrorAs(t, report.Err, &destinationErr)
 				require.ErrorIs(t, report.Err, os.ErrPermission)
-				require.Equal(t, StatusDestinationError, report.Status)
 			},
 		},
 	}
@@ -532,13 +516,12 @@ func TestRule_Run(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule, event := tc.setupMocks()
 
-			reportsChan := make(chan Report, 10)
+			collector := newReportCollector()
 
 			// Use nil symbols for this test
-			rule.Run(t.Context(), event, nil, reportsChan)
+			rule.Run(t.Context(), event, nil, collector.Collect)
 
-			close(reportsChan)
-			reports := chanToSlice(reportsChan)
+			reports := collector.Reports()
 
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {

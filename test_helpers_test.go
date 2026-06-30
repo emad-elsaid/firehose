@@ -19,3 +19,22 @@ func NewEventMock(attrs map[string]any) *EventMock {
 
 // MockRule is a type alias for Rule[*EventMock, *EventMock]
 type MockRule = Rule[*EventMock, *EventMock]
+
+type reportCollector struct {
+	reports []Report
+}
+
+func newReportCollector() *reportCollector {
+	return &reportCollector{}
+}
+
+func (c *reportCollector) Collect(r Report) {
+	c.reports = append(c.reports, r)
+}
+
+func (c *reportCollector) Reports() []Report {
+	out := make([]Report, len(c.reports))
+	copy(out, c.reports)
+
+	return out
+}

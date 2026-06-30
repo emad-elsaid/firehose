@@ -216,12 +216,13 @@ func TestOnce_Evaluate(t *testing.T) {
 
 				// First call: cache miss
 				cache.On("Get", context.Background(), mock.Anything).
-					Return("", firehose.NewReport("", nil), false).Once()
-				cache.On("Set", context.Background(), mock.Anything, "1", mock.Anything, time.Second).Once().Return(firehose.NewSuccessReport())
+					Return("", firehose.NewReport(nil), false).Once()
+				cache.On("Set", context.Background(), mock.Anything, "1", mock.Anything, time.Second).
+					Return(firehose.NewSuccessReport()).Once()
 
 				// Second call: cache hit
 				cache.On("Get", context.Background(), mock.Anything).
-					Return("1", firehose.NewReport("", nil), true).Once()
+					Return("1", firehose.NewReport(nil), true).Once()
 
 				return cond, event
 			},

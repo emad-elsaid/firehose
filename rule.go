@@ -3,6 +3,7 @@ package firehose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/emad-elsaid/boolexpr"
@@ -77,26 +78,26 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rule[I, O]) callback(ctx context.Context, event I, reports chan<- Report) {
+func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc) {
 	syms := EventSymbols(event)
 
 	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {
-		current.Run(ctx, event, syms, reports)
+		current.Run(ctx, event, syms, reportFn)
 	}
 }
 
 // Run executes the rule's action and destination for the given event.
-func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reports chan<- Report) {
+func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
 	// Evaluate condition if present
 	if r.If != nil {
 		pass, err := r.If.Evaluate(ctx, event, syms)
 		if err != nil {
-			reports <- NewRuleReport(r.ID, StatusConditionError, fmt.Errorf("condition error: %w", err))
+			reportFn(NewRuleReport(r.ID, ConditionError{Err: err}))
 			return
 		}
 
 		if !pass {
-			reports <- NewRuleReport(r.ID, StatusNoMatch, nil)
+			reportFn(NewRuleReport(r.ID, ErrNoMatch))
 			return
 		}
 	}
@@ -110,7 +111,12 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	report.Rule = r.ID
 
 	if report.Err != nil {
-		reports <- report
+		var actionErr ActionError
+		if !errors.As(report.Err, &actionErr) {
+			report.Err = ActionError{Err: report.Err}
+		}
+
+		reportFn(report)
 
 		return
 	}
@@ -123,7 +129,14 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	report = destination.Send(ctx, out)
 	report.Rule = r.ID
 
-	reports <- report
+	if report.Err != nil {
+		var destinationErr DestinationError
+		if !errors.As(report.Err, &destinationErr) {
+			report.Err = DestinationError{Err: report.Err}
+		}
+	}
+
+	reportFn(report)
 }
 
 // NextRunnable returns the next runnable rule with the same source.

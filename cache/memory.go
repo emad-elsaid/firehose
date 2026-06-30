@@ -3,12 +3,17 @@ package cache
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	fh "github.com/emad-elsaid/firehose"
 
 	gocache "github.com/patrickmn/go-cache"
 )
+
+// ErrCacheMiss indicates the cache does not contain the requested key.
+var ErrCacheMiss = errors.New("cache miss")
 
 // NewMemory creates a new in-memory cache with the specified default TTL and cleanup interval.
 func NewMemory[O any](defaultTTL, cleanup time.Duration) Memory[O] {
@@ -31,23 +36,25 @@ type MemoryItem[O any] struct {
 // Get retrieves a value from the cache by key, returning the value, report, and whether it was found.
 func (m Memory[O]) Get(_ context.Context, key string) (O, fh.Report, bool) {
 	v, ok := m.cache.Get(key)
-	if ok {
-		item, ok := v.(MemoryItem[O])
-		if ok {
-			return item.Value, item.Report, true
-		}
+	if !ok {
+		var zero O
+		return zero, fh.NewReport(ErrCacheMiss), false
 	}
 
-	var zero O
+	item, ok := v.(MemoryItem[O])
+	if !ok {
+		var zero O
+		return zero, fh.NewReport(fmt.Errorf("invalid cached item type for key %q", key)), false
+	}
 
-	return zero, fh.NewReport(fh.StatusError, nil), false
+	return item.Value, item.Report, true
 }
 
 // Set stores a value in the cache with the given key, report, and TTL.
 func (m Memory[O]) Set(_ context.Context, key string, value O, report fh.Report, ttl time.Duration) fh.Report {
 	m.cache.Set(key, MemoryItem[O]{Value: value, Report: report}, ttl)
 
-	return fh.NewReport(fh.StatusSuccess, nil)
+	return fh.NewReport(nil)
 }
 
 // GetOrSet retrieves a value from cache or sets it using the callback if not found.

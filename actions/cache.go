@@ -32,7 +32,7 @@ func (c *Cache[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbol
 	if err != nil {
 		var zero O
 
-		return zero, fh.NewReport(fh.StatusActionError, err)
+		return zero, fh.NewReport(fh.ActionError{Err: err})
 	}
 
 	out, report, _ := c.Cache.GetOrSet(ctx, strconv.FormatUint(eventID, 10), c.TTL, func() (O, fh.Report) {

@@ -11,13 +11,14 @@ import (
 	"github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCache_Process(t *testing.T) {
 	tests := []struct {
 		name             string
 		setupCache       func(*MockCacheStorage[*event], string, *event, *action[*event, *event])
-		wantStatus       firehose.Status
+		wantErr          error
 		wantCacheHit     bool
 		wantActionCalled bool
 	}{
@@ -25,16 +26,16 @@ func TestCache_Process(t *testing.T) {
 			name: "cache miss calls downstream action and caches result",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				a.On("Process", mock.Anything, ev, mock.Anything).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}).Once()
+					Return(ev, firehose.NewReport(nil)).Once()
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
 						cb := args.Get(3).(func() (*event, firehose.Report))
 						_, _ = cb()
 					}).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}, false).Once()
+					Return(ev, firehose.NewReport(nil), false).Once()
 			},
-			wantStatus:       firehose.StatusSuccess,
+			wantErr:          nil,
 			wantCacheHit:     false,
 			wantActionCalled: true,
 		},
@@ -42,32 +43,27 @@ func TestCache_Process(t *testing.T) {
 			name: "cache hit returns cached result without calling action",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}, true).Once()
+					Return(ev, firehose.NewReport(nil), true).Once()
 			},
-			wantStatus:       firehose.StatusSuccess,
+			wantErr:          nil,
 			wantCacheHit:     true,
 			wantActionCalled: false,
 		},
 		{
 			name: "caches error results from downstream action",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
+				actionErr := errors.New("action failed")
 				a.On("Process", mock.Anything, ev, mock.Anything).
-					Return(nil, firehose.Report{
-						Status: firehose.StatusActionError,
-						Err:    errors.New("action failed"),
-					}).Once()
+					Return(nil, firehose.NewReport(actionErr)).Once()
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
 						cb := args.Get(3).(func() (*event, firehose.Report))
 						_, _ = cb()
 					}).
-					Return((*event)(nil), firehose.Report{
-						Status: firehose.StatusActionError,
-						Err:    errors.New("action failed"),
-					}, false).Once()
+					Return((*event)(nil), firehose.NewReport(actionErr), false).Once()
 			},
-			wantStatus:       firehose.StatusActionError,
+			wantErr:          errors.New("action failed"),
 			wantCacheHit:     false,
 			wantActionCalled: true,
 		},
@@ -96,12 +92,17 @@ func TestCache_Process(t *testing.T) {
 
 			_, report := mw.Process(context.Background(), ev, syms)
 
-			assert.Equal(t, tc.wantStatus, report.Status)
+			if tc.wantErr == nil {
+				assert.NoError(t, report.Err)
+			} else {
+				assert.EqualError(t, report.Err, tc.wantErr.Error())
+			}
 		})
 	}
 }
 
 // simpleEvent is a simple event for testing that doesn't have circular references
+// (kept for parity with the original test set).
 type simpleEvent struct {
 	id int
 }
@@ -141,24 +142,22 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 
 			events := tc.createEvents()
 
-			// Setup cache to miss for each unique event
 			for _, ev := range events {
 				id, _ := firehose.EventID(ev)
 				key := strconv.FormatUint(id, 10)
 
 				mockAction.On("Process", mock.Anything, ev, mock.Anything).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}).Once()
+					Return(ev, firehose.NewReport(nil)).Once()
 
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
 						cb := args.Get(3).(func() (*simpleEvent, firehose.Report))
 						_, _ = cb()
 					}).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}, false).Once()
+					Return(ev, firehose.NewReport(nil), false).Once()
 			}
 
-			// Note: Cannot test this without implementing the full action and cache
-			// because we need type matching. Skipping this test.
+			// kept as in the original suite
 			t.Skip("Skipping due to complex generic type matching requirements")
 		})
 	}
@@ -171,24 +170,9 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 		wantActionCalls int
 		wantCacheHits   int
 	}{
-		{
-			name:            "same event processed twice hits cache on second call",
-			processCount:    2,
-			wantActionCalls: 1,
-			wantCacheHits:   1,
-		},
-		{
-			name:            "same event processed many times hits cache",
-			processCount:    5,
-			wantActionCalls: 1,
-			wantCacheHits:   4,
-		},
-		{
-			name:            "single processing always calls action",
-			processCount:    1,
-			wantActionCalls: 1,
-			wantCacheHits:   0,
-		},
+		{name: "same event processed twice hits cache on second call", processCount: 2, wantActionCalls: 1, wantCacheHits: 1},
+		{name: "same event processed many times hits cache", processCount: 5, wantActionCalls: 1, wantCacheHits: 4},
+		{name: "single processing always calls action", processCount: 1, wantActionCalls: 1, wantCacheHits: 0},
 	}
 
 	for _, tc := range tests {
@@ -203,21 +187,19 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 			id, _ := firehose.EventID(ev)
 			key := strconv.FormatUint(id, 10)
 
-			// First call: cache miss, calls action
 			mockAction.On("Process", mock.Anything, ev, mock.Anything).
-				Return(ev, firehose.Report{Status: firehose.StatusSuccess}).Once()
+				Return(ev, firehose.NewReport(nil)).Once()
 
 			mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 				Run(func(args mock.Arguments) {
 					cb := args.Get(3).(func() (*event, firehose.Report))
 					_, _ = cb()
 				}).
-				Return(ev, firehose.Report{Status: firehose.StatusSuccess}, false).Once()
+				Return(ev, firehose.NewReport(nil), false).Once()
 
-			// Subsequent calls: cache hit
 			if tc.processCount > 1 {
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, firehose.Report{Status: firehose.StatusSuccess}, true).
+					Return(ev, firehose.NewReport(nil), true).
 					Times(tc.processCount - 1)
 			}
 
@@ -230,7 +212,7 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 
 			for i := 0; i < tc.processCount; i++ {
 				_, report := mw.Process(context.Background(), ev, syms)
-				assert.Equal(t, firehose.StatusSuccess, report.Status)
+				assert.NoError(t, report.Err)
 			}
 		})
 	}
@@ -242,21 +224,9 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 		ttl     time.Duration
 		wantTTL time.Duration
 	}{
-		{
-			name:    "uses configured TTL for cache entries",
-			ttl:     10 * time.Minute,
-			wantTTL: 10 * time.Minute,
-		},
-		{
-			name:    "uses short TTL",
-			ttl:     1 * time.Second,
-			wantTTL: 1 * time.Second,
-		},
-		{
-			name:    "uses long TTL",
-			ttl:     24 * time.Hour,
-			wantTTL: 24 * time.Hour,
-		},
+		{name: "uses configured TTL for cache entries", ttl: 10 * time.Minute, wantTTL: 10 * time.Minute},
+		{name: "uses short TTL", ttl: 1 * time.Second, wantTTL: 1 * time.Second},
+		{name: "uses long TTL", ttl: 24 * time.Hour, wantTTL: 24 * time.Hour},
 	}
 
 	for _, tc := range tests {
@@ -272,15 +242,14 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 			key := strconv.FormatUint(id, 10)
 
 			mockAction.On("Process", mock.Anything, ev, mock.Anything).
-				Return(ev, firehose.Report{Status: firehose.StatusSuccess}).Once()
+				Return(ev, firehose.NewReport(nil)).Once()
 
-			// Verify the TTL passed to GetOrSet matches expected
 			mockCache.On("GetOrSet", mock.Anything, key, tc.wantTTL, mock.Anything).
 				Run(func(args mock.Arguments) {
 					cb := args.Get(3).(func() (*event, firehose.Report))
 					_, _ = cb()
 				}).
-				Return(ev, firehose.Report{Status: firehose.StatusSuccess}, false).Once()
+				Return(ev, firehose.NewReport(nil), false).Once()
 
 			mw := &Cache[*event, *event]{
 				Cache:  mockCache,
@@ -290,8 +259,24 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 			syms := boolexpr.NewCachedMap(map[string]any{})
 
 			_, report := mw.Process(context.Background(), ev, syms)
-
-			assert.Equal(t, firehose.StatusSuccess, report.Status)
+			assert.NoError(t, report.Err)
 		})
 	}
+}
+
+type nonHashableEvent struct {
+	Fn func()
+}
+
+func TestCache_Process_EventIDFailureReturnsActionError(t *testing.T) {
+	mw := &Cache[*nonHashableEvent, *event]{
+		TTL: 5 * time.Minute,
+	}
+
+	out, report := mw.Process(context.Background(), &nonHashableEvent{Fn: func() {}}, boolexpr.NewCachedMap(nil))
+
+	require.Nil(t, out)
+	var actionErr firehose.ActionError
+	require.ErrorAs(t, report.Err, &actionErr)
+	require.Error(t, actionErr.Err)
 }

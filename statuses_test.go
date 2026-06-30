@@ -5,96 +5,32 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestReportConstructors(t *testing.T) {
-	tests := []struct {
-		name           string
-		constructor    func() Report
-		expectedRule   string
-		expectedStatus Status
-		expectedErr    error
-	}{
-		{
-			name:           "NewRuleReport with success",
-			constructor:    func() Report { return NewRuleReport("test-rule", StatusSuccess, nil) },
-			expectedRule:   "test-rule",
-			expectedStatus: StatusSuccess,
-			expectedErr:    nil,
-		},
-		{
-			name:           "NewRuleReport with error",
-			constructor:    func() Report { return NewRuleReport("error-rule", StatusError, errors.New("test error")) },
-			expectedRule:   "error-rule",
-			expectedStatus: StatusError,
-			expectedErr:    errors.New("test error"),
-		},
-		{
-			name:           "NewReport with error",
-			constructor:    func() Report { return NewReport(StatusError, errors.New("critical")) },
-			expectedRule:   "",
-			expectedStatus: StatusError,
-			expectedErr:    errors.New("critical"),
-		},
-		{
-			name:           "NewReport with success",
-			constructor:    func() Report { return NewReport(StatusSuccess, nil) },
-			expectedRule:   "",
-			expectedStatus: StatusSuccess,
-			expectedErr:    nil,
-		},
-	}
+	t.Run("NewSuccessReport", func(t *testing.T) {
+		report := NewSuccessReport()
+		assert.Empty(t, report.Rule)
+		assert.NoError(t, report.Err)
+	})
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			report := tc.constructor()
+	t.Run("NewReport", func(t *testing.T) {
+		err := errors.New("boom")
+		report := NewReport(err)
+		assert.Empty(t, report.Rule)
+		assert.ErrorIs(t, report.Err, err)
+	})
 
-			assert.Equal(t, tc.expectedRule, report.Rule)
-			assert.Equal(t, tc.expectedStatus, report.Status)
-
-			if tc.expectedErr != nil {
-				require.Error(t, report.Err)
-				assert.Equal(t, tc.expectedErr.Error(), report.Err.Error())
-			} else {
-				assert.NoError(t, report.Err)
-			}
-		})
-	}
+	t.Run("NewRuleReport", func(t *testing.T) {
+		err := errors.New("boom")
+		report := NewRuleReport("rule-1", err)
+		assert.Equal(t, "rule-1", report.Rule)
+		assert.ErrorIs(t, report.Err, err)
+	})
 }
 
-func TestReport_String(t *testing.T) {
-	tests := []struct {
-		name     string
-		report   Report
-		expected string
-	}{
-		{
-			name:     "success without error",
-			report:   Report{Rule: "my-rule", Status: StatusSuccess, Err: nil},
-			expected: "Success my-rule",
-		},
-		{
-			name:     "error with message",
-			report:   Report{Rule: "error-rule", Status: StatusError, Err: errors.New("failed")},
-			expected: "Error  error-rule: failed",
-		},
-		{
-			name:     "action error with message",
-			report:   Report{Rule: "action-rule", Status: StatusActionError, Err: errors.New("action failed")},
-			expected: "Action error  action-rule: action failed",
-		},
-		{
-			name:     "no match without error",
-			report:   Report{Rule: "no-match", Status: StatusNoMatch, Err: nil},
-			expected: "No match no-match",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tc.report.String()
-			assert.Equal(t, tc.expected, result)
-		})
-	}
+func TestReportString(t *testing.T) {
+	assert.Equal(t, "Success", NewReport(nil).String())
+	assert.Equal(t, "Success my-rule", NewRuleReport("my-rule", nil).String())
+	assert.Equal(t, "my-rule: failed", NewRuleReport("my-rule", errors.New("failed")).String())
 }

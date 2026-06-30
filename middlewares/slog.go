@@ -39,28 +39,19 @@ func (s *Slog[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destin
 	return destination, nil
 }
 
-func (s Slog[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
-	reportsChan := make(chan fh.Report)
+func (s Slog[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
+	results := []fh.Report{}
 
-	var waitGroup sync.WaitGroup
+	var mutex sync.Mutex
+	reportSink := func(r fh.Report) {
+		mutex.Lock()
+		defer mutex.Unlock()
 
-	waitGroup.Add(1)
+		results = append(results, r)
+		report(r)
+	}
 
-	defer waitGroup.Wait()
-	defer close(reportsChan)
+	s.downstream(ctx, event, reportSink)
 
-	go func() {
-		defer waitGroup.Done()
-
-		results := []fh.Report{}
-
-		for report := range reportsChan {
-			results = append(results, report)
-			reports <- report
-		}
-
-		slog.InfoContext(ctx, "", "source", s.source, "event", event, "reports", results)
-	}()
-
-	s.downstream(ctx, event, reportsChan)
+	slog.InfoContext(ctx, "", "source", s.source, "event", event, "reports", results)
 }

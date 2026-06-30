@@ -52,3 +52,22 @@ func (d *mockDestination[T]) Send(ctx context.Context, event T) firehose.Report 
 	args := d.Called(ctx, event)
 	return args.Get(0).(firehose.Report)
 }
+
+type reportCollector struct {
+	reports []firehose.Report
+}
+
+func newReportCollector() *reportCollector {
+	return &reportCollector{}
+}
+
+func (c *reportCollector) Collect(r firehose.Report) {
+	c.reports = append(c.reports, r)
+}
+
+func (c *reportCollector) Reports() []firehose.Report {
+	out := make([]firehose.Report, len(c.reports))
+	copy(out, c.reports)
+
+	return out
+}

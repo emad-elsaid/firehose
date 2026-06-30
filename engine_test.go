@@ -1150,7 +1150,7 @@ func Test_wrapMiddlewares(t *testing.T) {
 			name: "wraps callback with single middleware",
 			setup: func() *MockRule {
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
-				wrappedCb := func(ctx context.Context, event *EventMock, reports chan<- Report) {}
+				wrappedCb := func(ctx context.Context, event *EventMock, report ReportFunc) {}
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock], in *EventMock) (Callback[*EventMock], error) {
 						return wrappedCb, nil
@@ -1185,8 +1185,8 @@ func Test_wrapMiddlewares(t *testing.T) {
 
 				middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
 				middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
-				wrappedCb1 := func(ctx context.Context, event *EventMock, reports chan<- Report) {}
-				wrappedCb2 := func(ctx context.Context, event *EventMock, reports chan<- Report) {}
+				wrappedCb1 := func(ctx context.Context, event *EventMock, report ReportFunc) {}
+				wrappedCb2 := func(ctx context.Context, event *EventMock, report ReportFunc) {}
 
 				// Should wrap in reverse: middleware2 first, then middleware1
 				middleware2.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -1485,7 +1485,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		expectedOutput := &EventMock{}
 
 		innerAction.On("Process", mock.Anything, event, mock.Anything).
-			Return(expectedOutput, Report{Status: StatusSuccess}).Once()
+			Return(expectedOutput, Report{}).Once()
 
 		middleware := &MockMiddleware[*EventMock, *EventMock]{}
 		wrappedAction := NewMockAction[*EventMock, *EventMock](t)
@@ -1505,11 +1505,11 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				innerAction.Process(args.Get(0).(context.Context), event, args.Get(2).(boolexpr.Symbols))
 			}).
-			Return(expectedOutput, Report{Status: StatusSuccess}).Once()
+			Return(expectedOutput, Report{}).Once()
 
 		dest := &MockDestination[*EventMock]{}
 		dest.On("Send", mock.Anything, expectedOutput).
-			Return(Report{Status: StatusSuccess}).Once()
+			Return(Report{}).Once()
 
 		rule := &MockRule{
 			ID:          "test-rule",
@@ -1530,10 +1530,8 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, registry)
 
-		reports := make(chan Report, 1)
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, reports)
-		close(reports)
+		rule.Run(ctx, event, syms, func(Report) {})
 
 		wrappedAction.AssertExpectations(t)
 		innerAction.AssertExpectations(t)
@@ -1551,11 +1549,11 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		output := &EventMock{}
 
 		action.On("Process", mock.Anything, event, mock.Anything).
-			Return(output, Report{Status: StatusSuccess}).Once()
+			Return(output, Report{}).Once()
 
 		innerDest := &MockDestination[*EventMock]{}
 		innerDest.On("Send", mock.Anything, output).
-			Return(Report{Status: StatusSuccess}).Once()
+			Return(Report{}).Once()
 
 		middleware := &MockMiddleware[*EventMock, *EventMock]{}
 		wrappedDest := &MockDestination[*EventMock]{}
@@ -1575,7 +1573,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				innerDest.Send(args.Get(0).(context.Context), output)
 			}).
-			Return(Report{Status: StatusSuccess}).Once()
+			Return(Report{}).Once()
 
 		rule := &MockRule{
 			ID:          "test-rule",
@@ -1596,10 +1594,8 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, registry)
 
-		reports := make(chan Report, 1)
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, reports)
-		close(reports)
+		rule.Run(ctx, event, syms, func(Report) {})
 
 		wrappedDest.AssertExpectations(t)
 		innerDest.AssertExpectations(t)

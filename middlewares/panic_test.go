@@ -12,192 +12,179 @@ import (
 )
 
 func TestPanic_WrapCallback(t *testing.T) {
-	t.Run("stores downstream callback and returns panic-wrapped callback", func(t *testing.T) {
-		mw := &Panic[*event, *event]{}
-		mockCallback := func(ctx context.Context, event *event, reports chan<- firehose.Report) {}
-		in := &event{}
-		rule := &firehose.Rule[*event, *event]{}
-
-		wrappedCallback, err := mw.WrapCallback(context.Background(), rule, mockCallback, in)
-
-		require.NoError(t, err)
-		require.NotNil(t, wrappedCallback)
-		require.NotNil(t, mw.downstreamCallback)
-	})
+	mw := &Panic[*event, *event]{}
+	wrappedCallback, err := mw.WrapCallback(
+		context.Background(),
+		&firehose.Rule[*event, *event]{},
+		func(context.Context, *event, firehose.ReportFunc) {},
+		&event{},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, wrappedCallback)
+	require.NotNil(t, mw.downstreamCallback)
 }
 
 func TestPanic_WrapAction(t *testing.T) {
-	t.Run("stores downstream action and returns panic middleware", func(t *testing.T) {
-		mw := &Panic[*event, *event]{}
-		mockAction := new(action[*event, *event])
-		in := &event{}
-		rule := &firehose.Rule[*event, *event]{}
+	mw := &Panic[*event, *event]{}
+	mockAction := &panicAction{}
 
-		wrappedAction, err := mw.WrapAction(context.Background(), rule, mockAction, in)
-
-		require.NoError(t, err)
-		require.NotNil(t, wrappedAction)
-		require.IsType(t, (*Panic[*event, *event])(nil), wrappedAction)
-		panicMw := wrappedAction.(*Panic[*event, *event])
-		require.Equal(t, mockAction, panicMw.downstreamAction)
-	})
+	wrappedAction, err := mw.WrapAction(
+		context.Background(),
+		&firehose.Rule[*event, *event]{},
+		mockAction,
+		&event{},
+	)
+	require.NoError(t, err)
+	require.Same(t, mw, wrappedAction)
+	require.Same(t, mockAction, mw.downstreamAction)
 }
 
 func TestPanic_WrapDestination(t *testing.T) {
-	t.Run("stores downstream destination and returns panic middleware", func(t *testing.T) {
-		mw := &Panic[*event, *event]{}
-		mockDest := &simpleDestination[*event]{}
-		out := &event{}
-		rule := &firehose.Rule[*event, *event]{}
+	mw := &Panic[*event, *event]{}
+	mockDest := &simpleDestination[*event]{returnReport: firehose.NewReport(nil)}
 
-		wrappedDest, err := mw.WrapDestination(context.Background(), rule, mockDest, out)
-
-		require.NoError(t, err)
-		require.NotNil(t, wrappedDest)
-		require.IsType(t, (*Panic[*event, *event])(nil), wrappedDest)
-		panicMw := wrappedDest.(*Panic[*event, *event])
-		require.Equal(t, mockDest, panicMw.downstreamDest)
-	})
+	wrappedDest, err := mw.WrapDestination(
+		context.Background(),
+		&firehose.Rule[*event, *event]{},
+		mockDest,
+		&event{},
+	)
+	require.NoError(t, err)
+	require.Same(t, mw, wrappedDest)
+	require.Same(t, mockDest, mw.downstreamDest)
 }
 
 func TestPanic_RecoverCallback(t *testing.T) {
-	t.Run("recovers from callback panic and sends report", func(t *testing.T) {
-		panicValue := "callback panic!"
-		mw := &Panic[*event, *event]{
-			downstreamCallback: func(ctx context.Context, event *event, reports chan<- firehose.Report) {
-				panic(panicValue)
+	tests := []struct {
+		name       string
+		downstream firehose.Callback[*event]
+		assertion  func(t *testing.T, reports []firehose.Report)
+	}{
+		{
+			name: "recovers from panic",
+			downstream: func(_ context.Context, _ *event, _ firehose.ReportFunc) {
+				panic("callback panic!")
 			},
-		}
-
-		reports := make(chan firehose.Report, 1)
-		mw.recoverCallback(context.Background(), &event{}, reports)
-		close(reports)
-
-		report := <-reports
-		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-		assert.Contains(t, report.Err.Error(), panicValue)
-	})
-
-	t.Run("passes through normal callback execution", func(t *testing.T) {
-		expectedReport := firehose.Report{Status: firehose.StatusSuccess}
-		mw := &Panic[*event, *event]{
-			downstreamCallback: func(ctx context.Context, event *event, reports chan<- firehose.Report) {
-				reports <- expectedReport
+			assertion: func(t *testing.T, reports []firehose.Report) {
+				require.Len(t, reports, 1)
+				assert.ErrorIs(t, reports[0].Err, ErrPanicRecovered)
+				assert.Contains(t, reports[0].Err.Error(), "callback panic!")
 			},
-		}
+		},
+		{
+			name: "passes through report",
+			downstream: func(_ context.Context, _ *event, report firehose.ReportFunc) {
+				report(firehose.NewReport(nil))
+			},
+			assertion: func(t *testing.T, reports []firehose.Report) {
+				require.Len(t, reports, 1)
+				assert.NoError(t, reports[0].Err)
+			},
+		},
+	}
 
-		reports := make(chan firehose.Report, 1)
-		mw.recoverCallback(context.Background(), &event{}, reports)
-		close(reports)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mw := &Panic[*event, *event]{downstreamCallback: tc.downstream}
+			collector := newReportCollector()
 
-		report := <-reports
-		assert.Equal(t, expectedReport.Status, report.Status)
-	})
+			mw.recoverCallback(context.Background(), &event{}, collector.Collect)
+			tc.assertion(t, collector.Reports())
+		})
+	}
 }
 
 func TestPanic_Process(t *testing.T) {
-	t.Run("recovers from action panic and returns report", func(t *testing.T) {
-		panicValue := "action panic!"
-		mw := &Panic[*event, *event]{
-			downstreamAction: &panicAction{
-				shouldPanic: true,
-				panicValue:  panicValue,
+	type customPanic struct {
+		message string
+		code    int
+	}
+
+	tests := []struct {
+		name      string
+		action    *panicAction
+		assertion func(t *testing.T, out *event, report firehose.Report)
+	}{
+		{
+			name:   "recovers from panic string",
+			action: &panicAction{shouldPanic: true, panicValue: "action panic!"},
+			assertion: func(t *testing.T, out *event, report firehose.Report) {
+				assert.Nil(t, out)
+				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
+				assert.Contains(t, report.Err.Error(), "action panic!")
 			},
-		}
-
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
-
-		assert.Nil(t, out)
-		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-		assert.Contains(t, report.Err.Error(), panicValue)
-	})
-
-	t.Run("passes through successful action execution", func(t *testing.T) {
-		expectedOut := &event{Value: "result"}
-		expectedReport := firehose.Report{Status: firehose.StatusSuccess}
-		mw := &Panic[*event, *event]{
-			downstreamAction: &panicAction{
+		},
+		{
+			name:   "recovers from panic custom type",
+			action: &panicAction{shouldPanic: true, panicValue: customPanic{message: "boom", code: 500}},
+			assertion: func(t *testing.T, out *event, report firehose.Report) {
+				assert.Nil(t, out)
+				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
+				assert.Contains(t, report.Err.Error(), "boom")
+			},
+		},
+		{
+			name: "passes through",
+			action: &panicAction{
 				shouldPanic:  false,
-				returnEvent:  expectedOut,
-				returnReport: expectedReport,
+				returnEvent:  &event{Value: "result"},
+				returnReport: firehose.NewReport(nil),
 			},
-		}
-
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
-
-		assert.Equal(t, expectedOut, out)
-		assert.Equal(t, expectedReport.Status, report.Status)
-	})
-
-	t.Run("recovers from custom panic type", func(t *testing.T) {
-		customPanic := &customPanicType{message: "custom error", code: 500}
-		mw := &Panic[*event, *event]{
-			downstreamAction: &panicAction{
-				shouldPanic: true,
-				panicValue:  customPanic,
+			assertion: func(t *testing.T, out *event, report firehose.Report) {
+				require.NotNil(t, out)
+				assert.Equal(t, "result", out.Value)
+				assert.NoError(t, report.Err)
 			},
-		}
+		},
+	}
 
-		out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
-
-		assert.Nil(t, out)
-		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mw := &Panic[*event, *event]{downstreamAction: tc.action}
+			out, report := mw.Process(context.Background(), &event{}, boolexpr.NewCachedMap(nil))
+			tc.assertion(t, out, report)
+		})
+	}
 }
 
 func TestPanic_Send(t *testing.T) {
-	t.Run("recovers from destination panic and returns report", func(t *testing.T) {
-		panicValue := "destination panic!"
-		mw := &Panic[*event, *event]{
-			downstreamDest: &panicDestination[*event]{
-				panicValue: panicValue,
+	tests := []struct {
+		name      string
+		dest      firehose.Destination[*event]
+		assertion func(t *testing.T, report firehose.Report)
+	}{
+		{
+			name: "recovers from panic string",
+			dest: &panicDestination[*event]{panicValue: "destination panic!"},
+			assertion: func(t *testing.T, report firehose.Report) {
+				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
+				assert.Contains(t, report.Err.Error(), "destination panic!")
 			},
-		}
-
-		report := mw.Send(context.Background(), &event{})
-
-		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-		assert.Contains(t, report.Err.Error(), panicValue)
-	})
-
-	t.Run("passes through successful destination execution", func(t *testing.T) {
-		expectedReport := firehose.Report{Status: firehose.StatusSuccess}
-		mw := &Panic[*event, *event]{
-			downstreamDest: &simpleDestination[*event]{
-				returnReport: expectedReport,
+		},
+		{
+			name: "recovers from panic error",
+			dest: &panicDestination[*event]{panicValue: errors.New("boom")},
+			assertion: func(t *testing.T, report firehose.Report) {
+				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
+				assert.Contains(t, report.Err.Error(), "boom")
 			},
-		}
-
-		report := mw.Send(context.Background(), &event{})
-
-		assert.Equal(t, expectedReport.Status, report.Status)
-	})
-
-	t.Run("recovers from error panic in destination", func(t *testing.T) {
-		panicErr := errors.New("error panic")
-		mw := &Panic[*event, *event]{
-			downstreamDest: &panicDestination[*event]{
-				panicValue: panicErr,
+		},
+		{
+			name: "passes through",
+			dest: &simpleDestination[*event]{returnReport: firehose.NewReport(nil)},
+			assertion: func(t *testing.T, report firehose.Report) {
+				assert.NoError(t, report.Err)
 			},
-		}
+		},
+	}
 
-		report := mw.Send(context.Background(), &event{})
-
-		assert.Equal(t, StatusPanicRecovered, report.Status)
-		assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-		assert.Contains(t, report.Err.Error(), panicErr.Error())
-	})
-}
-
-// Test helpers
-
-type customPanicType struct {
-	message string
-	code    int
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mw := &Panic[*event, *event]{downstreamDest: tc.dest}
+			report := mw.Send(context.Background(), &event{})
+			tc.assertion(t, report)
+		})
+	}
 }
 
 type panicAction struct {
@@ -207,25 +194,26 @@ type panicAction struct {
 	returnReport firehose.Report
 }
 
-func (p *panicAction) Process(ctx context.Context, event *event, syms boolexpr.Symbols) (*event, firehose.Report) {
+func (p *panicAction) Process(
+	_ context.Context,
+	_ *event,
+	_ boolexpr.Symbols,
+) (*event, firehose.Report) {
 	if p.shouldPanic {
 		panic(p.panicValue)
 	}
+
 	return p.returnEvent, p.returnReport
 }
 
-type panicDestination[T any] struct {
-	panicValue any
-}
+type panicDestination[T any] struct{ panicValue any }
 
-func (d *panicDestination[T]) Send(ctx context.Context, event T) firehose.Report {
+func (d *panicDestination[T]) Send(_ context.Context, _ T) firehose.Report {
 	panic(d.panicValue)
 }
 
-type simpleDestination[T any] struct {
-	returnReport firehose.Report
-}
+type simpleDestination[T any] struct{ returnReport firehose.Report }
 
-func (d *simpleDestination[T]) Send(ctx context.Context, event T) firehose.Report {
+func (d *simpleDestination[T]) Send(_ context.Context, _ T) firehose.Report {
 	return d.returnReport
 }

@@ -1,58 +1,83 @@
 package firehose
 
-// Status represents the outcome of processing an event through a rule,
-// indicating whether it was successful, if there was an error, or if there was
-// no match.
-type Status string
+import "errors"
 
-// Predefined status values for processing results.
-const (
-	StatusSuccess          Status = "Success"
-	StatusError            Status = "Error"
-	StatusActionError      Status = "Action error"
-	StatusDestinationError Status = "Destination error"
-	StatusConditionError   Status = "Condition error"
-	StatusNoMatch          Status = "No match"
+// Sentinel errors used for control flow and classification.
+var (
+	ErrNoMatch = errors.New("no match")
 )
 
-// Report represents the result of processing an event through a rule, including the status and any error that occurred.
+// ConditionError wraps an error that occurred during If evaluation.
+type ConditionError struct{ Err error }
+
+func (e ConditionError) Error() string {
+	if e.Err == nil {
+		return "condition"
+	}
+
+	return "condition: " + e.Err.Error()
+}
+
+func (e ConditionError) Unwrap() error { return e.Err }
+
+// ActionError wraps an error returned by Action.Process.
+type ActionError struct{ Err error }
+
+func (e ActionError) Error() string {
+	if e.Err == nil {
+		return "action"
+	}
+
+	return "action: " + e.Err.Error()
+}
+
+func (e ActionError) Unwrap() error { return e.Err }
+
+// DestinationError wraps an error returned by Destination.Send.
+type DestinationError struct{ Err error }
+
+func (e DestinationError) Error() string {
+	if e.Err == nil {
+		return "destination"
+	}
+
+	return "destination: " + e.Err.Error()
+}
+
+func (e DestinationError) Unwrap() error { return e.Err }
+
+// Report represents the result of processing an event through a rule.
 type Report struct {
-	Rule   string
-	Status Status
-	Err    error
+	Rule string
+	Err  error
 }
 
 // NewSuccessReport creates a new Report for a successful operation.
 func NewSuccessReport() Report {
-	return Report{
-		Rule:   "",
-		Status: StatusSuccess,
-		Err:    nil,
-	}
+	return Report{}
 }
 
-// NewReport creates a new Report with the given status and error.
-func NewReport(status Status, err error) Report {
-	return Report{
-		Rule:   "",
-		Status: status,
-		Err:    err,
-	}
+// NewReport creates a new Report with the given error.
+func NewReport(err error) Report {
+	return Report{Err: err}
 }
 
-// NewRuleReport creates a new Report with the given rule, status, and error.
-func NewRuleReport(rule string, status Status, err error) Report {
-	return Report{
-		Rule:   rule,
-		Status: status,
-		Err:    err,
-	}
+// NewRuleReport creates a new Report with the given rule and error.
+func NewRuleReport(rule string, err error) Report {
+	return Report{Rule: rule, Err: err}
 }
 
 func (r Report) String() string {
 	if r.Err == nil {
-		return string(r.Status) + " " + r.Rule
+		if r.Rule == "" {
+			return "Success"
+		}
+		return "Success " + r.Rule
 	}
 
-	return string(r.Status) + "  " + r.Rule + ": " + r.Err.Error()
+	if r.Rule == "" {
+		return r.Err.Error()
+	}
+
+	return r.Rule + ": " + r.Err.Error()
 }

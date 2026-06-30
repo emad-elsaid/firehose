@@ -41,10 +41,17 @@ func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], de
 	return destination, nil
 }
 
-func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh.Report) {
+func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
 	syms := fh.EventSymbols(event)
 
 	var waitGroup sync.WaitGroup
+	var mutex sync.Mutex
+
+	safeReport := func(r fh.Report) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		report(r)
+	}
 
 	for current := fh.Runnable[I](s.rule); current != nil; current = current.NextRunnable() {
 		waitGroup.Add(1)
@@ -52,7 +59,7 @@ func (s Parallel[I, O]) callback(ctx context.Context, event I, reports chan<- fh
 		s.Runner.Run(func() {
 			defer waitGroup.Done()
 
-			current.Run(ctx, event, syms, reports)
+			current.Run(ctx, event, syms, safeReport)
 		})
 	}
 
