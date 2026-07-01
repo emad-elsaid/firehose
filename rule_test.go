@@ -281,10 +281,27 @@ func TestRuleCallback(t *testing.T) {
 		reports := collector.Reports()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
+	})
 
+	t.Run("callback with nil reporter function", func(t *testing.T) {
+		source := NewMockSource[*EventMock](t)
+		action := NewMockAction[*EventMock, *EventMock](t)
+		destination := NewMockDestination[*EventMock](t)
+
+		rule := &MockRule{
+			On:   source,
+			Then: action,
+			To:   destination,
+		}
+
+		in := NewEventMock(nil)
+
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
+		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+
+		require.NotPanics(t, func() { rule.callback(t.Context(), in, nil) })
 	})
 }
-
 
 func TestRuleActionOverride(t *testing.T) {
 	source := NewMockSource[*EventMock](t)
