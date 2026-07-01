@@ -86,8 +86,6 @@ func drainErrorChannel(t *testing.T, errChan <-chan error, timeout time.Duration
 }
 
 func TestAddRule(t *testing.T) {
-	t.Parallel()
-
 	t.Run("add first rule to nil registry", func(t *testing.T) {
 		rule := &MockRule{
 			ID:   "rule1",
@@ -178,6 +176,38 @@ func TestAddRule(t *testing.T) {
 		require.Equal(t, rule3, rule1.getPrev(), "rule1.prev should be rule3")
 		require.Equal(t, rule1, rule2.getPrev(), "rule2.prev should be rule1")
 		require.Equal(t, rule2, rule3.getPrev(), "rule3.prev should be rule2")
+	})
+
+	t.Run("add rule with Environment that doesn't match current ENV", func(t *testing.T) {
+		t.Setenv("ENV", "staging")
+		rule := &MockRule{
+			ID:           "rule1",
+			Environments: []string{"test"},
+			On:           NewMockSource[*EventMock](t),
+			Then:         &MockAction[*EventMock, *EventMock]{},
+			To:           &MockDestination[*EventMock]{},
+		}
+
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+
+		require.NoError(t, err)
+		require.Nil(t, result)
+	})
+
+	t.Run("add rule with Environment that matches current ENV", func(t *testing.T) {
+		t.Setenv("ENV", "test")
+		rule := &MockRule{
+			ID:           "rule1",
+			Environments: []string{"test"},
+			On:           NewMockSource[*EventMock](t),
+			Then:         &MockAction[*EventMock, *EventMock]{},
+			To:           &MockDestination[*EventMock]{},
+		}
+
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
 	})
 }
 
@@ -568,7 +598,6 @@ func Test_inherit(t *testing.T) {
 				To:   parentDest1,
 			},
 		},
-
 		{
 			name: "child does not override its own fields",
 			parent: &MockRule{
@@ -591,6 +620,59 @@ func Test_inherit(t *testing.T) {
 				If:   testCond[*EventMock](""), // non-nil placeholder
 				Then: childAction2,
 				To:   childDest2,
+			},
+		},
+		{
+			name: "child with no environment inherits parent's environment",
+			parent: &MockRule{
+				ID:           "parent",
+				Environments: []string{"test", "staging"},
+				On:           parentSource2,
+				If:           testCond[*EventMock]("parent condition"),
+				Then:         &MockAction[*EventMock, *EventMock]{},
+				To:           &MockDestination[*EventMock]{},
+			},
+			child: &MockRule{
+				ID:   "child",
+				On:   childSource2,
+				If:   testCond[*EventMock]("child condition"),
+				Then: childAction2,
+				To:   childDest2,
+			},
+			expected: &MockRule{
+				ID:           "parent/child",
+				Environments: []string{"test", "staging"},
+				On:           childSource2,
+				If:           testCond[*EventMock](""), // non-nil placeholder
+				Then:         childAction2,
+				To:           childDest2,
+			},
+		},
+		{
+			name: "child with its own environment does not inherit parent's environment",
+			parent: &MockRule{
+				ID:           "parent",
+				Environments: []string{"test"},
+				On:           parentSource2,
+				If:           testCond[*EventMock]("parent condition"),
+				Then:         &MockAction[*EventMock, *EventMock]{},
+				To:           &MockDestination[*EventMock]{},
+			},
+			child: &MockRule{
+				ID:           "child",
+				Environments: []string{"staging"},
+				On:           childSource2,
+				If:           testCond[*EventMock]("child condition"),
+				Then:         childAction2,
+				To:           childDest2,
+			},
+			expected: &MockRule{
+				ID:           "parent/child",
+				Environments: []string{"staging"},
+				On:           childSource2,
+				If:           testCond[*EventMock](""), // non-nil placeholder
+				Then:         childAction2,
+				To:           childDest2,
 			},
 		},
 

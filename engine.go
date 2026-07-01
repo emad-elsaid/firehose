@@ -3,6 +3,7 @@ package firehose
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"slices"
 	"strconv"
@@ -46,7 +47,7 @@ func addSingleRule[I, O any](
 		return nil, err
 	}
 
-	if isActivatable(rule) {
+	if isActivatable(rule) && (len(rule.Environments) == 0 || slices.Contains(rule.Environments, os.Getenv("ENV"))) {
 		var err error
 
 		registry, err = registerActivatableRule(ctx, registry, rule, inInstance, outInstance)

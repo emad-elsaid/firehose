@@ -14,6 +14,9 @@ import (
 type Rule[I, O any] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
 	ID string
+	// Environments is a list of environment names where the rule is active. If
+	// empty, the rule is active in all environments.
+	Environments []string
 	// On is the source that produces events to be processed by this rule.
 	On Source[I] `validate:"required_without=SubRules"`
 	// If is a condition that must evaluate to true for the rule to process the event.
