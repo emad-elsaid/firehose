@@ -37,7 +37,7 @@ func (s *Parallel[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action 
 }
 
 // WrapDestination passes through the destination unchanged.
-func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O], _ O) (fh.Destination[O], error) {
+func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O]) (fh.Destination[O], error) {
 	return destination, nil
 }
 

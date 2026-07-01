@@ -47,7 +47,6 @@ func TestPanic_WrapDestination(t *testing.T) {
 		context.Background(),
 		&firehose.Rule[*event, *event]{},
 		mockDest,
-		&event{},
 	)
 	require.NoError(t, err)
 	require.Same(t, mw, wrappedDest)

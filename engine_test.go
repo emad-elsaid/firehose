@@ -94,7 +94,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -109,7 +109,7 @@ func TestAddRule(t *testing.T) {
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
-		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock), new(EventMock))
+		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock))
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -118,7 +118,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), registry, rule2, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -142,7 +142,7 @@ func TestAddRule(t *testing.T) {
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
-		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock), new(EventMock))
+		registry, _ := AddRule(t.Context(), nil, rule1, new(EventMock))
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -150,7 +150,7 @@ func TestAddRule(t *testing.T) {
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
-		registry, _ = AddRule(t.Context(), registry, rule2, new(EventMock), new(EventMock))
+		registry, _ = AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		rule3 := &MockRule{
 			ID:   "rule3",
@@ -159,7 +159,7 @@ func TestAddRule(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), registry, rule3, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), registry, rule3, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -188,7 +188,7 @@ func TestAddRule(t *testing.T) {
 			To:           &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.Nil(t, result)
@@ -204,7 +204,7 @@ func TestAddRule(t *testing.T) {
 			To:           &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -223,7 +223,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), nil, rule, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), nil, rule, new(EventMock))
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -242,7 +242,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source1,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -251,7 +251,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), registry, rule2, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -274,7 +274,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -283,7 +283,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), registry, rule2, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), registry, rule2, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -310,14 +310,14 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		rule3 := &MockRule{
 			ID:   "rule3",
@@ -326,7 +326,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			To:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := AddRule(t.Context(), registry, rule3, new(EventMock), new(EventMock))
+		result, err := AddRule(t.Context(), registry, rule3, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -367,15 +367,15 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		// Add second rule with sourceA
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
-			ID:   "rule2",
+			ID:   "rule3",
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		// Add rule with sourceB
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
@@ -383,7 +383,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceB,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		// Add third rule with sourceA
 		result, err := AddRule(t.Context(), registry, &MockRule{
@@ -391,7 +391,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		require.NoError(t, err)
 
@@ -447,7 +447,7 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
@@ -477,13 +477,13 @@ func TestStart(t *testing.T) {
 			On:   source1,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source2,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
@@ -510,7 +510,7 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		ctx := t.Context()
 		errChan := make(chan error, 10)
@@ -534,13 +534,13 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, new(EventMock), new(EventMock))
+		}, new(EventMock))
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
@@ -1048,7 +1048,7 @@ func Test_addSingleRule_Errors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := addSingleRule(
-				t.Context(), nil, tc.rule, new(EventMock), new(EventMock),
+				t.Context(), nil, tc.rule, new(EventMock),
 			)
 
 			if tc.expectError {
@@ -1120,7 +1120,7 @@ func Test_addSingleRule_WithSubRules(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			registry, err := addSingleRule(
-				t.Context(), nil, tc.rule, new(EventMock), new(EventMock),
+				t.Context(), nil, tc.rule, new(EventMock),
 			)
 
 			if tc.expectError {
@@ -1241,8 +1241,8 @@ func Test_wrapMiddlewares(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
-				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
@@ -1279,8 +1279,8 @@ func Test_wrapMiddlewares(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
-				middleware2.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+				middleware2.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
@@ -1292,8 +1292,8 @@ func Test_wrapMiddlewares(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
-				middleware1.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+				middleware1.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
@@ -1338,7 +1338,7 @@ func Test_wrapMiddlewares(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule, new(EventMock), new(EventMock))
+			err := wrapMiddlewares(t.Context(), rule, new(EventMock))
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -1389,8 +1389,8 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return wrappedAction, nil
 					}).Once()
-				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
@@ -1441,7 +1441,7 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule, new(EventMock), new(EventMock))
+			err := wrapMiddlewares(t.Context(), rule, new(EventMock))
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -1492,8 +1492,8 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
-				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return wrappedDest, nil
 					}).Once()
 
@@ -1525,7 +1525,7 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
-				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
 					Return(nil, os.ErrInvalid).Once()
 				rule := &MockRule{
 					ID:          "test-rule",
@@ -1546,7 +1546,7 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule, new(EventMock), new(EventMock))
+			err := wrapMiddlewares(t.Context(), rule, new(EventMock))
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -1578,8 +1578,8 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 			}).Maybe()
 		middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(wrappedAction, nil).Once()
-		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-			RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock], out *EventMock) (Destination[*EventMock], error) {
+		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
+			RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 				return dest, nil
 			}).Maybe()
 
@@ -1606,7 +1606,6 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 			ctx,
 			nil,
 			rule,
-			&EventMock{},
 			&EventMock{},
 		)
 		require.NoError(t, err)
@@ -1648,7 +1647,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 			RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock], in *EventMock) (Action[*EventMock, *EventMock], error) {
 				return action, nil
 			}).Maybe()
-		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
 			Return(wrappedDest, nil).Once()
 
 		wrappedDest.On("Send", mock.Anything, output).
@@ -1670,7 +1669,6 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 			ctx,
 			nil,
 			rule,
-			&EventMock{},
 			&EventMock{},
 		)
 		require.NoError(t, err)

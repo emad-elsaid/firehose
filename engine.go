@@ -21,7 +21,6 @@ func AddRule[I, O any](
 	registry Registry,
 	rule *Rule[I, O],
 	inInstance I,
-	outInstance O,
 ) (Registry, error) {
 	flatten(rule)
 
@@ -30,7 +29,6 @@ func AddRule[I, O any](
 		registry,
 		rule,
 		inInstance,
-		outInstance,
 	)
 }
 
@@ -40,7 +38,6 @@ func addSingleRule[I, O any](
 	registry Registry,
 	rule *Rule[I, O],
 	inInstance I,
-	outInstance O,
 ) (Registry, error) {
 	err := validateAndCheckActivatable(rule)
 	if err != nil {
@@ -50,13 +47,13 @@ func addSingleRule[I, O any](
 	if isActivatable(rule) && (len(rule.Environments) == 0 || slices.Contains(rule.Environments, os.Getenv("ENV"))) {
 		var err error
 
-		registry, err = registerActivatableRule(ctx, registry, rule, inInstance, outInstance)
+		registry, err = registerActivatableRule(ctx, registry, rule, inInstance)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return registerSubRules(ctx, registry, rule, inInstance, outInstance)
+	return registerSubRules(ctx, registry, rule, inInstance)
 }
 
 func validateAndCheckActivatable[I, O any](rule *Rule[I, O]) error {
@@ -77,9 +74,8 @@ func registerActivatableRule[I, O any](
 	registry Registry,
 	rule *Rule[I, O],
 	inInstance I,
-	outInstance O,
 ) (Registry, error) {
-	err := wrapMiddlewares(ctx, rule, inInstance, outInstance)
+	err := wrapMiddlewares(ctx, rule, inInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +88,6 @@ func registerSubRules[I, O any](
 	registry Registry,
 	rule *Rule[I, O],
 	inInstance I,
-	outInstance O,
 ) (Registry, error) {
 	for i := range rule.SubRules {
 		subrule := &rule.SubRules[i]
@@ -104,7 +99,6 @@ func registerSubRules[I, O any](
 			registry,
 			subrule,
 			inInstance,
-			outInstance,
 		)
 		if err != nil {
 			return nil, err
@@ -118,7 +112,6 @@ func wrapMiddlewares[I, O any](
 	ctx context.Context,
 	rule *Rule[I, O],
 	inInstance I,
-	outInstance O,
 ) error {
 	middlewares := rule.Middlewares
 	if len(middlewares) == 0 {
@@ -142,7 +135,7 @@ func wrapMiddlewares[I, O any](
 			return err
 		}
 
-		rule.destinationWrappers, err = mw.WrapDestination(ctx, rule, rule.destinationWrappers, outInstance)
+		rule.destinationWrappers, err = mw.WrapDestination(ctx, rule, rule.destinationWrappers)
 		if err != nil {
 			return err
 		}

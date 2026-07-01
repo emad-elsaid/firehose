@@ -35,7 +35,7 @@ func (s *Slog[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.A
 }
 
 // WrapDestination passes through the destination unchanged.
-func (s *Slog[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O], _ O) (fh.Destination[O], error) {
+func (s *Slog[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O]) (fh.Destination[O], error) {
 	return destination, nil
 }
 

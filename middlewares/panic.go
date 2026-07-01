@@ -46,7 +46,6 @@ func (p *Panic[I, O]) WrapDestination(
 	_ context.Context,
 	_ *firehose.Rule[I, O],
 	destination firehose.Destination[O],
-	_ O,
 ) (firehose.Destination[O], error) {
 	p.downstreamDest = destination
 	return p, nil

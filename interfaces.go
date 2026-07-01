@@ -85,5 +85,5 @@ type Runnable[I any] interface {
 type Middleware[I, O any] interface {
 	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
 	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
-	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
+	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O]) (Destination[O], error)
 }
