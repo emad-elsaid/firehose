@@ -17,7 +17,6 @@ func TestPanic_WrapCallback(t *testing.T) {
 		context.Background(),
 		&firehose.Rule[*event, *event]{},
 		func(context.Context, *event, firehose.ReportFunc) {},
-		&event{},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, wrappedCallback)
@@ -32,7 +31,6 @@ func TestPanic_WrapAction(t *testing.T) {
 		context.Background(),
 		&firehose.Rule[*event, *event]{},
 		mockAction,
-		&event{},
 	)
 	require.NoError(t, err)
 	require.Same(t, mw, wrappedAction)

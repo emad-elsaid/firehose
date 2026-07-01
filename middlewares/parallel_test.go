@@ -137,10 +137,9 @@ func TestParallel_Wrap(t *testing.T) {
 			runner := tc.setupRunner()
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
 
-			event := newMockEvent(nil)
 			cb := func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {}
 
-			result, err := parallel.WrapCallback(context.Background(), rule, cb, event)
+			result, err := parallel.WrapCallback(context.Background(), rule, cb)
 
 			if tc.expectedError {
 				require.Error(t, err)
@@ -234,7 +233,7 @@ func TestParallel_Callback(t *testing.T) {
 			runner := tc.setupRunner()
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
-			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil)
 			require.NoError(t, err)
 
 			collector := newReportCollector()
@@ -300,7 +299,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 			event := newMockEvent(map[string]any{"key": "value"})
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: &concurrentTaskRunner{}}
-			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil)
 			require.NoError(t, err)
 
 			// Execute callback multiple times concurrently
@@ -364,7 +363,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 			runner := &syncTaskRunner{}
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
-			_, err := parallel.WrapCallback(context.Background(), rule, nil, event)
+			_, err := parallel.WrapCallback(context.Background(), rule, nil)
 			require.NoError(t, err)
 
 			collector := newReportCollector()

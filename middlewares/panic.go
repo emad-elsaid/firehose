@@ -24,7 +24,6 @@ func (p *Panic[I, O]) WrapCallback(
 	_ context.Context,
 	_ *firehose.Rule[I, O],
 	callback firehose.Callback[I],
-	_ I,
 ) (firehose.Callback[I], error) {
 	p.downstreamCallback = callback
 	return p.recoverCallback, nil
@@ -35,7 +34,6 @@ func (p *Panic[I, O]) WrapAction(
 	_ context.Context,
 	_ *firehose.Rule[I, O],
 	action firehose.Action[I, O],
-	_ I,
 ) (firehose.Action[I, O], error) {
 	p.downstreamAction = action
 	return p, nil

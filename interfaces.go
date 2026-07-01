@@ -83,7 +83,11 @@ type Runnable[I any] interface {
 // Middleware wraps callbacks, actions, and destinations to add cross-cutting concerns
 // such as conditional execution, panic recovery, logging, retry logic, or telemetry.
 type Middleware[I, O any] interface {
-	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
-	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
+	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I]) (Callback[I], error)
+	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
 	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O]) (Destination[O], error)
 }
+
+// ErrorHandler is a callback function type that handles errors occurring during
+// event processing.
+type ErrorHandler func(err error)

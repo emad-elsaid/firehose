@@ -24,7 +24,6 @@ func (s *Parallel[I, O]) WrapCallback(
 	_ context.Context,
 	rule *fh.Rule[I, O],
 	_ fh.Callback[I],
-	_ I,
 ) (fh.Callback[I], error) {
 	s.rule = rule
 
@@ -32,7 +31,7 @@ func (s *Parallel[I, O]) WrapCallback(
 }
 
 // WrapAction passes through the action unchanged.
-func (s *Parallel[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O], _ I) (fh.Action[I, O], error) {
+func (s *Parallel[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O]) (fh.Action[I, O], error) {
 	return action, nil
 }
 

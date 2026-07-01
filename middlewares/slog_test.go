@@ -81,8 +81,7 @@ func TestSlog_Wrap(t *testing.T) {
 			callback := tc.setupCallback()
 			middleware := &Slog[*mockEvent, *mockEvent]{}
 
-			event := newMockEvent(nil)
-			result, err := middleware.WrapCallback(context.Background(), rule, callback, event)
+			result, err := middleware.WrapCallback(context.Background(), rule, callback)
 
 			if tc.expectedError {
 				require.Error(t, err)
@@ -356,7 +355,7 @@ func TestSlog_Callback(t *testing.T) {
 			downstream := tc.setupDownstream()
 
 			middleware := &Slog[*mockEvent, *mockEvent]{}
-			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream, event)
+			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream)
 			require.NoError(t, err)
 
 			collector := newReportCollector()
@@ -418,7 +417,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 			event := newMockEvent(nil)
 
 			middleware := &Slog[*mockEvent, *mockEvent]{}
-			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream, event)
+			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream)
 			require.NoError(t, err)
 
 			collector := newReportCollector()
@@ -468,7 +467,7 @@ func TestSlog_CallbackDoesNotPanic(t *testing.T) {
 			event := newMockEvent(nil)
 
 			middleware := &Slog[*mockEvent, *mockEvent]{}
-			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream, event)
+			wrappedCallback, err := middleware.WrapCallback(context.Background(), rule, downstream)
 			require.NoError(t, err)
 
 			collector := newReportCollector()
