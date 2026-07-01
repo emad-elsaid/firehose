@@ -9,8 +9,11 @@ import (
 
 	"github.com/emad-elsaid/boolexpr"
 	"github.com/emad-elsaid/firehose"
+	"github.com/emad-elsaid/memoize"
 	"golang.org/x/time/rate"
 )
+
+var memoizedBoolExprParse = memoize.NewWithErr(boolexpr.Parse)
 
 // CacheStorage is an interface for storing and retrieving cached values.
 type CacheStorage[V any] interface {
@@ -27,10 +30,7 @@ func (c Cond[I]) Evaluate(_ context.Context, _ I, syms boolexpr.Symbols) (bool, 
 		return true, nil
 	}
 
-	// TODO: cache the parsed expression to avoid re-parsing on every
-	// evaluation. Consider updating the boolexpr package to support caching or
-	// using a sync.Map to store parsed expressions.
-	expr, err := boolexpr.Parse(string(c))
+	expr, err := memoizedBoolExprParse(string(c))
 	if err != nil {
 		return false, err
 	}

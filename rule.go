@@ -92,12 +92,18 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	if r.If != nil {
 		pass, err := r.If.Evaluate(ctx, event, syms)
 		if err != nil {
-			reportFn(NewRuleReport(r.ID, ConditionError{Err: err}))
+			if reportFn != nil {
+				reportFn(NewRuleReport(r.ID, ConditionError{Err: err}))
+			}
+
 			return
 		}
 
 		if !pass {
-			reportFn(NewRuleReport(r.ID, ErrNoMatch))
+			if reportFn != nil {
+				reportFn(NewRuleReport(r.ID, ErrNoMatch))
+			}
+
 			return
 		}
 	}
@@ -116,7 +122,9 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 			report.Err = ActionError{Err: report.Err}
 		}
 
-		reportFn(report)
+		if reportFn != nil {
+			reportFn(report)
+		}
 
 		return
 	}
@@ -136,7 +144,9 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		}
 	}
 
-	reportFn(report)
+	if reportFn != nil {
+		reportFn(report)
+	}
 }
 
 // NextRunnable returns the next runnable rule with the same source.

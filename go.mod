@@ -10,6 +10,7 @@ tool github.com/vektra/mockery/v3
 
 require (
 	github.com/emad-elsaid/boolexpr v0.3.0
+	github.com/emad-elsaid/memoize v0.0.0-20260531150747-00e70f4a2b09
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
