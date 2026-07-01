@@ -20,6 +20,7 @@ func EventSymbols(event any) boolexpr.Symbols {
 	if symbols, ok := event.(boolexpr.Symbols); ok {
 		return boolexpr.NewCachedSymbols(symbols)
 	}
+
 	return boolexpr.SymbolsMap{}
 }
 

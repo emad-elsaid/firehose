@@ -1,3 +1,4 @@
+// Package actions provides reusable action implementations for firehose rules.
 package actions
 
 import (

@@ -29,12 +29,20 @@ func (s *Slog[I, O]) WrapCallback(
 }
 
 // WrapAction passes through the action unchanged.
-func (s *Slog[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O]) (fh.Action[I, O], error) {
+func (s *Slog[I, O]) WrapAction(
+	_ context.Context,
+	_ *fh.Rule[I, O],
+	action fh.Action[I, O],
+) (fh.Action[I, O], error) {
 	return action, nil
 }
 
 // WrapDestination passes through the destination unchanged.
-func (s *Slog[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O]) (fh.Destination[O], error) {
+func (s *Slog[I, O]) WrapDestination(
+	_ context.Context,
+	_ *fh.Rule[I, O],
+	destination fh.Destination[O],
+) (fh.Destination[O], error) {
 	return destination, nil
 }
 
@@ -42,6 +50,7 @@ func (s Slog[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc)
 	results := []fh.Report{}
 
 	var mutex sync.Mutex
+
 	reportSink := func(r fh.Report) {
 		mutex.Lock()
 		defer mutex.Unlock()

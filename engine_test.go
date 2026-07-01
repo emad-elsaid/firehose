@@ -221,7 +221,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source1,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -253,7 +253,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		rule2 := &MockRule{
 			ID:   "rule2",
@@ -289,14 +289,14 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		rule3 := &MockRule{
 			ID:   "rule3",
@@ -346,7 +346,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		// Add second rule with sourceA
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
@@ -354,7 +354,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		// Add rule with sourceB
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
@@ -362,7 +362,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceB,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		// Add third rule with sourceA
 		result, err := AddRule(t.Context(), registry, &MockRule{
@@ -370,7 +370,7 @@ func TestAddRuleSameSourceChaining(t *testing.T) {
 			On:   sourceA,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		require.NoError(t, err)
 
@@ -426,7 +426,7 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
@@ -458,13 +458,13 @@ func TestStart(t *testing.T) {
 			On:   source1,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source2,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
@@ -493,7 +493,7 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		ctx := t.Context()
 
@@ -518,13 +518,13 @@ func TestStart(t *testing.T) {
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 		registry, _ = AddRule(t.Context(), registry, &MockRule{
 			ID:   "rule2",
 			On:   source,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
-		}, )
+		})
 
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()

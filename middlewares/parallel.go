@@ -31,24 +31,35 @@ func (s *Parallel[I, O]) WrapCallback(
 }
 
 // WrapAction passes through the action unchanged.
-func (s *Parallel[I, O]) WrapAction(_ context.Context, _ *fh.Rule[I, O], action fh.Action[I, O]) (fh.Action[I, O], error) {
+func (s *Parallel[I, O]) WrapAction(
+	_ context.Context,
+	_ *fh.Rule[I, O],
+	action fh.Action[I, O],
+) (fh.Action[I, O], error) {
 	return action, nil
 }
 
 // WrapDestination passes through the destination unchanged.
-func (s *Parallel[I, O]) WrapDestination(_ context.Context, _ *fh.Rule[I, O], destination fh.Destination[O]) (fh.Destination[O], error) {
+func (s *Parallel[I, O]) WrapDestination(
+	_ context.Context,
+	_ *fh.Rule[I, O],
+	destination fh.Destination[O],
+) (fh.Destination[O], error) {
 	return destination, nil
 }
 
 func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
 	syms := fh.EventSymbols(event)
 
-	var waitGroup sync.WaitGroup
-	var mutex sync.Mutex
+	var (
+		waitGroup sync.WaitGroup
+		mutex     sync.Mutex
+	)
 
 	safeReport := func(r fh.Report) {
 		mutex.Lock()
 		defer mutex.Unlock()
+
 		report(r)
 	}
 

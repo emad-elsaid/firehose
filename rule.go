@@ -91,65 +91,109 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
-	// Evaluate condition if present
-	if r.If != nil {
-		pass, err := r.If.Evaluate(ctx, event, syms)
-		if err != nil {
-			if reportFn != nil {
-				reportFn(NewRuleReport(r.ID, ConditionError{Err: err}))
-			}
-
-			return
-		}
-
-		if !pass {
-			if reportFn != nil {
-				reportFn(NewRuleReport(r.ID, ErrNoMatch))
-			}
-
-			return
-		}
-	}
-
-	// Use wrapped action if available, otherwise use the direct action
-	action := r.Then
-	if r.actionWrappers != nil {
-		action = r.actionWrappers
-	}
-	out, report := action.Process(ctx, event, syms)
-	report.Rule = r.ID
-
-	if report.Err != nil {
-		var actionErr ActionError
-		if !errors.As(report.Err, &actionErr) {
-			report.Err = ActionError{Err: report.Err}
-		}
-
-		if reportFn != nil {
-			reportFn(report)
-		}
+	conditionPassed, conditionReport := r.evaluateCondition(ctx, event, syms)
+	if !conditionPassed {
+		reportIfNeeded(reportFn, conditionReport)
 
 		return
 	}
 
-	// Use wrapped destination if available, otherwise use the direct destination
-	destination := r.To
-	if r.destinationWrappers != nil {
-		destination = r.destinationWrappers
+	output, actionReport := r.processAction(ctx, event, syms)
+	if actionReport.Err != nil {
+		reportIfNeeded(reportFn, actionReport)
+
+		return
 	}
-	report = destination.Send(ctx, out)
+
+	destinationReport := r.processDestination(ctx, output)
+	reportIfNeeded(reportFn, destinationReport)
+}
+
+func (r *Rule[I, O]) evaluateCondition(
+	ctx context.Context,
+	event I,
+	syms boolexpr.Symbols,
+) (bool, Report) {
+	if r.If == nil {
+		return true, Report{Rule: "", Err: nil}
+	}
+
+	pass, err := r.If.Evaluate(ctx, event, syms)
+	if err != nil {
+		return false, NewRuleReport(r.ID, ConditionError{Err: err})
+	}
+
+	if !pass {
+		return false, NewRuleReport(r.ID, ErrNoMatch)
+	}
+
+	return true, Report{Rule: "", Err: nil}
+}
+
+func (r *Rule[I, O]) processAction(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+	action := r.resolveAction()
+	output, report := action.Process(ctx, event, syms)
 	report.Rule = r.ID
 
 	if report.Err != nil {
-		var destinationErr DestinationError
-		if !errors.As(report.Err, &destinationErr) {
-			report.Err = DestinationError{Err: report.Err}
-		}
+		report.Err = asActionError(report.Err)
 	}
 
-	if reportFn != nil {
-		reportFn(report)
+	return output, report
+}
+
+func (r *Rule[I, O]) processDestination(ctx context.Context, output O) Report {
+	destination := r.resolveDestination()
+	report := destination.Send(ctx, output)
+	report.Rule = r.ID
+
+	if report.Err != nil {
+		report.Err = asDestinationError(report.Err)
 	}
+
+	return report
+}
+
+func (r *Rule[I, O]) resolveAction() Action[I, O] {
+	if r.actionWrappers != nil {
+		return r.actionWrappers
+	}
+
+	return r.Then
+}
+
+func (r *Rule[I, O]) resolveDestination() Destination[O] {
+	if r.destinationWrappers != nil {
+		return r.destinationWrappers
+	}
+
+	return r.To
+}
+
+func asActionError(err error) error {
+	var actionErr ActionError
+	if errors.As(err, &actionErr) {
+		return err
+	}
+
+	return ActionError{Err: err}
+}
+
+func asDestinationError(err error) error {
+	var destinationErr DestinationError
+	if errors.As(err, &destinationErr) {
+		return err
+	}
+
+	return DestinationError{Err: err}
+}
+
+func reportIfNeeded(reportFn ReportFunc, report Report) {
+	if reportFn == nil {
+		return
+	}
+
+	reportFn(report)
 }
 
 // NextRunnable returns the next runnable rule with the same source.
@@ -184,20 +228,17 @@ func (r *Rule[I, O]) combineIf(parent, child If[I]) If[I] {
 	if parent == nil {
 		return child
 	}
+
 	if child == nil {
 		return parent
 	}
 
-	// Build a slice of conditions
-	var conditions []If[I]
+	parentConditions := flattenIf(parent)
+	childConditions := flattenIf(child)
+	conditions := make([]If[I], 0, len(parentConditions)+len(childConditions))
+	conditions = append(conditions, parentConditions...)
+	conditions = append(conditions, childConditions...)
 
-	// Extract conditions from parent
-	conditions = append(conditions, flattenIf(parent)...)
-
-	// Extract conditions from child
-	conditions = append(conditions, flattenIf(child)...)
-
-	// Return a slice that implements If[I]
 	return ifSlice[I](conditions)
 }
 
@@ -209,16 +250,16 @@ func flattenIf[I any](ifVal If[I]) []If[I] {
 		return nil
 	}
 
-	// Check if it's our internal ifSlice type
+	// Check if it's our internal ifSlice type.
 	if v, ok := ifVal.(ifSlice[I]); ok {
 		return []If[I](v)
 	}
 
-	// Everything else is a single condition
+	// Everything else is a single condition.
 	return []If[I]{ifVal}
 }
 
-// ifSlice is a slice of If conditions that implements If[I]
+// ifSlice is a slice of If conditions that implements If[I].
 type ifSlice[I any] []If[I]
 
 func (ifs ifSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
@@ -227,9 +268,11 @@ func (ifs ifSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbo
 		if err != nil {
 			return false, err
 		}
+
 		if !pass {
 			return false, nil
 		}
 	}
+
 	return true, nil
 }

@@ -1,3 +1,4 @@
+// Package middlewares provides reusable firehose middleware implementations.
 package middlewares
 
 import (
@@ -26,6 +27,7 @@ func (p *Panic[I, O]) WrapCallback(
 	callback firehose.Callback[I],
 ) (firehose.Callback[I], error) {
 	p.downstreamCallback = callback
+
 	return p.recoverCallback, nil
 }
 
@@ -36,6 +38,7 @@ func (p *Panic[I, O]) WrapAction(
 	action firehose.Action[I, O],
 ) (firehose.Action[I, O], error) {
 	p.downstreamAction = action
+
 	return p, nil
 }
 
@@ -46,13 +49,14 @@ func (p *Panic[I, O]) WrapDestination(
 	destination firehose.Destination[O],
 ) (firehose.Destination[O], error) {
 	p.downstreamDest = destination
+
 	return p, nil
 }
 
 func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, report firehose.ReportFunc) {
 	defer func() {
-		if r := recover(); r != nil {
-			report(firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r)))
+		if recovered := recover(); recovered != nil {
+			report(firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered)))
 		}
 	}()
 
@@ -68,14 +72,16 @@ func (p *Panic[I, O]) Process(
 	syms boolexpr.Symbols,
 ) (output O, report firehose.Report) {
 	defer func() {
-		if r := recover(); r != nil {
+		if recovered := recover(); recovered != nil {
 			var zero O
+
 			output = zero
-			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))
 		}
 	}()
 
 	output, report = p.downstreamAction.Process(ctx, event, syms)
+
 	return output, report
 }
 
@@ -84,11 +90,12 @@ func (p *Panic[I, O]) Process(
 //nolint:nonamedreturns // Named return allows defer to modify return value on panic recovery
 func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
 	defer func() {
-		if r := recover(); r != nil {
-			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, r))
+		if recovered := recover(); recovered != nil {
+			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))
 		}
 	}()
 
 	report = p.downstreamDest.Send(ctx, event)
+
 	return report
 }

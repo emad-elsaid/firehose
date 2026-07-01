@@ -54,12 +54,12 @@ type Report struct {
 
 // NewSuccessReport creates a new Report for a successful operation.
 func NewSuccessReport() Report {
-	return Report{}
+	return Report{Rule: "", Err: nil}
 }
 
 // NewReport creates a new Report with the given error.
 func NewReport(err error) Report {
-	return Report{Err: err}
+	return Report{Rule: "", Err: err}
 }
 
 // NewRuleReport creates a new Report with the given rule and error.
@@ -72,6 +72,7 @@ func (r Report) String() string {
 		if r.Rule == "" {
 			return "Success"
 		}
+
 		return "Success " + r.Rule
 	}
 

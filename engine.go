@@ -41,16 +41,32 @@ func addSingleRule[I, O any](
 		return nil, err
 	}
 
-	if isActivatable(rule) && (len(rule.Environments) == 0 || slices.Contains(rule.Environments, os.Getenv("ENV"))) {
-		var err error
-
-		registry, err = registerActivatableRule(ctx, registry, rule)
-		if err != nil {
-			return nil, err
+	if shouldRegisterRule(rule) {
+		updatedRegistry, registerErr := registerActivatableRule(ctx, registry, rule)
+		if registerErr != nil {
+			return nil, registerErr
 		}
+
+		registry = updatedRegistry
 	}
 
 	return registerSubRules(ctx, registry, rule)
+}
+
+func shouldRegisterRule[I, O any](rule *Rule[I, O]) bool {
+	if !isActivatable(rule) {
+		return false
+	}
+
+	return isEnvironmentEnabled(rule.Environments, os.Getenv("ENV"))
+}
+
+func isEnvironmentEnabled(environments []string, currentEnvironment string) bool {
+	if len(environments) == 0 {
+		return true
+	}
+
+	return slices.Contains(environments, currentEnvironment)
 }
 
 func validateAndCheckActivatable[I, O any](rule *Rule[I, O]) error {
@@ -115,24 +131,41 @@ func wrapMiddlewares[I, O any](
 	rule.actionWrappers = rule
 	rule.destinationWrappers = rule
 
-	for _, mw := range slices.Backward(middlewares) {
-		var err error
-
-		rule.wrappedCallback, err = mw.WrapCallback(ctx, rule, rule.wrappedCallback)
-		if err != nil {
-			return err
-		}
-
-		rule.actionWrappers, err = mw.WrapAction(ctx, rule, rule.actionWrappers)
-		if err != nil {
-			return err
-		}
-
-		rule.destinationWrappers, err = mw.WrapDestination(ctx, rule, rule.destinationWrappers)
+	for _, middleware := range slices.Backward(middlewares) {
+		err := wrapWithMiddleware(ctx, rule, middleware)
 		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func wrapWithMiddleware[I, O any](
+	ctx context.Context,
+	rule *Rule[I, O],
+	middleware Middleware[I, O],
+) error {
+	wrappedCallback, err := middleware.WrapCallback(ctx, rule, rule.wrappedCallback)
+	if err != nil {
+		return err
+	}
+
+	rule.wrappedCallback = wrappedCallback
+
+	wrappedAction, err := middleware.WrapAction(ctx, rule, rule.actionWrappers)
+	if err != nil {
+		return err
+	}
+
+	rule.actionWrappers = wrappedAction
+
+	wrappedDestination, err := middleware.WrapDestination(ctx, rule, rule.destinationWrappers)
+	if err != nil {
+		return err
+	}
+
+	rule.destinationWrappers = wrappedDestination
 
 	return nil
 }
@@ -194,9 +227,7 @@ func getSameSourceTail(registry Registry, source any) sourceRegistry {
 func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) {
 	for current := registry; current != nil; {
 		err := current.start(ctx)
-		if err != nil && errFunc != nil {
-			errFunc(err)
-		}
+		reportError(errFunc, err)
 
 		current = current.getNext()
 		if current == registry {
@@ -209,22 +240,32 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) {
 // that occurred during processing to the provided error channel.
 func Wait(registry Registry, errFunc ErrorHandler) {
 	for current := registry; current != nil; {
-		ctx := current.getCtx()
-
-		if ctx != nil {
-			<-ctx.Done()
-
-			err := ctx.Err()
-			if err != nil && errFunc != nil {
-				errFunc(err)
-			}
-		}
+		waitForRule(current, errFunc)
 
 		current = current.getNext()
 		if current == registry {
 			break
 		}
 	}
+}
+
+func waitForRule(rule Registry, errFunc ErrorHandler) {
+	ctx := rule.getCtx()
+	if ctx == nil {
+		return
+	}
+
+	<-ctx.Done()
+
+	reportError(errFunc, ctx.Err())
+}
+
+func reportError(errFunc ErrorHandler, err error) {
+	if err == nil || errFunc == nil {
+		return
+	}
+
+	errFunc(err)
 }
 
 // flatten recursively inherit the properties of the parent rule to its subrules.
@@ -294,7 +335,7 @@ func isActivatable[I, O any](rule *Rule[I, O]) bool {
 
 // IsValid validates the rule's fields.
 func IsValid[I, O any](rule *Rule[I, O]) error {
-	var validate = validator.New(validator.WithRequiredStructEnabled())
+	validatorInstance := validator.New(validator.WithRequiredStructEnabled())
 
-	return validate.Struct(rule)
+	return validatorInstance.Struct(rule)
 }

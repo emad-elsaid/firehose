@@ -15,6 +15,9 @@ import (
 // ErrCacheMiss indicates the cache does not contain the requested key.
 var ErrCacheMiss = errors.New("cache miss")
 
+// ErrInvalidCachedItemType indicates a value exists in cache with an unexpected type.
+var ErrInvalidCachedItemType = errors.New("invalid cached item type")
+
 // NewMemory creates a new in-memory cache with the specified default TTL and cleanup interval.
 func NewMemory[O any](defaultTTL, cleanup time.Duration) Memory[O] {
 	return Memory[O]{
@@ -35,16 +38,18 @@ type MemoryItem[O any] struct {
 
 // Get retrieves a value from the cache by key, returning the value, report, and whether it was found.
 func (m Memory[O]) Get(_ context.Context, key string) (O, fh.Report, bool) {
-	v, ok := m.cache.Get(key)
-	if !ok {
+	cachedValue, found := m.cache.Get(key)
+	if !found {
 		var zero O
+
 		return zero, fh.NewReport(ErrCacheMiss), false
 	}
 
-	item, ok := v.(MemoryItem[O])
+	item, ok := cachedValue.(MemoryItem[O])
 	if !ok {
 		var zero O
-		return zero, fh.NewReport(fmt.Errorf("invalid cached item type for key %q", key)), false
+
+		return zero, fh.NewReport(fmt.Errorf("%w: key %q", ErrInvalidCachedItemType, key)), false
 	}
 
 	return item.Value, item.Report, true
@@ -64,13 +69,13 @@ func (m Memory[O]) GetOrSet(
 	ttl time.Duration,
 	callback func() (O, fh.Report),
 ) (O, fh.Report, bool) {
-	v, report, ok := m.Get(ctx, key)
+	value, report, ok := m.Get(ctx, key)
 	if ok {
-		return v, report, true
+		return value, report, true
 	}
 
-	o, report := callback()
-	m.Set(ctx, key, o, report, ttl)
+	output, computedReport := callback()
+	m.Set(ctx, key, output, computedReport, ttl)
 
-	return o, report, false
+	return output, computedReport, false
 }
