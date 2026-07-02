@@ -1,0 +1,72 @@
+package actions
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/emad-elsaid/boolexpr"
+	fh "github.com/emad-elsaid/firehose"
+	"github.com/stretchr/testify/require"
+)
+
+func TestChain5Process(t *testing.T) {
+	fifthErr := errors.New("fifth failed")
+
+	tests := []struct {
+		name       string
+		chain      Chain5[int, int, int, int, int, int]
+		wantOutput int
+		wantErr    error
+	}{
+		{
+			name: "success",
+			chain: Chain5[int, int, int, int, int, int]{
+				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event + 1, fh.NewSuccessReport()
+				}),
+				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event * 2, fh.NewSuccessReport()
+				}),
+				Third: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event - 3, fh.NewSuccessReport()
+				}),
+				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event + 10, fh.NewSuccessReport()
+				}),
+				Fifth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event / 3, fh.NewSuccessReport()
+				}),
+			},
+			wantOutput: 5,
+		},
+		{
+			name: "returns final step error",
+			chain: Chain5[int, int, int, int, int, int]{
+				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event + 1, fh.NewSuccessReport()
+				}),
+				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event * 2, fh.NewSuccessReport()
+				}),
+				Third: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event - 3, fh.NewSuccessReport()
+				}),
+				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
+					return event + 10, fh.NewSuccessReport()
+				}),
+				Fifth: Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) { return 0, fh.NewReport(fifthErr) }),
+			},
+			wantErr: fifthErr,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out, report := tc.chain.Process(t.Context(), 3, boolexpr.SymbolsMap{})
+
+			require.Equal(t, tc.wantOutput, out)
+			require.ErrorIs(t, report.Err, tc.wantErr)
+		})
+	}
+}

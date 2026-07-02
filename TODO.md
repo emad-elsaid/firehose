@@ -1,6 +1,6 @@
-- [ ] Logo
-- [ ] Website
-- [ ] Documentation
-- [ ] Wrappers for popular libraries
+- [x] Documentation
+- [x] Actions/Destination (Fanout, Roundrobin, Random)
 - [ ] Add more rules features (Debounce)
-- [ ] Actions/Destination (Fanout, Roundrobin, Random)
+- [ ] Wrappers for popular libraries
+- [ ] Website
+- [ ] Logo

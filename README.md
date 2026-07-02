@@ -181,6 +181,87 @@ Sources receive reports through the callback's `ReportFunc` argument, enabling m
 - ✅ **Struct validation** - Declarative validation with `go-playground/validator`
 
 
+## Built-in Components
+
+Firehose ships with reusable building blocks under subpackages.
+
+### Conditions (`ifs`)
+
+- `ifs.Func[I](func(ctx, event, syms) (bool, error) { ... })` — function adapter for conditions
+- `ifs.Cond[I]("...")` — expression-based filtering using `boolexpr`
+- `&ifs.RateLimit[I]{Limit: ..., Burst: ...}` — throttle event processing
+- `&ifs.Once[I]{Duration: ..., Cache: ...}` — deduplicate events by `EventID`
+- `ifs.Ifs[I]{...}` — evaluate multiple conditions in sequence
+
+### Actions (`actions`)
+
+- `actions.Func[I, O](func(ctx, event, syms) (O, fh.Report) { ... })` — function adapter for actions
+- `&actions.Cache[I, O]{Action: ..., Cache: ..., TTL: ...}` — memoize action output per event
+- `actions.Chain[I, M, O]{...}` — compose two actions (`I -> M -> O`)
+- `actions.Chain3[I, A, B, O]{...}` — compose three actions
+- `actions.Chain4[I, A, B, C, O]{...}` — compose four actions
+- `actions.Chain5[I, A, B, C, D, O]{...}` — compose five actions
+- `&actions.RoundRobin[I, O]{Actions: ...}` — dispatch events across actions in sequence
+- `&actions.Random[I, O]{Actions: ...}` — dispatch events to a random action
+
+### Destinations (`destinations`)
+
+- `destinations.Func[T](func(ctx, event) fh.Report { ... })` — function adapter for destinations
+- `destinations.Fanout[T]{Destinations: ...}` — send to all destinations
+- `&destinations.RoundRobin[T]{Destinations: ...}` — send in round-robin order
+- `&destinations.Random[T]{Destinations: ...}` — send to a random destination
+
+### Sources (`sources`)
+
+- `sources.Func[T](func(ctx, cb) (context.Context, error) { ... })` — function adapter for sources
+
+### Cache Storage (`cache`)
+
+- `cache.NewMemory[O](defaultTTL, cleanupInterval)` — in-memory cache backend
+
+### Middlewares (`middlewares`)
+
+- `&middlewares.Panic[I, O]{}` — panic recovery for callback/action/destination
+- `&middlewares.Slog[I, O]{}` — structured event/report logging via `log/slog`
+- `&middlewares.Parallel[I, O]{Runner: runner.Basic{}}` — run same-source rules in parallel
+
+## Environment-Specific Rules
+
+Rules can be enabled only in selected environments:
+
+```go
+rule := &fh.Rule[Event, Out]{
+    ID:           "billing/charge",
+    Environments: []string{"production", "staging"},
+    On:           source,
+    Then:         action,
+    To:           destination,
+}
+```
+
+`AddRule` includes such a rule only when `ENV` matches one of `Environments`.
+If `Environments` is empty, the rule is always active.
+
+## Reports and Error Classification
+
+Each rule execution emits a `Report`:
+
+```go
+type Report struct {
+    Rule string
+    Err  error
+}
+```
+
+Common report errors:
+
+- `ErrNoMatch` — condition evaluated to false (normal control flow)
+- `ConditionError` — failure while evaluating `If`
+- `ActionError` — failure inside `Action.Process`
+- `DestinationError` — failure inside `Destination.Send`
+
+Use `errors.Is` / `errors.As` to classify reports in monitoring code.
+
 ## Building Event Sources, Transformations, and Destinations
 
 The framework defines three core interfaces you implement for custom event processing.
