@@ -1,3 +1,4 @@
+// Package destinations provides reusable destination implementations for firehose rules.
 package destinations
 
 import (

@@ -210,6 +210,10 @@ Firehose ships with reusable building blocks under subpackages.
 - `destinations.Fanout[T]{Destinations: ...}` — send to all destinations
 - `&destinations.RoundRobin[T]{Destinations: ...}` — send in round-robin order
 - `&destinations.Random[T]{Destinations: ...}` — send to a random destination
+- `destinations.FromChan[T]{To: ...}` — consume `chan T`, forward each item to `To`
+- `destinations.FromSlice[T]{To: ...}` — consume `[]T`, forward each item to `To`
+- `destinations.ToChan[T]{To: ...}` — wrap `T` as one-item `chan T`, forward to `To`
+- `destinations.ToSlice[T]{To: ...}` — wrap `T` as one-item `[]T`, forward to `To`
 
 ### Sources (`sources`)
 
