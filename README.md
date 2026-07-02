@@ -81,8 +81,8 @@ fanning events out to all rules that share it:
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-AddRule(ctx, reg, &Rule[OrderEvent, Email]{On: kafkaSource, ...}, ...)
-AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{On: kafkaSource, ...}, ...)
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{On: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{On: kafkaSource, ...})
 ```
 
 Different source instances (even of the same type) start independently.
@@ -130,22 +130,29 @@ and destinations (output). Apply cross-cutting concerns like logging, metrics, r
 ```go
 type LoggingMiddleware[I, O any] struct{}
 
+type loggingAction[I, O any] struct {
+    ruleID string
+    next   Action[I, O]
+}
+
+func (a loggingAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+    log.Printf("Processing event in rule %s", a.ruleID)
+    out, report := a.next.Process(ctx, event, syms)
+    log.Printf("Rule %s completed (err=%v)", a.ruleID, report.Err)
+
+    return out, report
+}
+
 func (m LoggingMiddleware[I, O]) WrapAction(
-    ctx context.Context,
+    _ context.Context,
     rule *Rule[I, O],
     action Action[I, O],
-    in I,
 ) (Action[I, O], error) {
-    return ActionFunc[I, O](func(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
-        log.Printf("Processing event in rule %s", rule.ID)
-        out, report := action.Process(ctx, event, syms)
-        log.Printf("Rule %s completed (err=%v)", rule.ID, report.Err)
-        return out, report
-    }), nil
+    return loggingAction[I, O]{ruleID: rule.ID, next: action}, nil
 }
 ```
 
-Middlewares compose in reverse registration order (last wraps first).
+Middlewares compose in registration order (first wraps later middlewares).
 
 ### Event Processing Reports
 
@@ -158,7 +165,7 @@ type Report struct {
 }
 ```
 
-The framework collects reports and sends them through channels for monitoring and observability.
+Sources receive reports through the callback's `ReportFunc` argument, enabling monitoring and observability.
 
 
 ## Features
@@ -197,19 +204,17 @@ type HTTPSource struct {
 
 func (s HTTPSource) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
     server := &http.Server{Addr: s.Addr}
-    
+
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         event := HTTPRequest{Method: r.Method, Path: r.URL.Path}
-        reports := make(chan fh.Report)
-        
-        go func() {
-            cb(r.Context(), event, reports)
-            close(reports)
-        }()
-        
-        // Process reports...
+
+        cb(r.Context(), event, func(report fh.Report) {
+            if report.Err != nil {
+                log.Printf("rule %s failed: %v", report.Rule, report.Err)
+            }
+        })
     })
-    
+
     go server.ListenAndServe()
     return ctx, nil
 }
@@ -277,10 +282,14 @@ package main
 
 import (
     "context"
+    "errors"
+    "fmt"
+    "log"
     "os"
     "os/signal"
     "time"
 
+    "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
     "github.com/emad-elsaid/firehose/ifs"
 )
@@ -312,9 +321,11 @@ func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context
             case <-ctx.Done():
                 return
             case now := <-ticker.C:
-                reports := make(chan fh.Report, 1)
-                cb(ctx, Tick{Time: now}, reports)
-                close(reports)
+                cb(ctx, Tick{Time: now}, func(report fh.Report) {
+                    if report.Err != nil {
+                        log.Printf("rule %s failed: %v", report.Rule, report.Err)
+                    }
+                })
             }
         }
     }()
@@ -350,17 +361,16 @@ func main() {
     }
 
     // 7. Register and start
-    registry, _ := fh.AddRule(ctx, nil, rule, Tick{}, "")
-    
-    errs := make(chan error)
-    fh.Start(ctx, registry, errs)
-    
-    go fh.Wait(registry, errs)
-    for err := range errs {
-        if err != nil && err != context.Canceled {
-            panic(err)
+    registry, _ := fh.AddRule(ctx, nil, rule)
+
+    errHandler := func(err error) {
+        if err != nil && !errors.Is(err, context.Canceled) {
+            log.Printf("engine error: %v", err)
         }
     }
+
+    fh.Start(ctx, registry, errHandler)
+    fh.Wait(registry, errHandler)
 }
 ```
 
@@ -415,19 +425,26 @@ See [boolexpr documentation](https://github.com/emad-elsaid/boolexpr) for comple
 ```go
 // Rule defines a complete event processing pipeline
 type Rule[I, O any] struct {
-    ID          string          // Unique identifier
-    On          Source[I]       // Event source
-    If          If[I]           // Optional filter condition
-    Then        Action[I, O]    // Event transformation
-    To          Destination[O]  // Output handler
-    SubRules    []Rule[I, O]    // Child rules (inherit parent properties)
-    Middlewares []Middleware[I, O] // Pipeline interceptors
+    ID           string             // Unique identifier
+    Environments []string           // Active only when ENV matches; empty = all environments
+    On           Source[I]          // Event source
+    If           If[I]              // Optional filter condition
+    Then         Action[I, O]       // Event transformation
+    To           Destination[O]     // Output handler
+    SubRules     []Rule[I, O]       // Child rules (inherit parent properties)
+    Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
 
 // Source produces events
 type Source[T any] interface {
     Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
 }
+
+// Callback receives source events and a report sink function
+type Callback[I any] func(context.Context, I, ReportFunc)
+
+// ReportFunc receives processing reports
+type ReportFunc func(Report)
 
 // Action transforms events
 type Action[I, O any] interface {
@@ -446,9 +463,9 @@ type If[I any] interface {
 
 // Middleware intercepts pipeline components
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I], in I) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O], in I) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O], out O) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O]) (Destination[O], error)
 }
 
 // Report communicates operation results
@@ -466,15 +483,16 @@ func AddRule[I, O any](
     ctx context.Context,
     registry Registry,
     rule *Rule[I, O],
-    inInstance I,
-    outInstance O,
 ) (Registry, error)
 
+// ErrorHandler receives errors from Start/Wait
+type ErrorHandler func(error)
+
 // Start activates all registered event sources
-func Start(ctx context.Context, registry Registry, errChan chan<- error)
+func Start(ctx context.Context, registry Registry, errFunc ErrorHandler)
 
 // Wait blocks until all sources complete
-func Wait(registry Registry, errChan chan<- error)
+func Wait(registry Registry, errFunc ErrorHandler)
 ```
 
 ### Event Symbol Interface
@@ -547,7 +565,7 @@ parentRule := &fh.Rule[I, O]{
 //   cache_alert:    (env="production" AND user="app") AND (name="redis")
 //   web_alert:      (env="production" AND user="app") AND (name="nginx")
 
-registry, _ := fh.AddRule(ctx, nil, parentRule, I{}, O{})
+registry, _ := fh.AddRule(ctx, nil, parentRule)
 ```
 
 
