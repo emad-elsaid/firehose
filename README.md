@@ -207,6 +207,7 @@ Firehose ships with reusable building blocks under subpackages.
 ### Destinations (`destinations`)
 
 - `destinations.Func[T](func(ctx, event) fh.Report { ... })` — function adapter for destinations
+- `&destinations.Accumulator[T]{}` — accumulate output events in memory (`Items() []T`)
 - `destinations.Fanout[T]{Destinations: ...}` — send to all destinations
 - `&destinations.RoundRobin[T]{Destinations: ...}` — send in round-robin order
 - `&destinations.Random[T]{Destinations: ...}` — send to a random destination
@@ -218,6 +219,7 @@ Firehose ships with reusable building blocks under subpackages.
 ### Sources (`sources`)
 
 - `sources.Func[T](func(ctx, cb) (context.Context, error) { ... })` — function adapter for sources
+- `&sources.Manual[T]{}` — manual source; call `Emit(ctx, event)` to trigger events
 
 ### Cache Storage (`cache`)
 
