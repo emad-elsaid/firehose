@@ -54,7 +54,7 @@
 ## Product & Ecosystem
 
 - [ ] Wrappers for popular libraries
-- [ ] Website
+- [x] Website
 - [ ] Logo
 
 ## Deferred (only if external/runtime-managed rule definitions are introduced)
