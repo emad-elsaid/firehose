@@ -7,11 +7,11 @@
 - [x] Destination dispatchers: `Fanout`, `RoundRobin`, `Random`
 - [x] Destination wrappers: `FromChan`, `FromSlice`, `ToChan`, `ToSlice`
 - [x] Dedup primitive: `ifs.Once` (event-id based + TTL)
+- [X] Output If to be able to have input and output validation
 
 ## Next Up (High Priority)
 
 - [ ] Debounce condition (`ifs.Debounce`)
-- [ ] Rule priority/salience (deterministic execution order)
 - [ ] Conflict resolution modes beyond current all-match (`first-match`, `best-score`)
 - [ ] Rule groups/agendas (phase-based execution)
 - [ ] Per-rule metrics (match/error/latency)
@@ -21,7 +21,6 @@
 ## Rule Semantics & Control
 
 - [ ] Rule dependencies (`before`/`after`/prerequisite outcomes)
-- [ ] Activation controls: cooldown (Once already exists)
 - [ ] Branching flow for actions (if/else style pipelines)
 - [ ] Retry/backoff policies for actions/destinations
 - [ ] Circuit breaker + fallback destination
@@ -29,8 +28,6 @@
 ## Conditions & Expression Engine
 
 - [ ] Nested field/path access in conditions
-- [ ] Configurable type coercion policy (strict/permissive)
-- [ ] Expression function registry (custom funcs)
 - [ ] Temporal predicates (`within`, `before`, `after`)
 - [ ] Window predicates (count/rate/distinct over interval)
 

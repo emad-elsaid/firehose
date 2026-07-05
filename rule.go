@@ -25,6 +25,9 @@ type Rule[I, O any] struct {
 	If If[I]
 	// Then is the action to process the event if the On source produces an event
 	Then Action[I, O] `validate:"required_without=SubRules"`
+	// IfOutput is a condition that must evaluate to true for the rule to send
+	// the output of the Then action to the To destination.
+	IfOutput If[O]
 	// To is the destination to send the output of the Then action
 	To Destination[O] `validate:"required_without=SubRules"`
 	// SubRules are the child rules that will inherit the parent fields if set
@@ -105,6 +108,14 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		return
 	}
 
+	outputSyms := EventSymbols(output)
+	postConditionPassed, postConditionReport := r.evaluateOutputCondition(ctx, output, outputSyms)
+	if !postConditionPassed {
+		reportIfNeeded(reportFn, postConditionReport)
+
+		return
+	}
+
 	destinationReport := r.processDestination(ctx, output)
 	reportIfNeeded(reportFn, destinationReport)
 }
@@ -119,6 +130,27 @@ func (r *Rule[I, O]) evaluateCondition(
 	}
 
 	pass, err := r.If.Evaluate(ctx, event, syms)
+	if err != nil {
+		return false, NewRuleReport(r.ID, ConditionError{Err: err})
+	}
+
+	if !pass {
+		return false, NewRuleReport(r.ID, ErrNoMatch)
+	}
+
+	return true, Report{Rule: "", Err: nil}
+}
+
+func (r *Rule[I, O]) evaluateOutputCondition(
+	ctx context.Context,
+	event O,
+	syms boolexpr.Symbols,
+) (bool, Report) {
+	if r.IfOutput == nil {
+		return true, Report{Rule: "", Err: nil}
+	}
+
+	pass, err := r.IfOutput.Evaluate(ctx, event, syms)
 	if err != nil {
 		return false, NewRuleReport(r.ID, ConditionError{Err: err})
 	}
