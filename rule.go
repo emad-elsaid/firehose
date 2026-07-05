@@ -109,6 +109,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	}
 
 	outputSyms := EventSymbols(output)
+
 	postConditionPassed, postConditionReport := r.evaluateOutputCondition(ctx, output, outputSyms)
 	if !postConditionPassed {
 		reportIfNeeded(reportFn, postConditionReport)

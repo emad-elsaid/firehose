@@ -21,7 +21,6 @@
 ## Rule Semantics & Control
 
 - [ ] Rule dependencies (`before`/`after`/prerequisite outcomes)
-- [ ] Branching flow for actions (if/else style pipelines)
 - [ ] Retry/backoff policies for actions/destinations
 - [ ] Circuit breaker + fallback destination
 
