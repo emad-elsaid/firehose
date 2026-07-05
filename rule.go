@@ -136,7 +136,7 @@ func (r *Rule[I, O]) evaluateCondition(
 	}
 
 	if !pass {
-		return false, NewRuleReport(r.ID, ErrNoMatch)
+		return false, NewRuleReport(r.ID, ErrInputNoMatch)
 	}
 
 	return true, Report{Rule: "", Err: nil}
@@ -157,7 +157,7 @@ func (r *Rule[I, O]) evaluateOutputCondition(
 	}
 
 	if !pass {
-		return false, NewRuleReport(r.ID, ErrNoMatch)
+		return false, NewRuleReport(r.ID, ErrOutputNoMatch)
 	}
 
 	return true, Report{Rule: "", Err: nil}

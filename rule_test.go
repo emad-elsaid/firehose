@@ -431,11 +431,11 @@ func TestRule_Send(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name              string
-		setupDestination  func() Destination[*EventMock]
-		event             *EventMock
-		expectedError     bool
-		validateReport    func(t *testing.T, report Report)
+		name             string
+		setupDestination func() Destination[*EventMock]
+		event            *EventMock
+		expectedError    bool
+		validateReport   func(t *testing.T, report Report)
 	}{
 		{
 			name: "successful send",
@@ -483,12 +483,12 @@ func TestRule_EvaluateCondition(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name              string
-		setupCondition    func() If[*EventMock]
-		event             *EventMock
-		expectedPass      bool
-		expectedError     bool
-		validateReport    func(t *testing.T, report Report)
+		name           string
+		setupCondition func() If[*EventMock]
+		event          *EventMock
+		expectedPass   bool
+		expectedError  bool
+		validateReport func(t *testing.T, report Report)
 	}{
 		{
 			name: "nil condition passes",
@@ -532,7 +532,7 @@ func TestRule_EvaluateCondition(t *testing.T) {
 			expectedError: false,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrNoMatch)
+				require.ErrorIs(t, report.Err, ErrInputNoMatch)
 			},
 		},
 		{
@@ -574,12 +574,12 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name              string
-		setupCondition    func() If[*EventMock]
-		event             *EventMock
-		expectedPass      bool
-		expectedError     bool
-		validateReport    func(t *testing.T, report Report)
+		name           string
+		setupCondition func() If[*EventMock]
+		event          *EventMock
+		expectedPass   bool
+		expectedError  bool
+		validateReport func(t *testing.T, report Report)
 	}{
 		{
 			name: "nil output condition passes",
@@ -623,7 +623,7 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 			expectedError: false,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrNoMatch)
+				require.ErrorIs(t, report.Err, ErrOutputNoMatch)
 			},
 		},
 		{
@@ -724,11 +724,11 @@ func TestRule_ProcessDestination(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name              string
-		setupDestination  func() Destination[*EventMock]
-		event             *EventMock
-		expectedError     bool
-		validateReport    func(t *testing.T, report Report)
+		name             string
+		setupDestination func() Destination[*EventMock]
+		event            *EventMock
+		expectedError    bool
+		validateReport   func(t *testing.T, report Report)
 	}{
 		{
 			name: "successful destination",
@@ -781,9 +781,9 @@ func TestRule_ResolveAction(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		setupRule      func() *Rule[*EventMock, *EventMock]
-		expectWrapped  bool
+		name          string
+		setupRule     func() *Rule[*EventMock, *EventMock]
+		expectWrapped bool
 	}{
 		{
 			name: "returns action when no wrappers",
@@ -828,9 +828,9 @@ func TestRule_ResolveDestination(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		setupRule      func() *Rule[*EventMock, *EventMock]
-		expectWrapped  bool
+		name          string
+		setupRule     func() *Rule[*EventMock, *EventMock]
+		expectWrapped bool
 	}{
 		{
 			name: "returns destination when no wrappers",
@@ -1094,9 +1094,9 @@ func TestAsActionError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		input          error
-		expectWrapped  bool
+		name          string
+		input         error
+		expectWrapped bool
 	}{
 		{
 			name:          "wraps non-ActionError",
@@ -1131,9 +1131,9 @@ func TestAsDestinationError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		input          error
-		expectWrapped  bool
+		name          string
+		input         error
+		expectWrapped bool
 	}{
 		{
 			name:          "wraps non-DestinationError",
@@ -1168,10 +1168,10 @@ func TestReportIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name         string
-		reportFn     ReportFunc
-		report       Report
-		expectCall   bool
+		name       string
+		reportFn   ReportFunc
+		report     Report
+		expectCall bool
 	}{
 		{
 			name:       "calls reportFn when not nil",
@@ -1210,11 +1210,11 @@ func TestRule_CombineIf(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		setupParent    func() If[*EventMock]
-		setupChild     func() If[*EventMock]
-		expectNil      bool
-		expectedCount  int
+		name          string
+		setupParent   func() If[*EventMock]
+		setupChild    func() If[*EventMock]
+		expectNil     bool
+		expectedCount int
 	}{
 		{
 			name: "both nil returns nil",
@@ -1512,7 +1512,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			expectedReports: 1,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrNoMatch)
+				require.ErrorIs(t, report.Err, ErrInputNoMatch)
 			},
 		},
 		{
@@ -1566,7 +1566,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			expectedReports: 1,
 			validateReport: func(t *testing.T, report Report) {
 				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrNoMatch)
+				require.ErrorIs(t, report.Err, ErrOutputNoMatch)
 			},
 		},
 		{

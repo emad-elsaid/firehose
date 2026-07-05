@@ -4,7 +4,8 @@ import "errors"
 
 // Sentinel errors used for control flow and classification.
 var (
-	ErrNoMatch = errors.New("no match")
+	ErrInputNoMatch  = errors.New("no match")
+	ErrOutputNoMatch = errors.New("output no match")
 )
 
 // ConditionError wraps an error that occurred during If evaluation.
