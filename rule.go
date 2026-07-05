@@ -253,11 +253,11 @@ func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.On }
 
-// combineIf combines two If conditions into a single If.
+// combineConditions is a generic helper that combines two If conditions into a single If.
 // If both are nil, returns nil.
 // If one is nil, returns the other.
 // If both are non-nil, returns a slice-based If that evaluates both in sequence.
-func (r *Rule[I, O]) combineIf(parent, child If[I]) If[I] {
+func combineConditions[T any](parent, child If[T]) If[T] {
 	if parent == nil {
 		return child
 	}
@@ -268,11 +268,11 @@ func (r *Rule[I, O]) combineIf(parent, child If[I]) If[I] {
 
 	parentConditions := flattenIf(parent)
 	childConditions := flattenIf(child)
-	conditions := make([]If[I], 0, len(parentConditions)+len(childConditions))
+	conditions := make([]If[T], 0, len(parentConditions)+len(childConditions))
 	conditions = append(conditions, parentConditions...)
 	conditions = append(conditions, childConditions...)
 
-	return ifSlice[I](conditions)
+	return ifSlice[T](conditions)
 }
 
 // flattenIf extracts individual If conditions from an If value.

@@ -7,6 +7,7 @@ import (
 	"github.com/emad-elsaid/memoize"
 )
 
+//nolint:gochecknoglobals // Memoization cache required for performance
 var memoizedBoolExprParse = memoize.NewWithErr(boolexpr.Parse)
 
 // Cond is a string-based condition that evaluates boolean expressions against event attributes.

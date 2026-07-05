@@ -311,7 +311,10 @@ func inherit[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 
 func combine[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	// Combine parent and child If conditions
-	child.If = child.combineIf(parent.If, child.If)
+	child.If = combineConditions(parent.If, child.If)
+
+	// Combine parent and child IfOutput conditions
+	child.IfOutput = combineConditions(parent.IfOutput, child.IfOutput)
 
 	if len(parent.Middlewares) > 0 {
 		child.Middlewares = append(parent.Middlewares, child.Middlewares...)

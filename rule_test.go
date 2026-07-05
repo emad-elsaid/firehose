@@ -1305,11 +1305,128 @@ func TestRule_CombineIf(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rule := &Rule[*EventMock, *EventMock]{}
 			parent := tc.setupParent()
 			child := tc.setupChild()
 
-			result := rule.combineIf(parent, child)
+			result := combineConditions(parent, child)
+
+			if tc.expectNil {
+				require.Nil(t, result)
+				return
+			}
+
+			require.NotNil(t, result)
+
+			// Verify count by flattening
+			flattened := flattenIf(result)
+			require.Len(t, flattened, tc.expectedCount)
+		})
+	}
+}
+
+func TestRule_CombineIfOutput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		setupParent   func() If[*EventMock]
+		setupChild    func() If[*EventMock]
+		expectNil     bool
+		expectedCount int
+	}{
+		{
+			name: "both nil returns nil",
+			setupParent: func() If[*EventMock] {
+				return nil
+			},
+			setupChild: func() If[*EventMock] {
+				return nil
+			},
+			expectNil:     true,
+			expectedCount: 0,
+		},
+		{
+			name: "parent nil returns child",
+			setupParent: func() If[*EventMock] {
+				return nil
+			},
+			setupChild: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			expectNil:     false,
+			expectedCount: 1,
+		},
+		{
+			name: "child nil returns parent",
+			setupParent: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			setupChild: func() If[*EventMock] {
+				return nil
+			},
+			expectNil:     false,
+			expectedCount: 1,
+		},
+		{
+			name: "both non-nil combines into slice",
+			setupParent: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			setupChild: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			expectNil:     false,
+			expectedCount: 2,
+		},
+		{
+			name: "flattens nested ifSlice from parent",
+			setupParent: func() If[*EventMock] {
+				cond1 := NewMockIf[*EventMock](t)
+				cond2 := NewMockIf[*EventMock](t)
+				return ifSlice[*EventMock]{cond1, cond2}
+			},
+			setupChild: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			expectNil:     false,
+			expectedCount: 3,
+		},
+		{
+			name: "flattens nested ifSlice from child",
+			setupParent: func() If[*EventMock] {
+				return NewMockIf[*EventMock](t)
+			},
+			setupChild: func() If[*EventMock] {
+				cond1 := NewMockIf[*EventMock](t)
+				cond2 := NewMockIf[*EventMock](t)
+				return ifSlice[*EventMock]{cond1, cond2}
+			},
+			expectNil:     false,
+			expectedCount: 3,
+		},
+		{
+			name: "flattens nested ifSlice from both",
+			setupParent: func() If[*EventMock] {
+				cond1 := NewMockIf[*EventMock](t)
+				cond2 := NewMockIf[*EventMock](t)
+				return ifSlice[*EventMock]{cond1, cond2}
+			},
+			setupChild: func() If[*EventMock] {
+				cond3 := NewMockIf[*EventMock](t)
+				cond4 := NewMockIf[*EventMock](t)
+				return ifSlice[*EventMock]{cond3, cond4}
+			},
+			expectNil:     false,
+			expectedCount: 4,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			parent := tc.setupParent()
+			child := tc.setupChild()
+
+			result := combineConditions(parent, child)
 
 			if tc.expectNil {
 				require.Nil(t, result)

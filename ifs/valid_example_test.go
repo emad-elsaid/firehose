@@ -47,7 +47,7 @@ func Example_validate() {
 	invalidEvent := UserEvent{
 		Username: "jo", // Too short
 		Email:    "invalid-email",
-		Age:      15, // Too young
+		Age:      15,    // Too young
 		Country:  "USA", // Should be 2-letter code
 	}
 

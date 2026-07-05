@@ -28,6 +28,7 @@ import (
 // Returns true if validation passes, false with error if validation fails.
 type Valid[I any] struct{}
 
+//nolint:gochecknoglobals // Shared validator instance for efficiency
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 // Evaluate validates the event using the configured validator.

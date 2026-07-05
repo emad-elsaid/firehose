@@ -34,14 +34,14 @@ func (m *Manual[T]) Emit(ctx context.Context, event T) error {
 // EmitWithReport sends one event with a custom report sink.
 func (m *Manual[T]) EmitWithReport(ctx context.Context, event T, report firehose.ReportFunc) error {
 	m.mutex.RLock()
-	cb := m.callback
+	callback := m.callback
 	m.mutex.RUnlock()
 
-	if cb == nil {
+	if callback == nil {
 		return ErrNotStarted
 	}
 
-	cb(ctx, event, report)
+	callback(ctx, event, report)
 
 	return nil
 }

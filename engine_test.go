@@ -704,6 +704,23 @@ func Test_inherit(t *testing.T) {
 			},
 		},
 		{
+			name: "child output condition should be prepended with parent output conditions",
+			parent: &MockRule{
+				IfOutput: testIfs[*EventMock]{
+					testCond[*EventMock]("parent output condition"),
+				},
+			},
+			child: &MockRule{
+				IfOutput: testIfs[*EventMock]{
+					testCond[*EventMock]("child output condition"),
+				},
+			},
+			expected: &MockRule{
+				ID:       "1",
+				IfOutput: testCond[*EventMock](""), // non-nil placeholder
+			},
+		},
+		{
 			name: "parent ID should be used as prefix for child ID if child has its own ID",
 			parent: &MockRule{
 				ID: "parent",
