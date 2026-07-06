@@ -1,0 +1,108 @@
+# Destinations API
+
+API reference for destination interfaces and built-in implementations.
+
+## Destination Interface
+
+```go
+type Destination[T any] interface {
+    Send(ctx context.Context, event T) Report
+}
+```
+
+## Built-in Destinations
+
+### destinations.Func
+
+Function adapter for custom destinations.
+
+```go
+import "github.com/emad-elsaid/firehose/destinations"
+
+To: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
+    err := saveToDatabase(user)
+    return fh.NewReport(err)
+})
+```
+
+### destinations.Accumulator
+
+Collect events in memory (useful for testing).
+
+```go
+accumulator := &destinations.Accumulator[User]{}
+
+To: accumulator
+
+// Later
+users := accumulator.Items()
+```
+
+### destinations.Fanout
+
+Send to all destinations.
+
+```go
+To: destinations.Fanout[User]{
+    Destinations: []fh.Destination[User]{
+        Database{},
+        EmailService{},
+        Analytics{},
+    },
+}
+```
+
+### destinations.RoundRobin
+
+Send in round-robin order.
+
+```go
+To: &destinations.RoundRobin[User]{
+    Destinations: []fh.Destination[User]{
+        Shard1{},
+        Shard2{},
+        Shard3{},
+    },
+}
+```
+
+### destinations.Random
+
+Send to a random destination.
+
+```go
+To: &destinations.Random[User]{
+    Destinations: []fh.Destination[User]{
+        Server1{},
+        Server2{},
+    },
+}
+```
+
+### Channel Adapters
+
+```go
+// Consume from channel
+To: destinations.FromChan[User]{
+    To: UserProcessor{},
+}
+
+// Wrap as channel
+To: destinations.ToChan[User]{
+    To: ChannelConsumer{},
+}
+```
+
+### Slice Adapters
+
+```go
+// Consume from slice
+To: destinations.FromSlice[User]{
+    To: UserProcessor{},
+}
+
+// Wrap as slice
+To: destinations.ToSlice[User]{
+    To: BatchProcessor{},
+}
+```

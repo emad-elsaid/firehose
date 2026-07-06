@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A type-safe event processing framework for Go. Build composable event pipelines with conditional execution, hierarchical rules, and middleware support.">
+    <title>Firehose - Type-Safe Event Processing for Go</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">🔥</span>
+                <span class="brand-name">Firehose</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/firehose/#features">Features</a></li>
+                <li><a href="/firehose/#quickstart">Quick Start</a></li>
+                <li><a href="/firehose/#concepts">Concepts</a></li>
+                <li><a href="https://github.com/emad-elsaid/firehose" target="_blank" class="github-link">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </a></li>
+            </ul>
+            <button class="theme-toggle" aria-label="Toggle theme">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Type-Safe Event Processing</span>
+                    <span class="subtitle">for Go</span>
+                </h1>
+                <p class="hero-description">
+                    Build composable event pipelines with conditional execution, hierarchical rules, 
+                    and middleware support. Event-driven architecture that the compiler can verify.
+                </p>
+                <div class="hero-actions">
+                    <a href="/firehose/#quickstart" class="btn btn-primary">Get Started</a>
+                    <a href="https://github.com/emad-elsaid/firehose" target="_blank" class="btn btn-secondary">
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-code">
+                <pre><code><span class="keyword">type</span> <span class="type">Rule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">On</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
+    <span class="field">If</span>   <span class="type">If</span>[I]          <span class="comment">// Condition</span>
+    <span class="field">Then</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
+    <span class="field">To</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+}</code></pre>
+            </div>
+        </div>
+    </header>
+
+    <section class="section problem-solution">
+        <div class="container">
+            <div class="two-column">
+                <div class="column problem">
+                    <div class="icon">⚠️</div>
+                    <h2>The Problem</h2>
+                    <p>
+                        Event handling scattered across codebases. Difficult to test, hard to modify, 
+                        impossible to compose. Side effects mixed with business logic. No reusability.
+                    </p>
+                </div>
+                <div class="column solution">
+                    <div class="icon">✨</div>
+                    <h2>The Solution</h2>
+                    <p>
+                        Declarative event pipelines with type safety. Composable components. 
+                        Hierarchical rules with inheritance. Middleware for cross-cutting concerns.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="section features">
+        <div class="container">
+            <h2 class="section-title">Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Type-Safe Pipelines</h3>
+                    <p>Generic types ensure compile-time correctness from source to destination. The compiler verifies your event flows.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Zero Dependencies</h3>
+                    <p>Any Go type works as an event. No interface requirements. Works seamlessly with existing types.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Declarative Conditions</h3>
+                    <p>Boolean expressions for event filtering. Rich operators for numbers, strings, and collections.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌲</div>
+                    <h3>Hierarchical Rules</h3>
+                    <p>SubRules inherit and extend parent configuration. DRY event processing patterns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>Unified Middleware</h3>
+                    <p>Single interface for callbacks, transformations, and destinations. Composable cross-cutting concerns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Source Fanout</h3>
+                    <p>Shared sources start once and distribute events to all registered rules automatically.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="quickstart" class="section quickstart">
+        <div class="container">
+            <h2 class="section-title">Quick Start</h2>
+            <div class="install-box">
+                <span class="install-label">Install via Go modules</span>
+                <pre><code>go get github.com/emad-elsaid/firehose</code></pre>
+            </div>
+            
+            <div class="code-example">
+                <h3>Hello World: Timer Events</h3>
+                <pre><code><span class="keyword">package</span> main
+
+<span class="keyword">import</span> (
+    <span class="string">"context"</span>
+    <span class="string">"time"</span>
+    
+    fh <span class="string">"github.com/emad-elsaid/firehose"</span>
+    <span class="string">"github.com/emad-elsaid/firehose/ifs"</span>
+)
+
+<span class="keyword">type</span> <span class="type">Tick</span> <span class="keyword">struct</span> {
+    <span class="field">Time</span> <span class="type">time.Time</span>
+}
+
+<span class="keyword">func</span> (t <span class="type">Tick</span>) <span class="function">Get</span>(key <span class="type">string</span>) (<span class="keyword">any</span>, <span class="type">error</span>) {
+    <span class="keyword">if</span> key == <span class="string">"hour"</span> {
+        <span class="keyword">return</span> t.Time.<span class="function">Hour</span>(), <span class="keyword">nil</span>
+    }
+    <span class="keyword">return</span> <span class="keyword">nil</span>, <span class="function">fmt.Errorf</span>(<span class="string">"unknown: %s"</span>, key)
+}
+
+<span class="keyword">func</span> <span class="function">main</span>() {
+    ctx := context.<span class="function">Background</span>()
+    
+    rule := &fh.<span class="type">Rule</span>[<span class="type">Tick</span>, <span class="type">string</span>]{
+        <span class="field">ID</span>:   <span class="string">"business_hours"</span>,
+        <span class="field">On</span>:   <span class="function">Timer</span>{<span class="field">Interval</span>: <span class="number">1</span> * time.Second},
+        <span class="field">If</span>:   ifs.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
+        <span class="field">Then</span>: <span class="function">FormatTime</span>{},
+        <span class="field">To</span>:   <span class="function">Printer</span>{},
+    }
+    
+    registry, _ := fh.<span class="function">AddRule</span>(ctx, <span class="keyword">nil</span>, rule)
+    fh.<span class="function">Start</span>(ctx, registry, <span class="keyword">nil</span>)
+    fh.<span class="function">Wait</span>(registry, <span class="keyword">nil</span>)
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <section id="concepts" class="section concepts">
+        <div class="container">
+            <h2 class="section-title">Core Concepts</h2>
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-header">
+                        <span class="concept-number">01</span>
+                        <h3>Event Source</h3>
+                    </div>
+                    <p>Produces events of a specific type. HTTP servers, message queues, timers, file watchers.</p>
+                    <div class="concept-code">
+                        <code><span class="keyword">type</span> <span class="type">Source</span>[T <span class="keyword">any</span>] <span class="keyword">interface</span></code>
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-header">
+                        <span class="concept-number">02</span>
+                        <h3>Condition</h3>
+                    </div>
+                    <p>Optional filter evaluated against event attributes. Boolean expressions or custom logic.</p>
+                    <div class="concept-code">
+                        <code><span class="keyword">type</span> <span class="type">If</span>[I <span class="keyword">any</span>] <span class="keyword">interface</span></code>
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-header">
+                        <span class="concept-number">03</span>
+                        <h3>Transformation</h3>
+                    </div>
+                    <p>Converts input events to output events. Business logic, enrichment, validation.</p>
+                    <div class="concept-code">
+                        <code><span class="keyword">type</span> <span class="type">Action</span>[I, O <span class="keyword">any</span>] <span class="keyword">interface</span></code>
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-header">
+                        <span class="concept-number">04</span>
+                        <h3>Destination</h3>
+                    </div>
+                    <p>Handles output events. Database writes, API calls, message publishing, logging.</p>
+                    <div class="concept-code">
+                        <code><span class="keyword">type</span> <span class="type">Destination</span>[T <span class="keyword">any</span>] <span class="keyword">interface</span></code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section pipeline">
+        <div class="container">
+            <h2 class="section-title">Event Processing Pipeline</h2>
+            <div class="pipeline-diagram">
+                <div class="pipeline-step">
+                    <div class="step-icon">📡</div>
+                    <div class="step-label">Source</div>
+                    <div class="step-desc">Emit Event</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="step-icon">🔍</div>
+                    <div class="step-label">Condition</div>
+                    <div class="step-desc">Evaluate If</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="step-icon">⚙️</div>
+                    <div class="step-label">Action</div>
+                    <div class="step-desc">Transform</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="step-icon">📤</div>
+                    <div class="step-label">Destination</div>
+                    <div class="step-desc">Send Output</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section use-cases">
+        <div class="container">
+            <h2 class="section-title">Use Cases</h2>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <h4>🌐 Microservices</h4>
+                    <p>HTTP routing, gRPC streams, WebSocket distribution</p>
+                </div>
+                <div class="use-case">
+                    <h4>📊 Stream Processing</h4>
+                    <p>Kafka consumers, real-time chat, log aggregation</p>
+                </div>
+                <div class="use-case">
+                    <h4>🔍 System Monitoring</h4>
+                    <p>Process tracking, file watching, metric collection</p>
+                </div>
+                <div class="use-case">
+                    <h4>🤖 Automation</h4>
+                    <p>Workflow orchestration, rule engines, ETL pipelines</p>
+                </div>
+                <div class="use-case">
+                    <h4>🎮 Interactive Systems</h4>
+                    <p>Game input, UI events, hardware integration</p>
+                </div>
+                <div class="use-case">
+                    <h4>📡 Event-Driven Apps</h4>
+                    <p>CQRS, event sourcing, saga patterns</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Build Type-Safe Pipelines?</h2>
+                <p>Start building composable, testable event processing systems in Go</p>
+                <div class="cta-actions">
+                    <a href="https://github.com/emad-elsaid/firehose" target="_blank" class="btn btn-primary">
+                        Get Started on GitHub
+                    </a>
+                    <a href="https://pkg.go.dev/github.com/emad-elsaid/firehose" target="_blank" class="btn btn-secondary">
+                        View Documentation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo">🔥</span>
+                    <span class="brand-name">Firehose</span>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com/emad-elsaid/firehose">GitHub</a>
+                    <a href="https://pkg.go.dev/github.com/emad-elsaid/firehose">Docs</a>
+                    <a href="https://github.com/emad-elsaid/firehose/blob/main/LICENSE">License</a>
+                </div>
+            </div>
+            <div class="footer-copy">
+                <p>Built with type safety and composability in mind</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
