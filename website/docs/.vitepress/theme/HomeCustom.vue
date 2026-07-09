@@ -8,8 +8,9 @@
             <span class="subtitle">for Go</span>
           </h1>
           <p class="hero-description">
-            Build composable event pipelines with conditional execution, hierarchical rules, 
+            Build composable event pipelines with conditional execution, hierarchical rules,
             and middleware support. Event-driven architecture that the compiler can verify.
+            The Rule DSL is intentionally SQL-inspired: Select → Into → From → Where → Having.
           </p>
           <div class="hero-actions">
             <a href="/firehose/guide/quick-start" class="btn btn-primary">Get Started</a>
@@ -26,6 +27,9 @@
     <span class="field">Where</span>  <span class="type">Condition</span>[I]   <span class="comment">// Input condition</span>
     <span class="field">Having</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
 }</code></pre>
+          <p class="hero-description" style="margin-top: 0.75rem; font-size: 0.95rem;">
+            Familiar SQL rhythm: <code>SELECT ... INTO ... FROM ... WHERE ... HAVING ...</code>
+          </p>
         </div>
       </div>
     </div>

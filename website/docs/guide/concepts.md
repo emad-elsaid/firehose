@@ -55,7 +55,9 @@ event := MyEvent{
 
 ## Rules
 
-Rules define complete event processing pipelines. They combine a source, optional condition, transformation, and destination:
+Rules define complete event processing pipelines. They combine a source, optional condition, transformation, and destination.
+The field order is SQL-inspired for readability:
+`Select -> Into -> From -> Where -> Having` (like `SELECT ... INTO ... FROM ... WHERE ... HAVING ...`).
 
 ```go
 type Rule[I, O any] struct {

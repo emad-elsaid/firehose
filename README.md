@@ -15,13 +15,16 @@ difficult to test, hard to modify, and impossible to compose or reuse.
 
 Firehose provides a declarative framework for event processing pipelines:
 
-**Select → From → Where → Having → Into**
+**Select → Into → From → Where → Having**
+
+The flow intentionally resembles SQL clause ordering:
+`SELECT ... INTO ... FROM ... WHERE ... HAVING ...`
 
 - **Select**: Transformation logic converting input events to output events
+- **Into**: Destination handling the output event (side effects, storage, forwarding)
 - **From**: Event source producing events of a specific type
 - **Where**: Optional input condition evaluated against event attributes
 - **Having**: Optional output condition evaluated against transformed output
-- **Into**: Destination handling the output event (side effects, storage, forwarding)
 
 Define **Rules** that combine these components with full type safety. Rules support hierarchical composition through
 **SubRules** that inherit parent properties. Extend functionality with **Middlewares** that wrap any pipeline

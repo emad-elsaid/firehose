@@ -16,16 +16,19 @@ Applications process events from various sources (HTTP requests, message queues,
 Firehose provides a declarative framework for event processing pipelines:
 
 ```
-Select → From → Where → Having → Into
+Select → Into → From → Where → Having
 ```
+
+This ordering intentionally resembles SQL clauses:
+`SELECT ... INTO ... FROM ... WHERE ... HAVING ...`
 
 Each stage is:
 
 - **Select**: Transformation logic converting input events to output events
+- **Into**: Destination handling the output event (side effects, storage, forwarding)
 - **From**: Event source producing events of a specific type
 - **Where**: Optional input condition evaluated against event attributes
 - **Having**: Optional output condition evaluated against transformed output
-- **Into**: Destination handling the output event (side effects, storage, forwarding)
 
 ## Key Features
 
