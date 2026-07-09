@@ -273,7 +273,7 @@ Conditions filter events based on custom logic.
 ### Interface
 
 ```go
-type If[I any] interface {
+type Condition[I any] interface {
     Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 ```

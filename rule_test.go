@@ -484,7 +484,7 @@ func TestRule_EvaluateCondition(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		setupCondition func() If[*EventMock]
+		setupCondition func() Condition[*EventMock]
 		event          *EventMock
 		expectedPass   bool
 		expectedError  bool
@@ -492,7 +492,7 @@ func TestRule_EvaluateCondition(t *testing.T) {
 	}{
 		{
 			name: "nil condition passes",
-			setupCondition: func() If[*EventMock] {
+			setupCondition: func() Condition[*EventMock] {
 				return nil
 			},
 			event:         NewEventMock(nil),
@@ -505,8 +505,8 @@ func TestRule_EvaluateCondition(t *testing.T) {
 		},
 		{
 			name: "passing condition",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				return cond
@@ -521,8 +521,8 @@ func TestRule_EvaluateCondition(t *testing.T) {
 		},
 		{
 			name: "failing condition returns ErrNoMatch",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 				return cond
@@ -537,8 +537,8 @@ func TestRule_EvaluateCondition(t *testing.T) {
 		},
 		{
 			name: "condition evaluation error",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, os.ErrInvalid).Once()
 				return cond
@@ -575,7 +575,7 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		setupCondition func() If[*EventMock]
+		setupCondition func() Condition[*EventMock]
 		event          *EventMock
 		expectedPass   bool
 		expectedError  bool
@@ -583,7 +583,7 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 	}{
 		{
 			name: "nil output condition passes",
-			setupCondition: func() If[*EventMock] {
+			setupCondition: func() Condition[*EventMock] {
 				return nil
 			},
 			event:         NewEventMock(nil),
@@ -596,8 +596,8 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 		},
 		{
 			name: "passing output condition",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				return cond
@@ -612,8 +612,8 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 		},
 		{
 			name: "failing output condition returns ErrNoMatch",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 				return cond
@@ -628,8 +628,8 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 		},
 		{
 			name: "output condition evaluation error",
-			setupCondition: func() If[*EventMock] {
-				cond := NewMockIf[*EventMock](t)
+			setupCondition: func() Condition[*EventMock] {
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, os.ErrNotExist).Once()
 				return cond
@@ -1211,17 +1211,17 @@ func TestRule_CombineIf(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		setupParent   func() If[*EventMock]
-		setupChild    func() If[*EventMock]
+		setupParent   func() Condition[*EventMock]
+		setupChild    func() Condition[*EventMock]
 		expectNil     bool
 		expectedCount int
 	}{
 		{
 			name: "both nil returns nil",
-			setupParent: func() If[*EventMock] {
+			setupParent: func() Condition[*EventMock] {
 				return nil
 			},
-			setupChild: func() If[*EventMock] {
+			setupChild: func() Condition[*EventMock] {
 				return nil
 			},
 			expectNil:     true,
@@ -1229,21 +1229,21 @@ func TestRule_CombineIf(t *testing.T) {
 		},
 		{
 			name: "parent nil returns child",
-			setupParent: func() If[*EventMock] {
+			setupParent: func() Condition[*EventMock] {
 				return nil
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 1,
 		},
 		{
 			name: "child nil returns parent",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
+			setupChild: func() Condition[*EventMock] {
 				return nil
 			},
 			expectNil:     false,
@@ -1251,52 +1251,52 @@ func TestRule_CombineIf(t *testing.T) {
 		},
 		{
 			name: "both non-nil combines into slice",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 2,
 		},
 		{
 			name: "flattens nested ifSlice from parent",
-			setupParent: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupParent: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 3,
 		},
 		{
 			name: "flattens nested ifSlice from child",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupChild: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			expectNil:     false,
 			expectedCount: 3,
 		},
 		{
 			name: "flattens nested ifSlice from both",
-			setupParent: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupParent: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
-			setupChild: func() If[*EventMock] {
-				cond3 := NewMockIf[*EventMock](t)
-				cond4 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond3, cond4}
+			setupChild: func() Condition[*EventMock] {
+				cond3 := NewMockCondition[*EventMock](t)
+				cond4 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond3, cond4}
 			},
 			expectNil:     false,
 			expectedCount: 4,
@@ -1318,7 +1318,7 @@ func TestRule_CombineIf(t *testing.T) {
 			require.NotNil(t, result)
 
 			// Verify count by flattening
-			flattened := flattenIf(result)
+			flattened := flattenCondition(result)
 			require.Len(t, flattened, tc.expectedCount)
 		})
 	}
@@ -1329,17 +1329,17 @@ func TestRule_CombineHaving(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		setupParent   func() If[*EventMock]
-		setupChild    func() If[*EventMock]
+		setupParent   func() Condition[*EventMock]
+		setupChild    func() Condition[*EventMock]
 		expectNil     bool
 		expectedCount int
 	}{
 		{
 			name: "both nil returns nil",
-			setupParent: func() If[*EventMock] {
+			setupParent: func() Condition[*EventMock] {
 				return nil
 			},
-			setupChild: func() If[*EventMock] {
+			setupChild: func() Condition[*EventMock] {
 				return nil
 			},
 			expectNil:     true,
@@ -1347,21 +1347,21 @@ func TestRule_CombineHaving(t *testing.T) {
 		},
 		{
 			name: "parent nil returns child",
-			setupParent: func() If[*EventMock] {
+			setupParent: func() Condition[*EventMock] {
 				return nil
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 1,
 		},
 		{
 			name: "child nil returns parent",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
+			setupChild: func() Condition[*EventMock] {
 				return nil
 			},
 			expectNil:     false,
@@ -1369,52 +1369,52 @@ func TestRule_CombineHaving(t *testing.T) {
 		},
 		{
 			name: "both non-nil combines into slice",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 2,
 		},
 		{
 			name: "flattens nested ifSlice from parent",
-			setupParent: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupParent: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
-			setupChild: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupChild: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 3,
 		},
 		{
 			name: "flattens nested ifSlice from child",
-			setupParent: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupParent: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
-			setupChild: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupChild: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			expectNil:     false,
 			expectedCount: 3,
 		},
 		{
 			name: "flattens nested ifSlice from both",
-			setupParent: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2}
+			setupParent: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
-			setupChild: func() If[*EventMock] {
-				cond3 := NewMockIf[*EventMock](t)
-				cond4 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond3, cond4}
+			setupChild: func() Condition[*EventMock] {
+				cond3 := NewMockCondition[*EventMock](t)
+				cond4 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond3, cond4}
 			},
 			expectNil:     false,
 			expectedCount: 4,
@@ -1436,7 +1436,7 @@ func TestRule_CombineHaving(t *testing.T) {
 			require.NotNil(t, result)
 
 			// Verify count by flattening
-			flattened := flattenIf(result)
+			flattened := flattenCondition(result)
 			require.Len(t, flattened, tc.expectedCount)
 		})
 	}
@@ -1447,13 +1447,13 @@ func TestFlattenIf(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		setupIf       func() If[*EventMock]
+		setupIf       func() Condition[*EventMock]
 		expectNil     bool
 		expectedCount int
 	}{
 		{
 			name: "nil returns nil",
-			setupIf: func() If[*EventMock] {
+			setupIf: func() Condition[*EventMock] {
 				return nil
 			},
 			expectNil:     true,
@@ -1461,19 +1461,19 @@ func TestFlattenIf(t *testing.T) {
 		},
 		{
 			name: "single condition returns slice with one element",
-			setupIf: func() If[*EventMock] {
-				return NewMockIf[*EventMock](t)
+			setupIf: func() Condition[*EventMock] {
+				return NewMockCondition[*EventMock](t)
 			},
 			expectNil:     false,
 			expectedCount: 1,
 		},
 		{
 			name: "ifSlice returns all elements",
-			setupIf: func() If[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
-				cond3 := NewMockIf[*EventMock](t)
-				return ifSlice[*EventMock]{cond1, cond2, cond3}
+			setupIf: func() Condition[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
+				cond3 := NewMockCondition[*EventMock](t)
+				return conditionSlice[*EventMock]{cond1, cond2, cond3}
 			},
 			expectNil:     false,
 			expectedCount: 3,
@@ -1483,7 +1483,7 @@ func TestFlattenIf(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ifVal := tc.setupIf()
-			result := flattenIf(ifVal)
+			result := flattenCondition(ifVal)
 
 			if tc.expectNil {
 				require.Nil(t, result)
@@ -1500,15 +1500,15 @@ func TestIfSlice_Evaluate(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		setupSlice    func() ifSlice[*EventMock]
+		setupSlice    func() conditionSlice[*EventMock]
 		event         *EventMock
 		expectedPass  bool
 		expectedError bool
 	}{
 		{
 			name: "empty slice passes",
-			setupSlice: func() ifSlice[*EventMock] {
-				return ifSlice[*EventMock]{}
+			setupSlice: func() conditionSlice[*EventMock] {
+				return conditionSlice[*EventMock]{}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  true,
@@ -1516,14 +1516,14 @@ func TestIfSlice_Evaluate(t *testing.T) {
 		},
 		{
 			name: "all conditions pass",
-			setupSlice: func() ifSlice[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
+			setupSlice: func() conditionSlice[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
 				cond1.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				cond2.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
-				return ifSlice[*EventMock]{cond1, cond2}
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  true,
@@ -1531,12 +1531,12 @@ func TestIfSlice_Evaluate(t *testing.T) {
 		},
 		{
 			name: "first condition fails",
-			setupSlice: func() ifSlice[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
+			setupSlice: func() conditionSlice[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
 				cond1.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
-				return ifSlice[*EventMock]{cond1, cond2}
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  false,
@@ -1544,14 +1544,14 @@ func TestIfSlice_Evaluate(t *testing.T) {
 		},
 		{
 			name: "second condition fails",
-			setupSlice: func() ifSlice[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
+			setupSlice: func() conditionSlice[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
 				cond1.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				cond2.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
-				return ifSlice[*EventMock]{cond1, cond2}
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  false,
@@ -1559,12 +1559,12 @@ func TestIfSlice_Evaluate(t *testing.T) {
 		},
 		{
 			name: "first condition returns error",
-			setupSlice: func() ifSlice[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
+			setupSlice: func() conditionSlice[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
 				cond1.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, os.ErrInvalid).Once()
-				return ifSlice[*EventMock]{cond1, cond2}
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  false,
@@ -1572,14 +1572,14 @@ func TestIfSlice_Evaluate(t *testing.T) {
 		},
 		{
 			name: "second condition returns error",
-			setupSlice: func() ifSlice[*EventMock] {
-				cond1 := NewMockIf[*EventMock](t)
-				cond2 := NewMockIf[*EventMock](t)
+			setupSlice: func() conditionSlice[*EventMock] {
+				cond1 := NewMockCondition[*EventMock](t)
+				cond2 := NewMockCondition[*EventMock](t)
 				cond1.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				cond2.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, os.ErrPermission).Once()
-				return ifSlice[*EventMock]{cond1, cond2}
+				return conditionSlice[*EventMock]{cond1, cond2}
 			},
 			event:         NewEventMock(nil),
 			expectedPass:  false,
@@ -1614,9 +1614,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		validateReport  func(t *testing.T, report Report)
 	}{
 		{
-			name: "If condition fails stops execution",
+			name: "Condition fails stops execution",
 			setupRule: func() *MockRule {
-				cond := NewMockIf[*EventMock](t)
+				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
@@ -1633,9 +1633,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "If condition passes, action executes",
+			name: "Condition passes, action executes",
 			setupRule: func() *MockRule {
-				cond := NewMockIf[*EventMock](t)
+				cond := NewMockCondition[*EventMock](t)
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
 
@@ -1665,7 +1665,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			name: "Having condition fails stops destination",
 			setupRule: func() *MockRule {
 				action := NewMockAction[*EventMock, *EventMock](t)
-				postCond := NewMockIf[*EventMock](t)
+				postCond := NewMockCondition[*EventMock](t)
 
 				output := NewEventMock(nil)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
@@ -1690,7 +1690,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			name: "Having condition passes, destination executes",
 			setupRule: func() *MockRule {
 				action := NewMockAction[*EventMock, *EventMock](t)
-				postCond := NewMockIf[*EventMock](t)
+				postCond := NewMockCondition[*EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
 
 				output := NewEventMock(nil)

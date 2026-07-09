@@ -42,7 +42,7 @@ type Destination[T any] interface {
 // If evaluates whether an event should be processed by a rule.
 // It receives the context, event, and symbols extracted from the event attributes,
 // and returns true if the condition is met, false otherwise, along with any error.
-type If[I any] interface {
+type Condition[I any] interface {
 	Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 

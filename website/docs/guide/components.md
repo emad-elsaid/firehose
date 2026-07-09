@@ -2,27 +2,27 @@
 
 Firehose ships with reusable building blocks for common event processing patterns.
 
-## Conditions (`ifs`)
+## Conditions (`condition`)
 
 ### Expression-Based Filtering
 
 ```go
-import "github.com/emad-elsaid/firehose/ifs"
+import "github.com/emad-elsaid/firehose/condition"
 
 // Simple comparison
-Where: ifs.Cond[OrderEvent]("amount > 1000")
+Where: condition.Cond[OrderEvent]("amount > 1000")
 
 // Boolean logic
-Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: condition.Cond[OrderEvent]("premium = true and amount > 500")
 
 // String operations
-Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: condition.Cond[OrderEvent](`country = "US" or country = "CA"`)
 ```
 
 ### Function Adapter
 
 ```go
-Where: ifs.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boolexpr.Symbols) (bool, error) {
+Where: condition.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boolexpr.Symbols) (bool, error) {
     return evt.Amount > 1000, nil
 })
 ```
@@ -30,7 +30,7 @@ Where: ifs.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boole
 ### Rate Limiting
 
 ```go
-Where: &ifs.RateLimit[OrderEvent]{
+Where: &condition.RateLimit[OrderEvent]{
     Limit: rate.Every(time.Second),
     Burst: 10,
 }
@@ -39,7 +39,7 @@ Where: &ifs.RateLimit[OrderEvent]{
 ### Deduplication
 
 ```go
-Where: &ifs.Once[OrderEvent]{
+Where: &condition.Once[OrderEvent]{
     Duration: 5 * time.Minute,
     Cache:    cache.NewMemory[bool](10*time.Minute, time.Minute),
 }
@@ -48,10 +48,10 @@ Where: &ifs.Once[OrderEvent]{
 ### Multiple Conditions
 
 ```go
-Where: ifs.Ifs[OrderEvent]{
-    ifs.Cond[OrderEvent]("amount > 100"),
-    &ifs.RateLimit[OrderEvent]{Limit: rate.Every(time.Second), Burst: 5},
-    ifs.Func[OrderEvent](customCheck),
+Where: condition.Conditions[OrderEvent]{
+    condition.Cond[OrderEvent]("amount > 100"),
+    &condition.RateLimit[OrderEvent]{Limit: rate.Every(time.Second), Burst: 5},
+    condition.Func[OrderEvent](customCheck),
 }
 ```
 
@@ -272,7 +272,7 @@ cache := cache.NewMemory[ProcessedOrder](
     time.Minute,     // cleanup interval
 )
 
-// Use with actions.Cache or ifs.Once
+// Use with actions.Cache or condition.Once
 Select: &actions.Cache[OrderEvent, ProcessedOrder]{
     Action: ProcessOrder{},
     Cache:  cache,

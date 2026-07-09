@@ -1,4 +1,4 @@
-package ifs
+package condition
 
 import (
 	"context"
@@ -21,8 +21,8 @@ import (
 //
 //	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 //		ID: "validate-user",
-//		Where: &ifs.Valid[UserEvent]{},  // Validate input
-//		Having: &ifs.Valid[ProcessedUser]{},  // Validate output
+//		Where: &condition.Valid[UserEvent]{},  // Validate input
+//		Having: &condition.Valid[ProcessedUser]{},  // Validate output
 //	}
 //
 // Returns true if validation passes, false with error if validation fails.

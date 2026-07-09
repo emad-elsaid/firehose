@@ -1,11 +1,11 @@
-package ifs_test
+package condition_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/emad-elsaid/boolexpr"
-	"github.com/emad-elsaid/firehose/ifs"
+	"github.com/emad-elsaid/firehose/condition"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +14,7 @@ func TestCond_Evaluate(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		cond     ifs.Cond[any]
+		cond     condition.Cond[any]
 		symbols  map[string]any
 		expected bool
 		wantErr  bool

@@ -22,7 +22,7 @@ import (
     
     "github.com/IBM/sarama"
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/ifs"
+    "github.com/emad-elsaid/firehose/condition"
 )
 
 // Event type
@@ -153,13 +153,13 @@ func main() {
         SubRules: []fh.Rule[OrderEvent, OrderEvent]{
             {
                 ID:   "high_value",
-                Where:   ifs.Cond[OrderEvent](`amount > 1000`),
+                Where:   condition.Cond[OrderEvent](`amount > 1000`),
                 Select: ProcessHighValueOrder{},
                 Into:   DatabaseWriter{},
             },
             {
                 ID:   "failed_orders",
-                Where:   ifs.Cond[OrderEvent](`status = "failed"`),
+                Where:   condition.Cond[OrderEvent](`status = "failed"`),
                 Select: actions.Identity[OrderEvent]{},
                 Into:   DeadLetterQueue{},
             },

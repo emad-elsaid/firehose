@@ -17,10 +17,10 @@ func (c testCond[I]) Evaluate(_ context.Context, _ I, _ boolexpr.Symbols) (bool,
 	return true, nil
 }
 
-// testIfs is a slice of If conditions for testing
-type testIfs[I any] []If[I]
+// testConditions is a slice of conditions for testing
+type testConditions[I any] []Condition[I]
 
-func (ifs testIfs[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+func (ifs testConditions[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
 	for _, cond := range ifs {
 		pass, err := cond.Evaluate(ctx, event, syms)
 		if err != nil {
@@ -689,12 +689,12 @@ func Test_inherit(t *testing.T) {
 		{
 			name: "child condition should be prepended with parent conditions",
 			parent: &MockRule{
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 			},
 			child: &MockRule{
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("child condition"),
 				},
 			},
@@ -706,12 +706,12 @@ func Test_inherit(t *testing.T) {
 		{
 			name: "child output condition should be prepended with parent output conditions",
 			parent: &MockRule{
-				Having: testIfs[*EventMock]{
+				Having: testConditions[*EventMock]{
 					testCond[*EventMock]("parent output condition"),
 				},
 			},
 			child: &MockRule{
-				Having: testIfs[*EventMock]{
+				Having: testConditions[*EventMock]{
 					testCond[*EventMock]("child output condition"),
 				},
 			},
@@ -783,14 +783,14 @@ func Test_flatten(t *testing.T) {
 			rule: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("condition"),
 				},
 			},
 			expected: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("condition"),
 				},
 			},
@@ -800,7 +800,7 @@ func Test_flatten(t *testing.T) {
 			rule: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 				Select: parentAction,
@@ -814,7 +814,7 @@ func Test_flatten(t *testing.T) {
 			expected: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 				Select: parentAction,
@@ -823,7 +823,7 @@ func Test_flatten(t *testing.T) {
 					{
 						ID:   "parent/child",
 						From: parentSource,
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("parent condition"),
 						},
 						Select: parentAction,
@@ -837,7 +837,7 @@ func Test_flatten(t *testing.T) {
 			rule: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 				Select: &MockAction[*EventMock, *EventMock]{},
@@ -851,7 +851,7 @@ func Test_flatten(t *testing.T) {
 			expected: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 				Select: &MockAction[*EventMock, *EventMock]{},
@@ -860,7 +860,7 @@ func Test_flatten(t *testing.T) {
 					{
 						ID:   "parent/child1",
 						From: parentSource,
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("parent condition"),
 						},
 						Select: &MockAction[*EventMock, *EventMock]{},
@@ -869,7 +869,7 @@ func Test_flatten(t *testing.T) {
 					{
 						ID:   "parent/child2",
 						From: parentSource,
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("parent condition"),
 						},
 						Select: &MockAction[*EventMock, *EventMock]{},
@@ -878,7 +878,7 @@ func Test_flatten(t *testing.T) {
 					{
 						ID:   "parent/child3",
 						From: parentSource,
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("parent condition"),
 						},
 						Select: &MockAction[*EventMock, *EventMock]{},
@@ -892,7 +892,7 @@ func Test_flatten(t *testing.T) {
 			rule: &MockRule{
 				ID:   "grandparent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("grandparent condition"),
 				},
 				Select: &MockAction[*EventMock, *EventMock]{},
@@ -900,7 +900,7 @@ func Test_flatten(t *testing.T) {
 				SubRules: []MockRule{
 					{
 						ID: "parent",
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("parent condition"),
 						},
 						SubRules: []MockRule{
@@ -914,7 +914,7 @@ func Test_flatten(t *testing.T) {
 			expected: &MockRule{
 				ID:     "grandparent",
 				From:   parentSource,
-				Where:  testIfs[*EventMock]{testCond[*EventMock]("")}, // non-nil placeholder
+				Where:  testConditions[*EventMock]{testCond[*EventMock]("")}, // non-nil placeholder
 				Select: &MockAction[*EventMock, *EventMock]{},
 				Into:   &MockDestination[*EventMock]{},
 				SubRules: []MockRule{
@@ -942,7 +942,7 @@ func Test_flatten(t *testing.T) {
 			rule: &MockRule{
 				ID:   "parent",
 				From: parentSource,
-				Where: testIfs[*EventMock]{
+				Where: testConditions[*EventMock]{
 					testCond[*EventMock]("parent condition"),
 				},
 				Select: parentAction,
@@ -951,7 +951,7 @@ func Test_flatten(t *testing.T) {
 					{
 						ID:   "child",
 						From: childSource,
-						Where: testIfs[*EventMock]{
+						Where: testConditions[*EventMock]{
 							testCond[*EventMock]("child condition"),
 						},
 						Select: childAction,
@@ -962,7 +962,7 @@ func Test_flatten(t *testing.T) {
 			expected: &MockRule{
 				ID:     "parent",
 				From:   parentSource,
-				Where:  testIfs[*EventMock]{testCond[*EventMock]("")}, // non-nil placeholder
+				Where:  testConditions[*EventMock]{testCond[*EventMock]("")}, // non-nil placeholder
 				Select: parentAction,
 				Into:   parentDest,
 				SubRules: []MockRule{

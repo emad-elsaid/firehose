@@ -1,4 +1,4 @@
-package ifs
+package condition
 
 import (
 	"context"

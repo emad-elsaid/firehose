@@ -64,8 +64,8 @@ type Rule[I, O any] struct {
     Select       Action[I, O]       // Event transformation
     Into         Destination[O]     // Output handler
     From         Source[I]          // Event source
-    Where        If[I]              // Optional filter condition
-    Having       If[O]              // Optional post-transform condition
+    Where        Condition[I]              // Optional filter condition
+    Having       Condition[O]              // Optional post-transform condition
     SubRules     []Rule[I, O]       // Child rules
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
@@ -76,7 +76,7 @@ type Rule[I, O any] struct {
 Rules are generic over input (`I`) and output (`O`) types. The compiler ensures:
 
 - `Source[I]` produces events of type `I`
-- `If[I]` evaluates conditions on type `I` (used by `Where`)
+- `Condition[I]` evaluates conditions on type `I` (used by `Where`)
 - `Action[I, O]` transforms `I` to `O` (used by `Select`)
 - `Destination[O]` consumes events of type `O` (used by `Into`)
 
@@ -152,22 +152,22 @@ Different source instances start independently.
 Conditions filter events based on their attributes:
 
 ```go
-type If[I any] interface {
+type Condition[I any] interface {
     Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 ```
 
-Use `ifs.Cond` for expression-based filtering:
+Use `condition.Cond` for expression-based filtering:
 
 ```go
 // Simple condition
-Where: ifs.Cond[OrderEvent]("amount > 1000")
+Where: condition.Cond[OrderEvent]("amount > 1000")
 
 // Complex condition
-Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: condition.Cond[OrderEvent]("premium = true and amount > 500")
 
 // Geographic filtering
-Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: condition.Cond[OrderEvent](`country = "US" or country = "CA"`)
 ```
 
 **Supported operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
@@ -266,17 +266,17 @@ SubRules enable hierarchical event processing. Child rules inherit parent's sour
 ```go
 &Rule[ProcessEvent, Alert]{
     From: processMonitor,
-    Where: ifs.Cond[ProcessEvent](`env = "production"`),
+    Where: condition.Cond[ProcessEvent](`env = "production"`),
     SubRules: []Rule[ProcessEvent, Alert]{
         {
             ID:   "database_alert",
-            Where:   ifs.Cond[ProcessEvent](`name = "postgres"`),
+            Where:   condition.Cond[ProcessEvent](`name = "postgres"`),
             Select: CreateAlert{Type: "database"},
             Into:   PagerDuty{},
         },
         {
             ID:   "cache_alert",
-            Where:   ifs.Cond[ProcessEvent](`name = "redis"`),
+            Where:   condition.Cond[ProcessEvent](`name = "redis"`),
             Select: CreateAlert{Type: "cache"},
             Into:   Slack{},
         },

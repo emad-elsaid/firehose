@@ -1,4 +1,4 @@
-package ifs_test
+package condition_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/emad-elsaid/firehose"
-	"github.com/emad-elsaid/firehose/ifs"
+	"github.com/emad-elsaid/firehose/condition"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -17,14 +17,14 @@ func TestOnce_Evaluate(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		setup    func(t *testing.T) (*ifs.Once[string], string)
-		validate func(t *testing.T, cond *ifs.Once[string], event string)
+		setup    func(t *testing.T) (*condition.Once[string], string)
+		validate func(t *testing.T, cond *condition.Once[string], event string)
 	}{
 		{
 			name: "first call passes and second fails",
-			setup: func(t *testing.T) (*ifs.Once[string], string) {
-				cache := ifs.NewMockCacheStorage[string](t)
-				cond := &ifs.Once[string]{
+			setup: func(t *testing.T) (*condition.Once[string], string) {
+				cache := condition.NewMockCacheStorage[string](t)
+				cond := &condition.Once[string]{
 					Duration: time.Second,
 					Cache:    cache,
 				}
@@ -43,7 +43,7 @@ func TestOnce_Evaluate(t *testing.T) {
 
 				return cond, event
 			},
-			validate: func(t *testing.T, cond *ifs.Once[string], event string) {
+			validate: func(t *testing.T, cond *condition.Once[string], event string) {
 				result, err := cond.Evaluate(context.Background(), event, nil)
 				require.NoError(t, err)
 				require.True(t, result)

@@ -1,11 +1,11 @@
-package ifs_test
+package condition_test
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/emad-elsaid/firehose"
-	"github.com/emad-elsaid/firehose/ifs"
+	"github.com/emad-elsaid/firehose/condition"
 )
 
 // UserEvent represents a user registration event with validation constraints.
@@ -23,12 +23,12 @@ type ProcessedUser struct {
 	Status   string `validate:"required,oneof=active pending suspended"`
 }
 
-// Example_validate demonstrates using Valid as an If condition for input validation.
+// Example_validate demonstrates using Valid as an Condition for input validation.
 func Example_validate() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-user-registration",
 		// Validate input before processing
-		Where: &ifs.Valid[UserEvent]{},
+		Where: &condition.Valid[UserEvent]{},
 		// ... rest of rule configuration
 	}
 
@@ -64,7 +64,7 @@ func Example_validateOutput() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-processed-user",
 		// Validate output before sending to destination
-		Having: &ifs.Valid[ProcessedUser]{},
+		Having: &condition.Valid[ProcessedUser]{},
 		// ... rest of rule configuration
 	}
 
@@ -98,9 +98,9 @@ func Example_validateBoth() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-both",
 		// Validate input
-		Where: &ifs.Valid[UserEvent]{},
+		Where: &condition.Valid[UserEvent]{},
 		// Validate output
-		Having: &ifs.Valid[ProcessedUser]{},
+		Having: &condition.Valid[ProcessedUser]{},
 		// ... rest of rule configuration
 	}
 

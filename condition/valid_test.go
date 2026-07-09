@@ -1,10 +1,10 @@
-package ifs_test
+package condition_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/emad-elsaid/firehose/ifs"
+	"github.com/emad-elsaid/firehose/condition"
 	"github.com/stretchr/testify/require"
 )
 
@@ -131,7 +131,7 @@ func TestValid_Evaluate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			validate := &ifs.Valid[any]{}
+			validate := &condition.Valid[any]{}
 			result, err := validate.Evaluate(ctx, tc.event, nil)
 
 			require.Equal(t, tc.expectVal, result)
@@ -185,7 +185,7 @@ func TestValid_NonStructType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			validate := &ifs.Valid[any]{}
+			validate := &condition.Valid[any]{}
 
 			result, err := validate.Evaluate(context.Background(), tc.event, nil)
 

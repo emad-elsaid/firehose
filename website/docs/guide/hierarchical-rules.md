@@ -28,18 +28,18 @@ type (
 parentRule := &fh.Rule[I, O]{
     ID: "production_monitoring",
     From: processMonitor,
-    Where: ifs.Cond[I](`env = "production"`),
+    Where: condition.Cond[I](`env = "production"`),
     
     SubRules: []fh.Rule[I, O]{
         {
             ID:   "alert_database",
-            Where:   ifs.Cond[I](`name = "postgres"`),
+            Where:   condition.Cond[I](`name = "postgres"`),
             Select: CreateAlert{Severity: "high", Type: "database"},
             Into:   PagerDuty{},
         },
         {
             ID:   "alert_cache",
-            Where:   ifs.Cond[I](`name = "redis"`),
+            Where:   condition.Cond[I](`name = "redis"`),
             Select: CreateAlert{Severity: "medium", Type: "cache"},
             Into:   Slack{},
         },
@@ -60,17 +60,17 @@ Parent conditions combine with child conditions using logical AND:
 ```go
 parentRule := &fh.Rule[Event, Output]{
     From: source,
-    Where: ifs.Cond[Event](`country = "US"`),
+    Where: condition.Cond[Event](`country = "US"`),
     
     SubRules: []fh.Rule[Event, Output]{
         {
             ID: "high_value",
-            Where: ifs.Cond[Event](`amount > 1000`),
+            Where: condition.Cond[Event](`amount > 1000`),
             // Effective: (country = "US") AND (amount > 1000)
         },
         {
             ID: "premium_users",
-            Where: ifs.Cond[Event](`tier = "premium"`),
+            Where: condition.Cond[Event](`tier = "premium"`),
             // Effective: (country = "US") AND (tier = "premium")
         },
     },
@@ -136,23 +136,23 @@ SubRules can have their own SubRules:
 root := &fh.Rule[Event, Output]{
     ID: "root",
     From: source,
-    Where: ifs.Cond[Event](`region = "US"`),
+    Where: condition.Cond[Event](`region = "US"`),
     
     SubRules: []fh.Rule[Event, Output]{
         {
             ID: "west_coast",
-            Where: ifs.Cond[Event](`state in ["CA", "OR", "WA"]`),
+            Where: condition.Cond[Event](`state in ["CA", "OR", "WA"]`),
             
             SubRules: []fh.Rule[Event, Output]{
                 {
                     ID:   "california_high_value",
-                    Where:   ifs.Cond[Event](`state = "CA" and amount > 5000`),
+                    Where:   condition.Cond[Event](`state = "CA" and amount > 5000`),
                     Select: ProcessHighValue{},
                     Into:   SpecialHandling{},
                 },
                 {
                     ID:   "pacific_northwest",
-                    Where:   ifs.Cond[Event](`state in ["OR", "WA"]`),
+                    Where:   condition.Cond[Event](`state in ["OR", "WA"]`),
                     Select: ProcessNormal{},
                     Into:   StandardHandling{},
                 },
@@ -190,24 +190,24 @@ apiGateway := &fh.Rule[HTTPRequest, HTTPResponse]{
     SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
         {
             ID: "user_endpoints",
-            Where: ifs.Cond[HTTPRequest](`path starts_with "/api/users"`),
+            Where: condition.Cond[HTTPRequest](`path starts_with "/api/users"`),
             
             SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
                 {
                     ID:   "get_user",
-                    Where:   ifs.Cond[HTTPRequest](`method = "GET"`),
+                    Where:   condition.Cond[HTTPRequest](`method = "GET"`),
                     Select: GetUserHandler{},
                     Into:   JSONResponse{},
                 },
                 {
                     ID:   "create_user",
-                    Where:   ifs.Cond[HTTPRequest](`method = "POST"`),
+                    Where:   condition.Cond[HTTPRequest](`method = "POST"`),
                     Select: CreateUserHandler{},
                     Into:   JSONResponse{},
                 },
                 {
                     ID:   "update_user",
-                    Where:   ifs.Cond[HTTPRequest](`method = "PUT"`),
+                    Where:   condition.Cond[HTTPRequest](`method = "PUT"`),
                     Select: UpdateUserHandler{},
                     Into:   JSONResponse{},
                 },
@@ -215,18 +215,18 @@ apiGateway := &fh.Rule[HTTPRequest, HTTPResponse]{
         },
         {
             ID: "order_endpoints",
-            Where: ifs.Cond[HTTPRequest](`path starts_with "/api/orders"`),
+            Where: condition.Cond[HTTPRequest](`path starts_with "/api/orders"`),
             
             SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
                 {
                     ID:   "list_orders",
-                    Where:   ifs.Cond[HTTPRequest](`method = "GET"`),
+                    Where:   condition.Cond[HTTPRequest](`method = "GET"`),
                     Select: ListOrdersHandler{},
                     Into:   JSONResponse{},
                 },
                 {
                     ID:   "create_order",
-                    Where:   ifs.Cond[HTTPRequest](`method = "POST"`),
+                    Where:   condition.Cond[HTTPRequest](`method = "POST"`),
                     Select: CreateOrderHandler{},
                     Into:   JSONResponse{},
                 },
@@ -246,13 +246,13 @@ Before SubRules:
 rule1 := &fh.Rule[Event, Output]{
     ID: "rule1",
     From: source,
-    Where: ifs.Cond[Event](`env = "production" and type = "A"`),
+    Where: condition.Cond[Event](`env = "production" and type = "A"`),
 }
 
 rule2 := &fh.Rule[Event, Output]{
     ID: "rule2",
     From: source,
-    Where: ifs.Cond[Event](`env = "production" and type = "B"`),
+    Where: condition.Cond[Event](`env = "production" and type = "B"`),
 }
 ```
 
@@ -260,10 +260,10 @@ With SubRules:
 ```go
 parent := &fh.Rule[Event, Output]{
     From: source,
-    Where: ifs.Cond[Event](`env = "production"`),
+    Where: condition.Cond[Event](`env = "production"`),
     SubRules: []fh.Rule[Event, Output]{
-        {ID: "rule1", Where: ifs.Cond[Event](`type = "A"`)},
-        {ID: "rule2", Where: ifs.Cond[Event](`type = "B"`)},
+        {ID: "rule1", Where: condition.Cond[Event](`type = "A"`)},
+        {ID: "rule2", Where: condition.Cond[Event](`type = "B"`)},
     },
 }
 ```
@@ -339,17 +339,17 @@ parent := &fh.Rule[Event, Output]{
 ```go
 parent := &fh.Rule[Event, Output]{
     From: allEvents,
-    Where: ifs.Cond[Event](`severity >= 3`),  // Medium and above
+    Where: condition.Cond[Event](`severity >= 3`),  // Medium and above
     
     SubRules: []fh.Rule[Event, Output]{
         {
             ID: "high_severity",
-            Where: ifs.Cond[Event](`severity >= 4`),  // High and critical
+            Where: condition.Cond[Event](`severity >= 4`),  // High and critical
             Into: PagerDuty{},
         },
         {
             ID: "medium_severity",
-            Where: ifs.Cond[Event](`severity = 3`),   // Medium only
+            Where: condition.Cond[Event](`severity = 3`),   // Medium only
             Into: Slack{},
         },
     },

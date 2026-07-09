@@ -310,7 +310,7 @@ func inherit[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 }
 
 func combine[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
-	// Combine parent and child If conditions
+	// Combine parent and child Conditions
 	child.Where = combineConditions(parent.Where, child.Where)
 
 	// Combine parent and child Having conditions

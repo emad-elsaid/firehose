@@ -101,17 +101,17 @@ type (
 
 &Rule[I, O]{
     From: processMonitor,
-    Where: ifs.Cond[I](`user = "production"`),
+    Where: condition.Cond[I](`user = "production"`),
     SubRules: []Rule[I, O]{
         {
             ID:   "alert_postgres",
-            Where:   ifs.Cond[I](`name = "postgres"`),
+            Where:   condition.Cond[I](`name = "postgres"`),
             Select: CreateAlert{Type: "database"},
             Into:   PagerDuty{},
         },
         {
             ID:   "alert_nginx", 
-            Where:   ifs.Cond[I](`name = "nginx"`),
+            Where:   condition.Cond[I](`name = "nginx"`),
             Select: CreateAlert{Type: "webserver"},
             Into:   PagerDuty{},
         },
@@ -186,13 +186,13 @@ Sources receive reports through the callback's `ReportFunc` argument, enabling m
 
 Firehose ships with reusable building blocks under subpackages.
 
-### Conditions (`ifs`)
+### Conditions (`condition`)
 
-- `ifs.Func[I](func(ctx, event, syms) (bool, error) { ... })` — function adapter for conditions
-- `ifs.Cond[I]("...")` — expression-based filtering using `boolexpr`
-- `&ifs.RateLimit[I]{Limit: ..., Burst: ...}` — throttle event processing
-- `&ifs.Once[I]{Duration: ..., Cache: ...}` — deduplicate events by `EventID`
-- `ifs.Ifs[I]{...}` — evaluate multiple conditions in sequence
+- `condition.Func[I](func(ctx, event, syms) (bool, error) { ... })` — function adapter for conditions
+- `condition.Cond[I]("...")` — expression-based filtering using `boolexpr`
+- `&condition.RateLimit[I]{Limit: ..., Burst: ...}` — throttle event processing
+- `&condition.Once[I]{Duration: ..., Cache: ...}` — deduplicate events by `EventID`
+- `condition.Conditions[I]{...}` — evaluate multiple conditions in sequence
 
 ### Actions (`actions`)
 
@@ -379,7 +379,7 @@ import (
 
     "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/ifs"
+    "github.com/emad-elsaid/firehose/condition"
 )
 
 // 1. Define your event type
@@ -444,7 +444,7 @@ func main() {
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
-        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
         From:   Timer{Interval: 1 * time.Second},
     }
 
@@ -465,7 +465,7 @@ func main() {
 
 ## Conditional Event Processing
 
-Use `ifs.Cond` to filter events based on their attributes. Events must implement `boolexpr.Symbols` interface:
+Use `condition.Cond` to filter events based on their attributes. Events must implement `boolexpr.Symbols` interface:
 
 ```go
 type OrderEvent struct {
@@ -488,13 +488,13 @@ func (o OrderEvent) Get(key string) (any, error) {
 }
 
 // Only process high-value orders
-Where: ifs.Cond[OrderEvent]("amount > 1000")
+Where: condition.Cond[OrderEvent]("amount > 1000")
 
 // Geographic filtering
-Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: condition.Cond[OrderEvent](`country = "US" or country = "CA"`)
 
 // Complex conditions
-Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: condition.Cond[OrderEvent]("premium = true and amount > 500")
 ```
 
 **Operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
@@ -518,8 +518,8 @@ type Rule[I, O any] struct {
     Select       Action[I, O]       // Event transformation
     Into         Destination[O]     // Output handler
     From         Source[I]          // Event source
-    Where        If[I]              // Optional filter condition
-    Having       If[O]              // Optional post-transform condition
+    Where        Condition[I]              // Optional filter condition
+    Having       Condition[O]              // Optional post-transform condition
     SubRules     []Rule[I, O]       // Child rules (inherit parent properties)
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
@@ -546,7 +546,7 @@ type Destination[T any] interface {
 }
 
 // If filters events based on conditions
-type If[I any] interface {
+type Condition[I any] interface {
     Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 
@@ -625,23 +625,23 @@ processMonitor := &ProcessMonitor{PollInterval: 1 * time.Second}
 parentRule := &fh.Rule[I, O]{
     ID:   "production_alerts",
     From:   processMonitor,
-    Where:   ifs.Cond[I](`env = "production" and user = "app"`),
+    Where:   condition.Cond[I](`env = "production" and user = "app"`),
     SubRules: []fh.Rule[I, O]{
         {
             ID:   "database_alert",
-            Where:   ifs.Cond[I](`name = "postgres"`),
+            Where:   condition.Cond[I](`name = "postgres"`),
             Select: CreateAlert{Severity: "high", Type: "database"},
             Into:   PagerDuty{},
         },
         {
             ID:   "cache_alert",
-            Where:   ifs.Cond[I](`name = "redis"`),
+            Where:   condition.Cond[I](`name = "redis"`),
             Select: CreateAlert{Severity: "medium", Type: "cache"},
             Into:   PagerDuty{},
         },
         {
             ID:   "web_alert",
-            Where:   ifs.Cond[I](`name = "nginx"`),
+            Where:   condition.Cond[I](`name = "nginx"`),
             Select: CreateAlert{Severity: "critical", Type: "webserver"},
             Into:   PagerDuty{},
         },

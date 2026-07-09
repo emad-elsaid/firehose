@@ -14,7 +14,7 @@ rule := &fh.Rule[OrderEvent, Email]{
     ID:   "order_confirmation_email",
     Select: CreateConfirmationEmail{},
     Into:   emailService,
-    Where:   ifs.Cond[OrderEvent](`status = "completed"`),
+    Where:   condition.Cond[OrderEvent](`status = "completed"`),
     From:   orderSource,
 }
 
@@ -42,9 +42,9 @@ ID: "rule1"
 Use conditions to filter invalid events early:
 
 ```go
-Where: ifs.Ifs[Event]{
-    ifs.Cond[Event](`amount > 0`),
-    ifs.Cond[Event](`user_id != ""`),
+Where: condition.Conditions[Event]{
+    condition.Cond[Event](`amount > 0`),
+    condition.Cond[Event](`user_id != ""`),
     ValidateSchema{},
 }
 ```
@@ -153,7 +153,7 @@ Select: &actions.Cache[Event, Result]{
 Prevent overwhelming downstream systems:
 
 ```go
-Where: &ifs.RateLimit[Event]{
+Where: &condition.RateLimit[Event]{
     Limit: rate.Every(time.Second),
     Burst: 100,
 }
@@ -367,7 +367,7 @@ result, err := api.Call(ctx, request)
 Check authorization before processing:
 
 ```go
-Where: ifs.Func[Event](func(ctx context.Context, event Event, _ boolexpr.Symbols) (bool, error) {
+Where: condition.Func[Event](func(ctx context.Context, event Event, _ boolexpr.Symbols) (bool, error) {
     return auth.HasPermission(ctx, event.UserID, "resource.write"), nil
 })
 ```

@@ -23,7 +23,7 @@ import (
     
     "github.com/shirou/gopsutil/v3/process"
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/ifs"
+    "github.com/emad-elsaid/firehose/condition"
 )
 
 // Event type
@@ -156,19 +156,19 @@ func main() {
         SubRules: []fh.Rule[ProcessEvent, Alert]{
             {
                 ID:   "critical_cpu",
-                Where:   ifs.Cond[ProcessEvent](`cpu > 80`),
+                Where:   condition.Cond[ProcessEvent](`cpu > 80`),
                 Select: CreateCriticalAlert{},
                 Into:   PagerDuty{},
             },
             {
                 ID:   "critical_memory",
-                Where:   ifs.Cond[ProcessEvent](`memory > 1000`),
+                Where:   condition.Cond[ProcessEvent](`memory > 1000`),
                 Select: CreateCriticalAlert{},
                 Into:   PagerDuty{},
             },
             {
                 ID:   "warning_cpu",
-                Where:   ifs.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
+                Where:   condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
                 Select: CreateWarningAlert{},
                 Into:   Slack{},
             },

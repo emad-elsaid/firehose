@@ -219,7 +219,7 @@ func TestCompleteRule(t *testing.T) {
         ID:   "order_notification",
         Select: CreateEmail{},
         Into:   accumulator,
-        Where:   ifs.Cond[OrderEvent]("amount > 100"),
+        Where:   condition.Cond[OrderEvent]("amount > 100"),
         From:   manual,
     }
     
@@ -257,18 +257,18 @@ func TestSubRules(t *testing.T) {
     rule := &fh.Rule[Event, Alert]{
         ID: "alerts",
         From: manual,
-        Where: ifs.Cond[Event](`severity > 0`),
+        Where: condition.Cond[Event](`severity > 0`),
         
         SubRules: []fh.Rule[Event, Alert]{
             {
                 ID:   "high",
-                Where:   ifs.Cond[Event](`severity >= 3`),
+                Where:   condition.Cond[Event](`severity >= 3`),
                 Select: CreateHighAlert{},
                 Into:   highPriority,
             },
             {
                 ID:   "low",
-                Where:   ifs.Cond[Event](`severity < 3`),
+                Where:   condition.Cond[Event](`severity < 3`),
                 Select: CreateLowAlert{},
                 Into:   lowPriority,
             },

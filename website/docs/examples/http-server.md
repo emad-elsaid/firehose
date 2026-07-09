@@ -24,7 +24,7 @@ import (
     
     "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/ifs"
+    "github.com/emad-elsaid/firehose/condition"
 )
 
 // Event type
@@ -133,13 +133,13 @@ func main() {
         SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
             {
                 ID:   "get_user",
-                Where:   ifs.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
+                Where:   condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
                 Select: GetUserHandler{},
                 Into:   JSONResponse{},
             },
             {
                 ID:   "create_user",
-                Where:   ifs.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
+                Where:   condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
                 Select: CreateUserHandler{},
                 Into:   JSONResponse{},
             },

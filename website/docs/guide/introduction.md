@@ -60,17 +60,17 @@ Define rule families with `SubRules`. Child rules inherit parent's source, condi
 ```go
 &Rule[ProcessEvent, any]{
     From: processMonitor,
-    Where: ifs.Cond[ProcessEvent](`env = "production"`),
+    Where: condition.Cond[ProcessEvent](`env = "production"`),
     SubRules: []Rule[ProcessEvent, any]{
         {
             ID:   "alert_postgres",
-            Where:   ifs.Cond[ProcessEvent](`name = "postgres"`),
+            Where:   condition.Cond[ProcessEvent](`name = "postgres"`),
             Select: CreateAlert{Type: "database"},
             Into:   PagerDuty{},
         },
         {
             ID:   "alert_nginx", 
-            Where:   ifs.Cond[ProcessEvent](`name = "nginx"`),
+            Where:   condition.Cond[ProcessEvent](`name = "nginx"`),
             Select: CreateAlert{Type: "webserver"},
             Into:   PagerDuty{},
         },

@@ -1,17 +1,17 @@
 ## Completed
 
 - [x] Documentation baseline
-- [x] Function adapters: `sources.Func`, `actions.Func`, `destinations.Func`, `ifs.Func`
+- [x] Function adapters: `sources.Func`, `actions.Func`, `destinations.Func`, `condition.Func`
 - [x] Action composition: `Chain`, `Chain3`, `Chain4`, `Chain5`
 - [x] Action dispatchers: `RoundRobin`, `Random`
 - [x] Destination dispatchers: `Fanout`, `RoundRobin`, `Random`
 - [x] Destination wrappers: `FromChan`, `FromSlice`, `ToChan`, `ToSlice`
-- [x] Dedup primitive: `ifs.Once` (event-id based + TTL)
+- [x] Dedup primitive: `condition.Once` (event-id based + TTL)
 - [X] Output If to be able to have input and output validation
 
 ## Next Up (High Priority)
 
-- [ ] Debounce condition (`ifs.Debounce`)
+- [ ] Debounce condition (`condition.Debounce`)
 - [ ] Conflict resolution modes beyond current all-match (`first-match`, `best-score`)
 - [ ] Rule groups/agendas (phase-based execution)
 - [ ] Per-rule metrics (match/error/latency)

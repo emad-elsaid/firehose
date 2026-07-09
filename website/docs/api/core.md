@@ -13,8 +13,8 @@ type Rule[I, O any] struct {
     Select       Action[I, O]
     Into         Destination[O]
     From         Source[I]
-    Where        If[I]
-    Having       If[O]
+    Where        Condition[I]
+    Having       Condition[O]
     SubRules     []Rule[I, O]
     Middlewares  []Middleware[I, O]
 }
@@ -59,18 +59,18 @@ Event source that produces events of type `I`.
 From: HTTPServer{Addr: ":8080"}
 ```
 
-#### Where (If[I])
+#### Where (Condition[I])
 Optional condition that filters input events. If nil, all input events pass through.
 
 ```go
-Where: ifs.Cond[OrderEvent]("amount > 1000")
+Where: condition.Cond[OrderEvent]("amount > 1000")
 ```
 
-#### Having (If[O])
+#### Having (Condition[O])
 Optional condition that filters transformed output events before sending to destination.
 
 ```go
-Having: ifs.Cond[ProcessedOrder]("status = \"ready\"")
+Having: condition.Cond[ProcessedOrder]("status = \"ready\"")
 ```
 
 #### SubRules ([]Rule[I, O])
@@ -78,8 +78,8 @@ Child rules that inherit parent's source, conditions, and middlewares.
 
 ```go
 SubRules: []Rule[I, O]{
-    {ID: "high_value", Where: ifs.Cond[I]("amount > 10000"), ...},
-    {ID: "premium", Where: ifs.Cond[I]("tier = premium"), ...},
+    {ID: "high_value", Where: condition.Cond[I]("amount > 10000"), ...},
+    {ID: "premium", Where: condition.Cond[I]("tier = premium"), ...},
 }
 ```
 

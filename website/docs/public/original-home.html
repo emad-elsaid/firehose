@@ -140,7 +140,7 @@
     <span class="string">"time"</span>
     
     fh <span class="string">"github.com/emad-elsaid/firehose"</span>
-    <span class="string">"github.com/emad-elsaid/firehose/ifs"</span>
+    <span class="string">"github.com/emad-elsaid/firehose/condition"</span>
 )
 
 <span class="keyword">type</span> <span class="type">Tick</span> <span class="keyword">struct</span> {
@@ -161,7 +161,7 @@
         <span class="field">ID</span>:     <span class="string">"business_hours"</span>,
         <span class="field">Select</span>: <span class="function">FormatTime</span>{},
         <span class="field">From</span>:   <span class="function">Timer</span>{<span class="field">Interval</span>: <span class="number">1</span> * time.Second},
-        <span class="field">Where</span>:  ifs.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
+        <span class="field">Where</span>:  condition.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
         <span class="field">Into</span>:   <span class="function">Printer</span>{},
     }
     

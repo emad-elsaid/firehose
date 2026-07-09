@@ -24,12 +24,12 @@ type Rule[I, O any] struct {
 	// From is the source that produces events to be processed by this rule.
 	From Source[I] `validate:"required_without=SubRules"`
 	// Where is a condition that must evaluate to true for the rule to process the event.
-	// Use ifs.Cond for string expressions, ifs.RateLimit for rate limiting,
-	// ifs.Once for deduplication, or ifs.Ifs for combining multiple conditions.
-	Where If[I]
+	// Use condition.Cond for string expressions, condition.RateLimit for rate limiting,
+	// condition.Once for deduplication, or condition.Conditions for combining multiple conditions.
+	Where Condition[I]
 	// Having is a condition that must evaluate to true for the rule to send
 	// the output of the Select action to the Into destination.
-	Having If[O]
+	Having Condition[O]
 	// SubRules are the child rules that will inherit the parent fields if set
 	SubRules []Rule[I, O]
 	// Middlewares are the middlewares that will be applied to the action and
@@ -253,11 +253,11 @@ func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.From }
 
-// combineConditions is a generic helper that combines two If conditions into a single If.
+// combineConditions is a generic helper that combines two conditions into a single Condition.
 // If both are nil, returns nil.
 // If one is nil, returns the other.
-// If both are non-nil, returns a slice-based If that evaluates both in sequence.
-func combineConditions[T any](parent, child If[T]) If[T] {
+// If both are non-nil, returns a slice-based Condition that evaluates both in sequence.
+func combineConditions[T any](parent, child Condition[T]) Condition[T] {
 	if parent == nil {
 		return child
 	}
@@ -266,37 +266,35 @@ func combineConditions[T any](parent, child If[T]) If[T] {
 		return parent
 	}
 
-	parentConditions := flattenIf(parent)
-	childConditions := flattenIf(child)
-	conditions := make([]If[T], 0, len(parentConditions)+len(childConditions))
+	parentConditions := flattenCondition(parent)
+	childConditions := flattenCondition(child)
+	conditions := make([]Condition[T], 0, len(parentConditions)+len(childConditions))
 	conditions = append(conditions, parentConditions...)
 	conditions = append(conditions, childConditions...)
 
-	return ifSlice[T](conditions)
+	return conditionSlice[T](conditions)
 }
 
-// flattenIf extracts individual If conditions from an If value.
-// If the value is ifSlice, it returns all elements.
+// flattenCondition extracts individual conditions from a Condition value.
+// If the value is conditionSlice, it returns all elements.
 // Otherwise, it returns a slice containing just the single condition.
-func flattenIf[I any](ifVal If[I]) []If[I] {
-	if ifVal == nil {
+func flattenCondition[I any](conditionVal Condition[I]) []Condition[I] {
+	if conditionVal == nil {
 		return nil
 	}
 
-	// Check if it's our internal ifSlice type.
-	if v, ok := ifVal.(ifSlice[I]); ok {
-		return []If[I](v)
+	if v, ok := conditionVal.(conditionSlice[I]); ok {
+		return []Condition[I](v)
 	}
 
-	// Everything else is a single condition.
-	return []If[I]{ifVal}
+	return []Condition[I]{conditionVal}
 }
 
-// ifSlice is a slice of If conditions that implements If[I].
-type ifSlice[I any] []If[I]
+// conditionSlice is a slice of conditions that implements Condition[I].
+type conditionSlice[I any] []Condition[I]
 
-func (ifs ifSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
-	for _, cond := range ifs {
+func (conditions conditionSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+	for _, cond := range conditions {
 		pass, err := cond.Evaluate(ctx, event, syms)
 		if err != nil {
 			return false, err

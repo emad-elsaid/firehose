@@ -104,7 +104,7 @@ func main() {
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
-        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
         From:   Timer{Interval: 1 * time.Second},
     }
 
@@ -143,7 +143,7 @@ import (
 
     "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/ifs"
+    "github.com/emad-elsaid/firehose/condition"
 )
 
 type Tick struct {
@@ -202,7 +202,7 @@ func main() {
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
-        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
         From:   Timer{Interval: 1 * time.Second},
     }
 

@@ -1,5 +1,5 @@
-// Package ifs provides condition implementations for rule evaluation.
-package ifs
+// Package condition provides condition implementations for rule evaluation.
+package condition
 
 import (
 	"context"

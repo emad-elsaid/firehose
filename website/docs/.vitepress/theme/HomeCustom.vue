@@ -23,8 +23,8 @@
     <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
     <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
     <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
-    <span class="field">Where</span>  <span class="type">If</span>[I]          <span class="comment">// Input condition</span>
-    <span class="field">Having</span> <span class="type">If</span>[O]          <span class="comment">// Output condition</span>
+    <span class="field">Where</span>  <span class="type">Condition</span>[I]   <span class="comment">// Input condition</span>
+    <span class="field">Having</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
 }</code></pre>
         </div>
       </div>
@@ -109,7 +109,7 @@
     <span class="string">"time"</span>
     
     fh <span class="string">"github.com/emad-elsaid/firehose"</span>
-    <span class="string">"github.com/emad-elsaid/firehose/ifs"</span>
+    <span class="string">"github.com/emad-elsaid/firehose/condition"</span>
 )
 
 <span class="keyword">type</span> <span class="type">Tick</span> <span class="keyword">struct</span> {
@@ -131,7 +131,7 @@
         <span class="field">Select</span>: <span class="function">FormatTime</span>{},
         <span class="field">Into</span>:   <span class="function">Printer</span>{},
         <span class="field">From</span>:   <span class="function">Timer</span>{<span class="field">Interval</span>: <span class="number">1</span> * time.Second},
-        <span class="field">Where</span>:  ifs.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
+        <span class="field">Where</span>:  condition.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
     }
     
     registry, _ := fh.<span class="function">AddRule</span>(ctx, <span class="keyword">nil</span>, rule)
@@ -164,7 +164,7 @@
             </div>
             <p>Optional filter evaluated against event attributes. Boolean expressions or custom logic.</p>
             <div class="concept-code">
-              <code><span class="keyword">type</span> <span class="type">If</span>[I <span class="keyword">any</span>] <span class="keyword">interface</span></code>
+              <code><span class="keyword">type</span> <span class="type">Condition</span>[I <span class="keyword">any</span>] <span class="keyword">interface</span></code>
             </div>
           </div>
           
