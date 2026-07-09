@@ -46,7 +46,7 @@ type MockTaskRunner_Run_Call struct {
 	*mock.Call
 }
 
-// Run is a helper method to define mock.On call
+// Run is a helper method to define mock.From call
 //   - task func()
 func (_e *MockTaskRunner_Expecter) Run(task any) *MockTaskRunner_Run_Call {
 	return &MockTaskRunner_Run_Call{Call: _e.mock.On("Run", task)}

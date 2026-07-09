@@ -9,7 +9,7 @@ import (
 )
 
 // Valid validates event fields using go-playground/validator tags.
-// Use this as an If condition for input validation or IfOutput for output validation.
+// Use this as a Where condition for input validation or Having for output validation.
 //
 // Example usage:
 //
@@ -21,8 +21,8 @@ import (
 //
 //	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 //		ID: "validate-user",
-//		If: &ifs.Valid[UserEvent]{},  // Validate input
-//		IfOutput: &ifs.Valid[ProcessedUser]{},  // Validate output
+//		Where: &ifs.Valid[UserEvent]{},  // Validate input
+//		Having: &ifs.Valid[ProcessedUser]{},  // Validate output
 //	}
 //
 // Returns true if validation passes, false with error if validation fails.

@@ -128,20 +128,20 @@ func main() {
     // Define routing rules
     apiGateway := &fh.Rule[HTTPRequest, HTTPResponse]{
         ID: "api_gateway",
-        On: HTTPServer{Addr: ":8080"},
+        From: HTTPServer{Addr: ":8080"},
         
         SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
             {
                 ID:   "get_user",
-                If:   ifs.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
-                Then: GetUserHandler{},
-                To:   JSONResponse{},
+                Where:   ifs.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
+                Select: GetUserHandler{},
+                Into:   JSONResponse{},
             },
             {
                 ID:   "create_user",
-                If:   ifs.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
-                Then: CreateUserHandler{},
-                To:   JSONResponse{},
+                Where:   ifs.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
+                Select: CreateUserHandler{},
+                Into:   JSONResponse{},
             },
         },
     }

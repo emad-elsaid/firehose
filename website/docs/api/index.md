@@ -36,9 +36,9 @@ func AddRule[I, O any](
 ```go
 registry, err := fh.AddRule(ctx, nil, &fh.Rule[Event, Output]{
     ID:   "my_rule",
-    On:   source,
-    Then: action,
-    To:   destination,
+    Select: action,
+    Into:   destination,
+    From:   source,
 })
 ```
 

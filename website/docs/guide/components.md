@@ -10,19 +10,19 @@ Firehose ships with reusable building blocks for common event processing pattern
 import "github.com/emad-elsaid/firehose/ifs"
 
 // Simple comparison
-If: ifs.Cond[OrderEvent]("amount > 1000")
+Where: ifs.Cond[OrderEvent]("amount > 1000")
 
 // Boolean logic
-If: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
 
 // String operations
-If: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
 ```
 
 ### Function Adapter
 
 ```go
-If: ifs.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boolexpr.Symbols) (bool, error) {
+Where: ifs.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boolexpr.Symbols) (bool, error) {
     return evt.Amount > 1000, nil
 })
 ```
@@ -30,7 +30,7 @@ If: ifs.Func[OrderEvent](func(ctx context.Context, evt OrderEvent, syms boolexpr
 ### Rate Limiting
 
 ```go
-If: &ifs.RateLimit[OrderEvent]{
+Where: &ifs.RateLimit[OrderEvent]{
     Limit: rate.Every(time.Second),
     Burst: 10,
 }
@@ -39,7 +39,7 @@ If: &ifs.RateLimit[OrderEvent]{
 ### Deduplication
 
 ```go
-If: &ifs.Once[OrderEvent]{
+Where: &ifs.Once[OrderEvent]{
     Duration: 5 * time.Minute,
     Cache:    cache.NewMemory[bool](10*time.Minute, time.Minute),
 }
@@ -48,7 +48,7 @@ If: &ifs.Once[OrderEvent]{
 ### Multiple Conditions
 
 ```go
-If: ifs.Ifs[OrderEvent]{
+Where: ifs.Ifs[OrderEvent]{
     ifs.Cond[OrderEvent]("amount > 100"),
     &ifs.RateLimit[OrderEvent]{Limit: rate.Every(time.Second), Burst: 5},
     ifs.Func[OrderEvent](customCheck),
@@ -62,7 +62,7 @@ If: ifs.Ifs[OrderEvent]{
 ```go
 import "github.com/emad-elsaid/firehose/actions"
 
-Then: actions.Func[HTTPRequest, User](func(
+Select: actions.Func[HTTPRequest, User](func(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
@@ -75,7 +75,7 @@ Then: actions.Func[HTTPRequest, User](func(
 ### Caching
 
 ```go
-Then: &actions.Cache[OrderEvent, ProcessedOrder]{
+Select: &actions.Cache[OrderEvent, ProcessedOrder]{
     Action: ProcessOrder{},
     Cache:  cache.NewMemory[ProcessedOrder](10*time.Minute, time.Minute),
     TTL:    5 * time.Minute,
@@ -88,13 +88,13 @@ Chain multiple transformations:
 
 ```go
 // Two actions: I → M → O
-Then: actions.Chain[HTTPRequest, ParsedRequest, User]{
+Select: actions.Chain[HTTPRequest, ParsedRequest, User]{
     First:  ParseRequest{},
     Second: ExtractUser{},
 }
 
 // Three actions: I → A → B → O
-Then: actions.Chain3[HTTPRequest, ParsedRequest, ValidatedRequest, User]{
+Select: actions.Chain3[HTTPRequest, ParsedRequest, ValidatedRequest, User]{
     First:  ParseRequest{},
     Second: ValidateRequest{},
     Third:  ExtractUser{},
@@ -108,7 +108,7 @@ Then: actions.Chain3[HTTPRequest, ParsedRequest, ValidatedRequest, User]{
 Round-robin distribution:
 
 ```go
-Then: &actions.RoundRobin[OrderEvent, ProcessedOrder]{
+Select: &actions.RoundRobin[OrderEvent, ProcessedOrder]{
     Actions: []fh.Action[OrderEvent, ProcessedOrder]{
         ProcessWithServiceA{},
         ProcessWithServiceB{},
@@ -120,7 +120,7 @@ Then: &actions.RoundRobin[OrderEvent, ProcessedOrder]{
 Random distribution:
 
 ```go
-Then: &actions.Random[OrderEvent, ProcessedOrder]{
+Select: &actions.Random[OrderEvent, ProcessedOrder]{
     Actions: []fh.Action[OrderEvent, ProcessedOrder]{
         ProcessWithServiceA{},
         ProcessWithServiceB{},
@@ -135,7 +135,7 @@ Then: &actions.Random[OrderEvent, ProcessedOrder]{
 ```go
 import "github.com/emad-elsaid/firehose/destinations"
 
-To: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
+Into: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
     err := saveToDatabase(user)
     return fh.NewReport(err)
 })
@@ -148,7 +148,7 @@ Collect events in memory (useful for testing):
 ```go
 accumulator := &destinations.Accumulator[User]{}
 
-To: accumulator
+Into: accumulator
 
 // Later, retrieve collected items
 users := accumulator.Items()
@@ -159,7 +159,7 @@ users := accumulator.Items()
 Send to all destinations:
 
 ```go
-To: destinations.Fanout[User]{
+Into: destinations.Fanout[User]{
     Destinations: []fh.Destination[User]{
         UserDatabase{},
         EmailService{},
@@ -173,7 +173,7 @@ To: destinations.Fanout[User]{
 Round-robin:
 
 ```go
-To: &destinations.RoundRobin[User]{
+Into: &destinations.RoundRobin[User]{
     Destinations: []fh.Destination[User]{
         DatabaseShard1{},
         DatabaseShard2{},
@@ -185,7 +185,7 @@ To: &destinations.RoundRobin[User]{
 Random:
 
 ```go
-To: &destinations.Random[User]{
+Into: &destinations.Random[User]{
     Destinations: []fh.Destination[User]{
         Server1{},
         Server2{},
@@ -199,13 +199,13 @@ Convert between single events and channels:
 
 ```go
 // Consume from channel, forward each item
-To: destinations.FromChan[User]{
-    To: UserDatabase{},
+Into: destinations.FromChan[User]{
+    Into: UserDatabase{},
 }
 
 // Wrap event in single-item channel
-To: destinations.ToChan[User]{
-    To: ChannelConsumer{},
+Into: destinations.ToChan[User]{
+    Into: ChannelConsumer{},
 }
 ```
 
@@ -215,13 +215,13 @@ Convert between single events and slices:
 
 ```go
 // Consume from slice, forward each item
-To: destinations.FromSlice[User]{
-    To: UserDatabase{},
+Into: destinations.FromSlice[User]{
+    Into: UserDatabase{},
 }
 
 // Wrap event in single-item slice
-To: destinations.ToSlice[User]{
-    To: BatchProcessor{},
+Into: destinations.ToSlice[User]{
+    Into: BatchProcessor{},
 }
 ```
 
@@ -232,7 +232,7 @@ To: destinations.ToSlice[User]{
 ```go
 import "github.com/emad-elsaid/firehose/sources"
 
-On: sources.Func[HTTPRequest](func(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
+From: sources.Func[HTTPRequest](func(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
     server := &http.Server{Addr: ":8080"}
     
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -254,7 +254,7 @@ Emit events manually (useful for testing):
 ```go
 manual := &sources.Manual[OrderEvent]{}
 
-On: manual
+From: manual
 
 // Later, emit events
 manual.Emit(ctx, OrderEvent{OrderID: "123", Amount: 99.99})
@@ -273,7 +273,7 @@ cache := cache.NewMemory[ProcessedOrder](
 )
 
 // Use with actions.Cache or ifs.Once
-Then: &actions.Cache[OrderEvent, ProcessedOrder]{
+Select: &actions.Cache[OrderEvent, ProcessedOrder]{
     Action: ProcessOrder{},
     Cache:  cache,
     TTL:    5 * time.Minute,

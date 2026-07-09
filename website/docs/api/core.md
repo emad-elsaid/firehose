@@ -10,10 +10,11 @@ Defines a complete event processing pipeline.
 type Rule[I, O any] struct {
     ID           string
     Environments []string
-    On           Source[I]
-    If           If[I]
-    Then         Action[I, O]
-    To           Destination[O]
+    Select       Action[I, O]
+    Into         Destination[O]
+    From         Source[I]
+    Where        If[I]
+    Having       If[O]
     SubRules     []Rule[I, O]
     Middlewares  []Middleware[I, O]
 }
@@ -37,32 +38,39 @@ Environments: []string{"production", "staging"}
 
 Rule is included only when the `ENV` environment variable matches one of the listed values.
 
-#### On (Source[I])
-Event source that produces events of type `I`.
-
-```go
-On: HTTPServer{Addr: ":8080"}
-```
-
-#### If (If[I])
-Optional condition that filters events. If nil, all events pass through.
-
-```go
-If: ifs.Cond[OrderEvent]("amount > 1000")
-```
-
-#### Then (Action[I, O])
+#### Select (Action[I, O])
 Transformation that converts input events (type `I`) to output events (type `O`).
 
 ```go
-Then: ProcessOrder{}
+Select: ProcessOrder{}
+Into: OrderDatabase{}
 ```
 
-#### To (Destination[O])
+#### Into (Destination[O])
 Destination that consumes output events of type `O`.
 
 ```go
-To: OrderDatabase{}
+```
+
+#### From (Source[I])
+Event source that produces events of type `I`.
+
+```go
+From: HTTPServer{Addr: ":8080"}
+```
+
+#### Where (If[I])
+Optional condition that filters input events. If nil, all input events pass through.
+
+```go
+Where: ifs.Cond[OrderEvent]("amount > 1000")
+```
+
+#### Having (If[O])
+Optional condition that filters transformed output events before sending to destination.
+
+```go
+Having: ifs.Cond[ProcessedOrder]("status = \"ready\"")
 ```
 
 #### SubRules ([]Rule[I, O])
@@ -70,8 +78,8 @@ Child rules that inherit parent's source, conditions, and middlewares.
 
 ```go
 SubRules: []Rule[I, O]{
-    {ID: "high_value", If: ifs.Cond[I]("amount > 10000"), ...},
-    {ID: "premium", If: ifs.Cond[I]("tier = premium"), ...},
+    {ID: "high_value", Where: ifs.Cond[I]("amount > 10000"), ...},
+    {ID: "premium", Where: ifs.Cond[I]("tier = premium"), ...},
 }
 ```
 

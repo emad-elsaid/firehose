@@ -16,15 +16,16 @@ Applications process events from various sources (HTTP requests, message queues,
 Firehose provides a declarative framework for event processing pipelines:
 
 ```
-Event Source → Condition → Transformation → Destination
+Select → From → Where → Having → Into
 ```
 
 Each stage is:
 
-- **On**: Event source producing events of a specific type
-- **If**: Optional condition evaluated against event attributes
-- **Then**: Transformation logic converting input events to output events
-- **To**: Destination handling the output event (side effects, storage, forwarding)
+- **Select**: Transformation logic converting input events to output events
+- **From**: Event source producing events of a specific type
+- **Where**: Optional input condition evaluated against event attributes
+- **Having**: Optional output condition evaluated against transformed output
+- **Into**: Destination handling the output event (side effects, storage, forwarding)
 
 ## Key Features
 
@@ -48,8 +49,8 @@ Register multiple rules with the same source instance. The framework detects thi
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{On: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{On: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 ### Hierarchical Composition
@@ -58,20 +59,20 @@ Define rule families with `SubRules`. Child rules inherit parent's source, condi
 
 ```go
 &Rule[ProcessEvent, any]{
-    On: processMonitor,
-    If: ifs.Cond[ProcessEvent](`env = "production"`),
+    From: processMonitor,
+    Where: ifs.Cond[ProcessEvent](`env = "production"`),
     SubRules: []Rule[ProcessEvent, any]{
         {
             ID:   "alert_postgres",
-            If:   ifs.Cond[ProcessEvent](`name = "postgres"`),
-            Then: CreateAlert{Type: "database"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[ProcessEvent](`name = "postgres"`),
+            Select: CreateAlert{Type: "database"},
+            Into:   PagerDuty{},
         },
         {
             ID:   "alert_nginx", 
-            If:   ifs.Cond[ProcessEvent](`name = "nginx"`),
-            Then: CreateAlert{Type: "webserver"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[ProcessEvent](`name = "nginx"`),
+            Select: CreateAlert{Type: "webserver"},
+            Into:   PagerDuty{},
         },
     },
 }

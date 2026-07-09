@@ -12,10 +12,10 @@ Each rule should have a single, clear responsibility:
 // ✅ Good - focused responsibility
 rule := &fh.Rule[OrderEvent, Email]{
     ID:   "order_confirmation_email",
-    On:   orderSource,
-    If:   ifs.Cond[OrderEvent](`status = "completed"`),
-    Then: CreateConfirmationEmail{},
-    To:   emailService,
+    Select: CreateConfirmationEmail{},
+    Into:   emailService,
+    Where:   ifs.Cond[OrderEvent](`status = "completed"`),
+    From:   orderSource,
 }
 
 // ❌ Bad - multiple responsibilities
@@ -42,7 +42,7 @@ ID: "rule1"
 Use conditions to filter invalid events early:
 
 ```go
-If: ifs.Ifs[Event]{
+Where: ifs.Ifs[Event]{
     ifs.Cond[Event](`amount > 0`),
     ifs.Cond[Event](`user_id != ""`),
     ValidateSchema{},
@@ -124,15 +124,15 @@ Share sources across rules instead of creating duplicates:
 // ✅ Good - source shared, starts once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Email]{On: kafkaSource, ...})
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{On: kafkaSource, ...})
+reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Email]{From: kafkaSource, ...})
+reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{From: kafkaSource, ...})
 
 // ❌ Bad - creates separate sources
 reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Email]{
-    On: &KafkaConsumer{Topic: "orders"},
+    From: &KafkaConsumer{Topic: "orders"},
 })
 reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{
-    On: &KafkaConsumer{Topic: "orders"},
+    From: &KafkaConsumer{Topic: "orders"},
 })
 ```
 
@@ -141,7 +141,7 @@ reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{
 Use `actions.Cache` for expensive computations:
 
 ```go
-Then: &actions.Cache[Event, Result]{
+Select: &actions.Cache[Event, Result]{
     Action: ExpensiveAPICall{},
     Cache:  cache.NewMemory[Result](10*time.Minute, time.Minute),
     TTL:    5 * time.Minute,
@@ -153,7 +153,7 @@ Then: &actions.Cache[Event, Result]{
 Prevent overwhelming downstream systems:
 
 ```go
-If: &ifs.RateLimit[Event]{
+Where: &ifs.RateLimit[Event]{
     Limit: rate.Every(time.Second),
     Burst: 100,
 }
@@ -367,7 +367,7 @@ result, err := api.Call(ctx, request)
 Check authorization before processing:
 
 ```go
-If: ifs.Func[Event](func(ctx context.Context, event Event, _ boolexpr.Symbols) (bool, error) {
+Where: ifs.Func[Event](func(ctx context.Context, event Event, _ boolexpr.Symbols) (bool, error) {
     return auth.HasPermission(ctx, event.UserID, "resource.write"), nil
 })
 ```

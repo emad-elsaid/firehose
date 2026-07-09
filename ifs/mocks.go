@@ -78,7 +78,7 @@ type MockCacheStorage_Get_Call[V any] struct {
 	*mock.Call
 }
 
-// Get is a helper method to define mock.On call
+// Get is a helper method to define mock.From call
 //   - ctx context.Context
 //   - key string
 func (_e *MockCacheStorage_Expecter[V]) Get(ctx any, key any) *MockCacheStorage_Get_Call[V] {
@@ -135,7 +135,7 @@ type MockCacheStorage_Set_Call[V any] struct {
 	*mock.Call
 }
 
-// Set is a helper method to define mock.On call
+// Set is a helper method to define mock.From call
 //   - ctx context.Context
 //   - key string
 //   - value V

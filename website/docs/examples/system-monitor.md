@@ -151,26 +151,26 @@ func main() {
     
     rule := &fh.Rule[ProcessEvent, Alert]{
         ID: "system_monitor",
-        On: monitor,
+        From: monitor,
         
         SubRules: []fh.Rule[ProcessEvent, Alert]{
             {
                 ID:   "critical_cpu",
-                If:   ifs.Cond[ProcessEvent](`cpu > 80`),
-                Then: CreateCriticalAlert{},
-                To:   PagerDuty{},
+                Where:   ifs.Cond[ProcessEvent](`cpu > 80`),
+                Select: CreateCriticalAlert{},
+                Into:   PagerDuty{},
             },
             {
                 ID:   "critical_memory",
-                If:   ifs.Cond[ProcessEvent](`memory > 1000`),
-                Then: CreateCriticalAlert{},
-                To:   PagerDuty{},
+                Where:   ifs.Cond[ProcessEvent](`memory > 1000`),
+                Select: CreateCriticalAlert{},
+                Into:   PagerDuty{},
             },
             {
                 ID:   "warning_cpu",
-                If:   ifs.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
-                Then: CreateWarningAlert{},
-                To:   Slack{},
+                Where:   ifs.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
+                Select: CreateWarningAlert{},
+                Into:   Slack{},
             },
         },
     }

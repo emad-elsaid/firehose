@@ -17,9 +17,9 @@ Rules can be activated only in specific environments using the `Environments` fi
 rule := &fh.Rule[Event, Output]{
     ID:           "billing_processor",
     Environments: []string{"production", "staging"},
-    On:           source,
-    Then:         action,
-    To:           destination,
+    Select:         action,
+    Into:           destination,
+    From:           source,
 }
 ```
 
@@ -45,7 +45,7 @@ If `Environments` is empty or nil, the rule is active in all environments:
 ```go
 rule := &fh.Rule[Event, Output]{
     ID: "always_active",
-    On: source,
+    From: source,
     // No Environments field - active everywhere
 }
 ```
@@ -59,16 +59,16 @@ rules := []*fh.Rule[Event, Event]{
     {
         ID:           "prod_events",
         Environments: []string{"production"},
-        On:           eventSource,
-        Then:         actions.Identity[Event]{},
-        To:           ProductionDatabase{},
+        Select:         actions.Identity[Event]{},
+        Into:           ProductionDatabase{},
+        From:           eventSource,
     },
     {
         ID:           "dev_events",
         Environments: []string{"development"},
-        On:           eventSource,
-        Then:         actions.Identity[Event]{},
-        To:           LocalDatabase{},
+        Select:         actions.Identity[Event]{},
+        Into:           LocalDatabase{},
+        From:           eventSource,
     },
 }
 ```
@@ -79,9 +79,9 @@ rules := []*fh.Rule[Event, Event]{
 debugRule := &fh.Rule[Event, Event]{
     ID:           "debug_logger",
     Environments: []string{"development", "staging"},
-    On:           source,
-    Then:         actions.Identity[Event]{},
-    To:           ConsoleLogger{},
+    Select:         actions.Identity[Event]{},
+    Into:           ConsoleLogger{},
+    From:           source,
 }
 ```
 
@@ -91,9 +91,9 @@ debugRule := &fh.Rule[Event, Event]{
 betaFeature := &fh.Rule[Event, Output]{
     ID:           "beta_feature",
     Environments: []string{"staging", "beta"},
-    On:           source,
-    Then:         NewFeatureAction{},
-    To:           destination,
+    Select:         NewFeatureAction{},
+    Into:           destination,
+    From:           source,
 }
 ```
 
@@ -115,7 +115,7 @@ SubRules inherit parent environments:
 ```go
 parent := &fh.Rule[Event, Output]{
     Environments: []string{"production"},
-    On:           source,
+    From:           source,
     
     SubRules: []fh.Rule[Event, Output]{
         {

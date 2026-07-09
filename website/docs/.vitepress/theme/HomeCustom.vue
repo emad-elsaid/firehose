@@ -20,10 +20,11 @@
         </div>
         <div class="hero-code">
           <pre><code><span class="keyword">type</span> <span class="type">Rule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
-    <span class="field">On</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
-    <span class="field">If</span>   <span class="type">If</span>[I]          <span class="comment">// Condition</span>
-    <span class="field">Then</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
-    <span class="field">To</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+    <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
+    <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+    <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
+    <span class="field">Where</span>  <span class="type">If</span>[I]          <span class="comment">// Input condition</span>
+    <span class="field">Having</span> <span class="type">If</span>[O]          <span class="comment">// Output condition</span>
 }</code></pre>
         </div>
       </div>
@@ -104,6 +105,7 @@
 
 <span class="keyword">import</span> (
     <span class="string">"context"</span>
+    <span class="string">"fmt"</span>
     <span class="string">"time"</span>
     
     fh <span class="string">"github.com/emad-elsaid/firehose"</span>
@@ -125,11 +127,11 @@
     ctx := context.<span class="function">Background</span>()
     
     rule := &fh.<span class="type">Rule</span>[<span class="type">Tick</span>, <span class="type">string</span>]{
-        <span class="field">ID</span>:   <span class="string">"business_hours"</span>,
-        <span class="field">On</span>:   <span class="function">Timer</span>{<span class="field">Interval</span>: <span class="number">1</span> * time.Second},
-        <span class="field">If</span>:   ifs.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
-        <span class="field">Then</span>: <span class="function">FormatTime</span>{},
-        <span class="field">To</span>:   <span class="function">Printer</span>{},
+        <span class="field">ID</span>:     <span class="string">"business_hours"</span>,
+        <span class="field">Select</span>: <span class="function">FormatTime</span>{},
+        <span class="field">Into</span>:   <span class="function">Printer</span>{},
+        <span class="field">From</span>:   <span class="function">Timer</span>{<span class="field">Interval</span>: <span class="number">1</span> * time.Second},
+        <span class="field">Where</span>:  ifs.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
     }
     
     registry, _ := fh.<span class="function">AddRule</span>(ctx, <span class="keyword">nil</span>, rule)
@@ -204,7 +206,7 @@
           <div class="pipeline-step">
             <div class="step-icon">🔍</div>
             <div class="step-label">Condition</div>
-            <div class="step-desc">Evaluate If</div>
+            <div class="step-desc">Evaluate Where</div>
           </div>
           <div class="pipeline-arrow">→</div>
           <div class="pipeline-step">

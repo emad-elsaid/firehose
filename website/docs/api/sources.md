@@ -26,7 +26,7 @@ Function adapter for custom sources.
 ```go
 import "github.com/emad-elsaid/firehose/sources"
 
-On: sources.Func[Event](func(ctx context.Context, cb fh.Callback[Event]) (context.Context, error) {
+From: sources.Func[Event](func(ctx context.Context, cb fh.Callback[Event]) (context.Context, error) {
     go func() {
         for {
             select {
@@ -50,7 +50,7 @@ Manually emit events (useful for testing).
 ```go
 manual := &sources.Manual[Event]{}
 
-On: manual
+From: manual
 
 // Emit events
 manual.Emit(ctx, Event{ID: "123"})

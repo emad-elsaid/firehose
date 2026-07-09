@@ -32,7 +32,7 @@ func TestFromChanSend(t *testing.T) {
 			name:  "forwards all items",
 			items: []int{1, 2, 3},
 			wrapper: FromChan[int]{
-				To: Func[int](func(_ context.Context, event int) fh.Report {
+				Into: Func[int](func(_ context.Context, event int) fh.Report {
 					return fh.NewSuccessReport()
 				}),
 			},
@@ -42,7 +42,7 @@ func TestFromChanSend(t *testing.T) {
 			name:  "joins destination errors while continuing",
 			items: []int{1, 2, 3},
 			wrapper: FromChan[int]{
-				To: Func[int](func(_ context.Context, event int) fh.Report {
+				Into: Func[int](func(_ context.Context, event int) fh.Report {
 					switch event {
 					case 1:
 						return fh.NewReport(firstErr)
@@ -61,9 +61,9 @@ func TestFromChanSend(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			received := []int{}
-			if tc.wrapper.To != nil {
-				target := tc.wrapper.To
-				tc.wrapper.To = Func[int](func(ctx context.Context, event int) fh.Report {
+			if tc.wrapper.Into != nil {
+				target := tc.wrapper.Into
+				tc.wrapper.Into = Func[int](func(ctx context.Context, event int) fh.Report {
 					received = append(received, event)
 					return target.Send(ctx, event)
 				})

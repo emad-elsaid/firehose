@@ -29,7 +29,7 @@ func TestToSliceSend(t *testing.T) {
 			item:      7,
 			wantItems: []int{7},
 			wrapper: ToSlice[int]{
-				To: Func[[]int](func(_ context.Context, _ []int) fh.Report {
+				Into: Func[[]int](func(_ context.Context, _ []int) fh.Report {
 					return fh.NewSuccessReport()
 				}),
 			},
@@ -39,9 +39,9 @@ func TestToSliceSend(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			received := []int{}
-			if tc.wrapper.To != nil {
-				target := tc.wrapper.To
-				tc.wrapper.To = Func[[]int](func(ctx context.Context, event []int) fh.Report {
+			if tc.wrapper.Into != nil {
+				target := tc.wrapper.Into
+				tc.wrapper.Into = Func[[]int](func(ctx context.Context, event []int) fh.Report {
 					received = append(received, event...)
 					return target.Send(ctx, event)
 				})

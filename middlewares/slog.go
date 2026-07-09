@@ -23,7 +23,7 @@ func (s *Slog[I, O]) WrapCallback(
 	callback fh.Callback[I],
 ) (fh.Callback[I], error) {
 	s.downstream = callback
-	s.source = rule.On
+	s.source = rule.From
 
 	return s.callback, nil
 }

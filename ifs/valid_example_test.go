@@ -28,7 +28,7 @@ func Example_validate() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-user-registration",
 		// Validate input before processing
-		If: &ifs.Valid[UserEvent]{},
+		Where: &ifs.Valid[UserEvent]{},
 		// ... rest of rule configuration
 	}
 
@@ -40,7 +40,7 @@ func Example_validate() {
 		Country:  "US",
 	}
 
-	passed, err := rule.If.Evaluate(context.Background(), validEvent, nil)
+	passed, err := rule.Where.Evaluate(context.Background(), validEvent, nil)
 	fmt.Printf("Valid event passed: %v, error: %v\n", passed, err)
 
 	// Invalid event - will fail validation
@@ -51,7 +51,7 @@ func Example_validate() {
 		Country:  "USA", // Should be 2-letter code
 	}
 
-	passed, err = rule.If.Evaluate(context.Background(), invalidEvent, nil)
+	passed, err = rule.Where.Evaluate(context.Background(), invalidEvent, nil)
 	fmt.Printf("Invalid event passed: %v, has error: %v\n", passed, err != nil)
 
 	// Output:
@@ -59,12 +59,12 @@ func Example_validate() {
 	// Invalid event passed: false, has error: true
 }
 
-// Example_validateOutput demonstrates using Valid as an IfOutput condition for output validation.
+// Example_validateOutput demonstrates using Valid as a Having condition for output validation.
 func Example_validateOutput() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-processed-user",
 		// Validate output before sending to destination
-		IfOutput: &ifs.Valid[ProcessedUser]{},
+		Having: &ifs.Valid[ProcessedUser]{},
 		// ... rest of rule configuration
 	}
 
@@ -75,7 +75,7 @@ func Example_validateOutput() {
 		Status:   "active",
 	}
 
-	passed, err := rule.IfOutput.Evaluate(context.Background(), validOutput, nil)
+	passed, err := rule.Having.Evaluate(context.Background(), validOutput, nil)
 	fmt.Printf("Valid output passed: %v, error: %v\n", passed, err)
 
 	// Invalid output - will fail validation
@@ -85,7 +85,7 @@ func Example_validateOutput() {
 		Status:   "invalid-status", // Not in allowed values
 	}
 
-	passed, err = rule.IfOutput.Evaluate(context.Background(), invalidOutput, nil)
+	passed, err = rule.Having.Evaluate(context.Background(), invalidOutput, nil)
 	fmt.Printf("Invalid output passed: %v, has error: %v\n", passed, err != nil)
 
 	// Output:
@@ -98,14 +98,14 @@ func Example_validateBoth() {
 	rule := &firehose.Rule[UserEvent, ProcessedUser]{
 		ID: "validate-both",
 		// Validate input
-		If: &ifs.Valid[UserEvent]{},
+		Where: &ifs.Valid[UserEvent]{},
 		// Validate output
-		IfOutput: &ifs.Valid[ProcessedUser]{},
+		Having: &ifs.Valid[ProcessedUser]{},
 		// ... rest of rule configuration
 	}
 
-	fmt.Printf("Rule has input validation: %v\n", rule.If != nil)
-	fmt.Printf("Rule has output validation: %v\n", rule.IfOutput != nil)
+	fmt.Printf("Rule has input validation: %v\n", rule.Where != nil)
+	fmt.Printf("Rule has output validation: %v\n", rule.Having != nil)
 
 	// Output:
 	// Rule has input validation: true

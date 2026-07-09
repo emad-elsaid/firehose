@@ -71,7 +71,7 @@ type MockSource_Start_Call[T any] struct {
 	*mock.Call
 }
 
-// Start is a helper method to define mock.On call
+// Start is a helper method to define mock.From call
 //   - ctx context.Context
 //   - cb Callback[T]
 func (_e *MockSource_Expecter[T]) Start(ctx any, cb any) *MockSource_Start_Call[T] {
@@ -166,7 +166,7 @@ type MockAction_Process_Call[I any, O any] struct {
 	*mock.Call
 }
 
-// Process is a helper method to define mock.On call
+// Process is a helper method to define mock.From call
 //   - ctx context.Context
 //   - event I
 //   - syms boolexpr.Symbols
@@ -256,7 +256,7 @@ type MockDestination_Send_Call[T any] struct {
 	*mock.Call
 }
 
-// Send is a helper method to define mock.On call
+// Send is a helper method to define mock.From call
 //   - ctx context.Context
 //   - event T
 func (_e *MockDestination_Expecter[T]) Send(ctx any, event any) *MockDestination_Send_Call[T] {
@@ -349,7 +349,7 @@ type MockIf_Evaluate_Call[I any] struct {
 	*mock.Call
 }
 
-// Evaluate is a helper method to define mock.On call
+// Evaluate is a helper method to define mock.From call
 //   - ctx context.Context
 //   - event I
 //   - syms boolexpr.Symbols
@@ -441,7 +441,7 @@ type MockRegistry_getCtx_Call struct {
 	*mock.Call
 }
 
-// getCtx is a helper method to define mock.On call
+// getCtx is a helper method to define mock.From call
 func (_e *MockRegistry_Expecter) getCtx() *MockRegistry_getCtx_Call {
 	return &MockRegistry_getCtx_Call{Call: _e.mock.On("getCtx")}
 }
@@ -487,7 +487,7 @@ type MockRegistry_getNext_Call struct {
 	*mock.Call
 }
 
-// getNext is a helper method to define mock.On call
+// getNext is a helper method to define mock.From call
 func (_e *MockRegistry_Expecter) getNext() *MockRegistry_getNext_Call {
 	return &MockRegistry_getNext_Call{Call: _e.mock.On("getNext")}
 }
@@ -533,7 +533,7 @@ type MockRegistry_getPrev_Call struct {
 	*mock.Call
 }
 
-// getPrev is a helper method to define mock.On call
+// getPrev is a helper method to define mock.From call
 func (_e *MockRegistry_Expecter) getPrev() *MockRegistry_getPrev_Call {
 	return &MockRegistry_getPrev_Call{Call: _e.mock.On("getPrev")}
 }
@@ -579,7 +579,7 @@ type MockRegistry_getSource_Call struct {
 	*mock.Call
 }
 
-// getSource is a helper method to define mock.On call
+// getSource is a helper method to define mock.From call
 func (_e *MockRegistry_Expecter) getSource() *MockRegistry_getSource_Call {
 	return &MockRegistry_getSource_Call{Call: _e.mock.On("getSource")}
 }
@@ -625,7 +625,7 @@ type MockRegistry_getSourceRegistry_Call struct {
 	*mock.Call
 }
 
-// getSourceRegistry is a helper method to define mock.On call
+// getSourceRegistry is a helper method to define mock.From call
 func (_e *MockRegistry_Expecter) getSourceRegistry() *MockRegistry_getSourceRegistry_Call {
 	return &MockRegistry_getSourceRegistry_Call{Call: _e.mock.On("getSourceRegistry")}
 }
@@ -658,7 +658,7 @@ type MockRegistry_setNext_Call struct {
 	*mock.Call
 }
 
-// setNext is a helper method to define mock.On call
+// setNext is a helper method to define mock.From call
 //   - n Registry
 func (_e *MockRegistry_Expecter) setNext(n any) *MockRegistry_setNext_Call {
 	return &MockRegistry_setNext_Call{Call: _e.mock.On("setNext", n)}
@@ -698,7 +698,7 @@ type MockRegistry_setPrev_Call struct {
 	*mock.Call
 }
 
-// setPrev is a helper method to define mock.On call
+// setPrev is a helper method to define mock.From call
 //   - p Registry
 func (_e *MockRegistry_Expecter) setPrev(p any) *MockRegistry_setPrev_Call {
 	return &MockRegistry_setPrev_Call{Call: _e.mock.On("setPrev", p)}
@@ -749,7 +749,7 @@ type MockRegistry_start_Call struct {
 	*mock.Call
 }
 
-// start is a helper method to define mock.On call
+// start is a helper method to define mock.From call
 //   - ctx context.Context
 func (_e *MockRegistry_Expecter) start(ctx any) *MockRegistry_start_Call {
 	return &MockRegistry_start_Call{Call: _e.mock.On("start", ctx)}
@@ -829,7 +829,7 @@ type mocksourceRegistry_getNextSameSource_Call struct {
 	*mock.Call
 }
 
-// getNextSameSource is a helper method to define mock.On call
+// getNextSameSource is a helper method to define mock.From call
 func (_e *mocksourceRegistry_Expecter) getNextSameSource() *mocksourceRegistry_getNextSameSource_Call {
 	return &mocksourceRegistry_getNextSameSource_Call{Call: _e.mock.On("getNextSameSource")}
 }
@@ -875,7 +875,7 @@ type mocksourceRegistry_getRegistry_Call struct {
 	*mock.Call
 }
 
-// getRegistry is a helper method to define mock.On call
+// getRegistry is a helper method to define mock.From call
 func (_e *mocksourceRegistry_Expecter) getRegistry() *mocksourceRegistry_getRegistry_Call {
 	return &mocksourceRegistry_getRegistry_Call{Call: _e.mock.On("getRegistry")}
 }
@@ -908,7 +908,7 @@ type mocksourceRegistry_setNextSameSource_Call struct {
 	*mock.Call
 }
 
-// setNextSameSource is a helper method to define mock.On call
+// setNextSameSource is a helper method to define mock.From call
 //   - n sourceRegistry
 func (_e *mocksourceRegistry_Expecter) setNextSameSource(n any) *mocksourceRegistry_setNextSameSource_Call {
 	return &mocksourceRegistry_setNextSameSource_Call{Call: _e.mock.On("setNextSameSource", n)}
@@ -948,7 +948,7 @@ type mocksourceRegistry_setPrevSameSource_Call struct {
 	*mock.Call
 }
 
-// setPrevSameSource is a helper method to define mock.On call
+// setPrevSameSource is a helper method to define mock.From call
 //   - p sourceRegistry
 func (_e *mocksourceRegistry_Expecter) setPrevSameSource(p any) *mocksourceRegistry_setPrevSameSource_Call {
 	return &mocksourceRegistry_setPrevSameSource_Call{Call: _e.mock.On("setPrevSameSource", p)}
@@ -1028,7 +1028,7 @@ type MockRunnable_NextRunnable_Call[I any] struct {
 	*mock.Call
 }
 
-// NextRunnable is a helper method to define mock.On call
+// NextRunnable is a helper method to define mock.From call
 func (_e *MockRunnable_Expecter[I]) NextRunnable() *MockRunnable_NextRunnable_Call[I] {
 	return &MockRunnable_NextRunnable_Call[I]{Call: _e.mock.On("NextRunnable")}
 }
@@ -1061,7 +1061,7 @@ type MockRunnable_Run_Call[I any] struct {
 	*mock.Call
 }
 
-// Run is a helper method to define mock.On call
+// Run is a helper method to define mock.From call
 //   - ctx context.Context
 //   - event I
 //   - syms boolexpr.Symbols
@@ -1168,7 +1168,7 @@ type MockMiddleware_WrapAction_Call[I any, O any] struct {
 	*mock.Call
 }
 
-// WrapAction is a helper method to define mock.On call
+// WrapAction is a helper method to define mock.From call
 //   - ctx context.Context
 //   - rule *Rule[I, O]
 //   - action Action[I, O]
@@ -1242,7 +1242,7 @@ type MockMiddleware_WrapCallback_Call[I any, O any] struct {
 	*mock.Call
 }
 
-// WrapCallback is a helper method to define mock.On call
+// WrapCallback is a helper method to define mock.From call
 //   - ctx context.Context
 //   - rule *Rule[I, O]
 //   - callback Callback[I]
@@ -1316,7 +1316,7 @@ type MockMiddleware_WrapDestination_Call[I any, O any] struct {
 	*mock.Call
 }
 
-// WrapDestination is a helper method to define mock.On call
+// WrapDestination is a helper method to define mock.From call
 //   - ctx context.Context
 //   - rule *Rule[I, O]
 //   - destination Destination[O]

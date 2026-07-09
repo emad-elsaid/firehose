@@ -61,10 +61,11 @@ Rules define complete event processing pipelines. They combine a source, optiona
 type Rule[I, O any] struct {
     ID           string             // Unique identifier
     Environments []string           // Active only when ENV matches
-    On           Source[I]          // Event source
-    If           If[I]              // Optional filter condition
-    Then         Action[I, O]       // Event transformation
-    To           Destination[O]     // Output handler
+    Select       Action[I, O]       // Event transformation
+    Into         Destination[O]     // Output handler
+    From         Source[I]          // Event source
+    Where        If[I]              // Optional filter condition
+    Having       If[O]              // Optional post-transform condition
     SubRules     []Rule[I, O]       // Child rules
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
@@ -75,23 +76,23 @@ type Rule[I, O any] struct {
 Rules are generic over input (`I`) and output (`O`) types. The compiler ensures:
 
 - `Source[I]` produces events of type `I`
-- `If[I]` evaluates conditions on type `I`
-- `Action[I, O]` transforms `I` to `O`
-- `Destination[O]` consumes events of type `O`
+- `If[I]` evaluates conditions on type `I` (used by `Where`)
+- `Action[I, O]` transforms `I` to `O` (used by `Select`)
+- `Destination[O]` consumes events of type `O` (used by `Into`)
 
 ```go
 // ✅ Valid - types match
 Rule[HTTPRequest, User]{
-    On:   HTTPServer{},           // produces HTTPRequest
-    Then: ExtractUser{},          // HTTPRequest → User
-    To:   UserDatabase{},         // consumes User
+    Select: ExtractUser{},          // HTTPRequest → User
+    Into:   UserDatabase{},         // consumes User
+    From:   HTTPServer{},           // produces HTTPRequest
 }
 
 // ❌ Invalid - compiler error
 Rule[HTTPRequest, User]{
-    On:   HTTPServer{},           // produces HTTPRequest
-    Then: ExtractUser{},          // HTTPRequest → User
-    To:   EmailService{},         // expects Email, not User
+    Select: ExtractUser{},          // HTTPRequest → User
+    Into:   EmailService{},         // expects Email, not User
+    From:   HTTPServer{},           // produces HTTPRequest
 }
 ```
 
@@ -140,8 +141,8 @@ When multiple rules share the same source instance, Firehose starts it only once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // kafkaSource starts once, events go to both rules
-reg, _ = AddRule(ctx, reg, &Rule[Event, Email]{On: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[Event, Metrics]{On: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[Event, Email]{From: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[Event, Metrics]{From: kafkaSource, ...})
 ```
 
 Different source instances start independently.
@@ -160,13 +161,13 @@ Use `ifs.Cond` for expression-based filtering:
 
 ```go
 // Simple condition
-If: ifs.Cond[OrderEvent]("amount > 1000")
+Where: ifs.Cond[OrderEvent]("amount > 1000")
 
 // Complex condition
-If: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
 
 // Geographic filtering
-If: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
 ```
 
 **Supported operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
@@ -238,7 +239,7 @@ type Report struct {
 Common report errors:
 
 - `ErrNoMatch` - condition evaluated to false (normal control flow)
-- `ConditionError` - failure while evaluating `If`
+- `ConditionError` - failure while evaluating `Where` or `Having`
 - `ActionError` - failure inside `Action.Process`
 - `DestinationError` - failure inside `Destination.Send`
 
@@ -264,20 +265,20 @@ SubRules enable hierarchical event processing. Child rules inherit parent's sour
 
 ```go
 &Rule[ProcessEvent, Alert]{
-    On: processMonitor,
-    If: ifs.Cond[ProcessEvent](`env = "production"`),
+    From: processMonitor,
+    Where: ifs.Cond[ProcessEvent](`env = "production"`),
     SubRules: []Rule[ProcessEvent, Alert]{
         {
             ID:   "database_alert",
-            If:   ifs.Cond[ProcessEvent](`name = "postgres"`),
-            Then: CreateAlert{Type: "database"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[ProcessEvent](`name = "postgres"`),
+            Select: CreateAlert{Type: "database"},
+            Into:   PagerDuty{},
         },
         {
             ID:   "cache_alert",
-            If:   ifs.Cond[ProcessEvent](`name = "redis"`),
-            Then: CreateAlert{Type: "cache"},
-            To:   Slack{},
+            Where:   ifs.Cond[ProcessEvent](`name = "redis"`),
+            Select: CreateAlert{Type: "cache"},
+            Into:   Slack{},
         },
     },
 }

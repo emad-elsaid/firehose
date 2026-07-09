@@ -102,10 +102,10 @@ func main() {
 
     rule := &fh.Rule[Tick, string]{
         ID:   "print_business_hours",
-        On:   Timer{Interval: 1 * time.Second},
-        If:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
-        Then: FormatTime{},
-        To:   Printer{},
+        Select: FormatTime{},
+        Into:   Printer{},
+        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        From:   Timer{Interval: 1 * time.Second},
     }
 
     registry, err := fh.AddRule(ctx, nil, rule)
@@ -200,10 +200,10 @@ func main() {
 
     rule := &fh.Rule[Tick, string]{
         ID:   "print_business_hours",
-        On:   Timer{Interval: 1 * time.Second},
-        If:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
-        Then: FormatTime{},
-        To:   Printer{},
+        Select: FormatTime{},
+        Into:   Printer{},
+        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        From:   Timer{Interval: 1 * time.Second},
     }
 
     registry, _ := fh.AddRule(ctx, nil, rule)

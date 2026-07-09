@@ -148,20 +148,20 @@ func main() {
     
     rule := &fh.Rule[OrderEvent, OrderEvent]{
         ID: "order_processor",
-        On: kafkaSource,
+        From: kafkaSource,
         
         SubRules: []fh.Rule[OrderEvent, OrderEvent]{
             {
                 ID:   "high_value",
-                If:   ifs.Cond[OrderEvent](`amount > 1000`),
-                Then: ProcessHighValueOrder{},
-                To:   DatabaseWriter{},
+                Where:   ifs.Cond[OrderEvent](`amount > 1000`),
+                Select: ProcessHighValueOrder{},
+                Into:   DatabaseWriter{},
             },
             {
                 ID:   "failed_orders",
-                If:   ifs.Cond[OrderEvent](`status = "failed"`),
-                Then: actions.Identity[OrderEvent]{},
-                To:   DeadLetterQueue{},
+                Where:   ifs.Cond[OrderEvent](`status = "failed"`),
+                Select: actions.Identity[OrderEvent]{},
+                Into:   DeadLetterQueue{},
             },
         },
     }

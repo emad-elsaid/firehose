@@ -8,12 +8,12 @@ import (
 
 // ToChan wraps a single item as a one-item channel and forwards it.
 type ToChan[T any] struct {
-	To fh.Destination[chan T] `validate:"required"`
+	Into fh.Destination[chan T] `validate:"required"`
 }
 
-// Send wraps event in a one-item channel and forwards it to To.
+// Send wraps event in a one-item channel and forwards it to Into.
 func (t ToChan[T]) Send(ctx context.Context, event T) fh.Report {
-	if t.To == nil {
+	if t.Into == nil {
 		return fh.NewReport(fh.DestinationError{Err: ErrWrappedDestinationRequired})
 	}
 
@@ -22,5 +22,5 @@ func (t ToChan[T]) Send(ctx context.Context, event T) fh.Report {
 
 	close(items)
 
-	return t.To.Send(ctx, items)
+	return t.Into.Send(ctx, items)
 }

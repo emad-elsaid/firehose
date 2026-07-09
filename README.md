@@ -15,12 +15,13 @@ difficult to test, hard to modify, and impossible to compose or reuse.
 
 Firehose provides a declarative framework for event processing pipelines:
 
-**Event Source → Condition → Transformation → Destination**
+**Select → From → Where → Having → Into**
 
-- **On**: Event source producing events of a specific type
-- **If**: Optional condition evaluated against event attributes
-- **Then**: Transformation logic converting input events to output events
-- **To**: Destination handling the output event (side effects, storage, forwarding)
+- **Select**: Transformation logic converting input events to output events
+- **From**: Event source producing events of a specific type
+- **Where**: Optional input condition evaluated against event attributes
+- **Having**: Optional output condition evaluated against transformed output
+- **Into**: Destination handling the output event (side effects, storage, forwarding)
 
 Define **Rules** that combine these components with full type safety. Rules support hierarchical composition through
 **SubRules** that inherit parent properties. Extend functionality with **Middlewares** that wrap any pipeline
@@ -81,8 +82,8 @@ fanning events out to all rules that share it:
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{On: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{On: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
+reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 Different source instances (even of the same type) start independently.
@@ -99,20 +100,20 @@ type (
 )
 
 &Rule[I, O]{
-    On: processMonitor,
-    If: ifs.Cond[I](`user = "production"`),
+    From: processMonitor,
+    Where: ifs.Cond[I](`user = "production"`),
     SubRules: []Rule[I, O]{
         {
             ID:   "alert_postgres",
-            If:   ifs.Cond[I](`name = "postgres"`),
-            Then: CreateAlert{Type: "database"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[I](`name = "postgres"`),
+            Select: CreateAlert{Type: "database"},
+            Into:   PagerDuty{},
         },
         {
             ID:   "alert_nginx", 
-            If:   ifs.Cond[I](`name = "nginx"`),
-            Then: CreateAlert{Type: "webserver"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[I](`name = "nginx"`),
+            Select: CreateAlert{Type: "webserver"},
+            Into:   PagerDuty{},
         },
     },
 }
@@ -211,10 +212,10 @@ Firehose ships with reusable building blocks under subpackages.
 - `destinations.Fanout[T]{Destinations: ...}` — send to all destinations
 - `&destinations.RoundRobin[T]{Destinations: ...}` — send in round-robin order
 - `&destinations.Random[T]{Destinations: ...}` — send to a random destination
-- `destinations.FromChan[T]{To: ...}` — consume `chan T`, forward each item to `To`
-- `destinations.FromSlice[T]{To: ...}` — consume `[]T`, forward each item to `To`
-- `destinations.ToChan[T]{To: ...}` — wrap `T` as one-item `chan T`, forward to `To`
-- `destinations.ToSlice[T]{To: ...}` — wrap `T` as one-item `[]T`, forward to `To`
+- `destinations.FromChan[T]{Into: ...}` — consume `chan T`, forward each item to `Into`
+- `destinations.FromSlice[T]{Into: ...}` — consume `[]T`, forward each item to `Into`
+- `destinations.ToChan[T]{Into: ...}` — wrap `T` as one-item `chan T`, forward to `Into`
+- `destinations.ToSlice[T]{Into: ...}` — wrap `T` as one-item `[]T`, forward to `Into`
 
 ### Sources (`sources`)
 
@@ -239,9 +240,9 @@ Rules can be enabled only in selected environments:
 rule := &fh.Rule[Event, Out]{
     ID:           "billing/charge",
     Environments: []string{"production", "staging"},
-    On:           source,
-    Then:         action,
-    To:           destination,
+    Select:         action,
+    Into:           destination,
+    From:           source,
 }
 ```
 
@@ -262,7 +263,7 @@ type Report struct {
 Common report errors:
 
 - `ErrNoMatch` — condition evaluated to false (normal control flow)
-- `ConditionError` — failure while evaluating `If`
+- `ConditionError` — failure while evaluating `Where` or `Having`
 - `ActionError` — failure inside `Action.Process`
 - `DestinationError` — failure inside `Destination.Send`
 
@@ -441,10 +442,10 @@ func main() {
     // 6. Define a rule with a condition
     rule := &fh.Rule[Tick, string]{
         ID:   "print_business_hours",
-        On:   Timer{Interval: 1 * time.Second},
-        If:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
-        Then: FormatTime{},
-        To:   Printer{},
+        Select: FormatTime{},
+        Into:   Printer{},
+        Where:   ifs.Cond[Tick]("hour >= 9 and hour < 17"),
+        From:   Timer{Interval: 1 * time.Second},
     }
 
     // 7. Register and start
@@ -487,13 +488,13 @@ func (o OrderEvent) Get(key string) (any, error) {
 }
 
 // Only process high-value orders
-If: ifs.Cond[OrderEvent]("amount > 1000")
+Where: ifs.Cond[OrderEvent]("amount > 1000")
 
 // Geographic filtering
-If: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
+Where: ifs.Cond[OrderEvent](`country = "US" or country = "CA"`)
 
 // Complex conditions
-If: ifs.Cond[OrderEvent]("premium = true and amount > 500")
+Where: ifs.Cond[OrderEvent]("premium = true and amount > 500")
 ```
 
 **Operators:** `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `excludes`, `starts_with`, `ends_with`
@@ -514,10 +515,11 @@ See [boolexpr documentation](https://github.com/emad-elsaid/boolexpr) for comple
 type Rule[I, O any] struct {
     ID           string             // Unique identifier
     Environments []string           // Active only when ENV matches; empty = all environments
-    On           Source[I]          // Event source
-    If           If[I]              // Optional filter condition
-    Then         Action[I, O]       // Event transformation
-    To           Destination[O]     // Output handler
+    Select       Action[I, O]       // Event transformation
+    Into         Destination[O]     // Output handler
+    From         Source[I]          // Event source
+    Where        If[I]              // Optional filter condition
+    Having       If[O]              // Optional post-transform condition
     SubRules     []Rule[I, O]       // Child rules (inherit parent properties)
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
@@ -622,26 +624,26 @@ processMonitor := &ProcessMonitor{PollInterval: 1 * time.Second}
 
 parentRule := &fh.Rule[I, O]{
     ID:   "production_alerts",
-    On:   processMonitor,
-    If:   ifs.Cond[I](`env = "production" and user = "app"`),
+    From:   processMonitor,
+    Where:   ifs.Cond[I](`env = "production" and user = "app"`),
     SubRules: []fh.Rule[I, O]{
         {
             ID:   "database_alert",
-            If:   ifs.Cond[I](`name = "postgres"`),
-            Then: CreateAlert{Severity: "high", Type: "database"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[I](`name = "postgres"`),
+            Select: CreateAlert{Severity: "high", Type: "database"},
+            Into:   PagerDuty{},
         },
         {
             ID:   "cache_alert",
-            If:   ifs.Cond[I](`name = "redis"`),
-            Then: CreateAlert{Severity: "medium", Type: "cache"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[I](`name = "redis"`),
+            Select: CreateAlert{Severity: "medium", Type: "cache"},
+            Into:   PagerDuty{},
         },
         {
             ID:   "web_alert",
-            If:   ifs.Cond[I](`name = "nginx"`),
-            Then: CreateAlert{Severity: "critical", Type: "webserver"},
-            To:   PagerDuty{},
+            Where:   ifs.Cond[I](`name = "nginx"`),
+            Select: CreateAlert{Severity: "critical", Type: "webserver"},
+            Into:   PagerDuty{},
         },
     },
 }

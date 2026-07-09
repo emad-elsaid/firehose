@@ -17,19 +17,19 @@ type Rule[I, O any] struct {
 	// Environments is a list of environment names where the rule is active. If
 	// empty, the rule is active in all environments.
 	Environments []string
-	// On is the source that produces events to be processed by this rule.
-	On Source[I] `validate:"required_without=SubRules"`
-	// If is a condition that must evaluate to true for the rule to process the event.
+	// Select is the action to process input events into output events.
+	Select Action[I, O] `validate:"required_without=SubRules"`
+	// Into is the destination to send the output of the Select action.
+	Into Destination[O] `validate:"required_without=SubRules"`
+	// From is the source that produces events to be processed by this rule.
+	From Source[I] `validate:"required_without=SubRules"`
+	// Where is a condition that must evaluate to true for the rule to process the event.
 	// Use ifs.Cond for string expressions, ifs.RateLimit for rate limiting,
 	// ifs.Once for deduplication, or ifs.Ifs for combining multiple conditions.
-	If If[I]
-	// Then is the action to process the event if the On source produces an event
-	Then Action[I, O] `validate:"required_without=SubRules"`
-	// IfOutput is a condition that must evaluate to true for the rule to send
-	// the output of the Then action to the To destination.
-	IfOutput If[O]
-	// To is the destination to send the output of the Then action
-	To Destination[O] `validate:"required_without=SubRules"`
+	Where If[I]
+	// Having is a condition that must evaluate to true for the rule to send
+	// the output of the Select action to the Into destination.
+	Having If[O]
 	// SubRules are the child rules that will inherit the parent fields if set
 	SubRules []Rule[I, O]
 	// Middlewares are the middlewares that will be applied to the action and
@@ -51,14 +51,14 @@ type Rule[I, O any] struct {
 // of the action. so that when the action field changes it calls the new action.
 // When called it calls the current action without any middlewares.
 func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
-	return r.Then.Process(ctx, event, syms)
+	return r.Select.Process(ctx, event, syms)
 }
 
 // Send implements the Destination interface. it allows using the rule as a
 // destination during the wrapping of the destination. so that when the
 // destination field changes it calls the new destination.
 func (r *Rule[I, O]) Send(ctx context.Context, event O) Report {
-	return r.To.Send(ctx, event)
+	return r.Into.Send(ctx, event)
 }
 
 func (r *Rule[I, O]) start(ctx context.Context) error {
@@ -74,7 +74,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 		cb = r.wrappedCallback
 	}
 
-	srcCtx, err := r.On.Start(ctx, cb)
+	srcCtx, err := r.From.Start(ctx, cb)
 	if err != nil {
 		return fmt.Errorf("failed to start source: %w", err)
 	}
@@ -126,11 +126,11 @@ func (r *Rule[I, O]) evaluateCondition(
 	event I,
 	syms boolexpr.Symbols,
 ) (bool, Report) {
-	if r.If == nil {
+	if r.Where == nil {
 		return true, Report{Rule: "", Err: nil}
 	}
 
-	pass, err := r.If.Evaluate(ctx, event, syms)
+	pass, err := r.Where.Evaluate(ctx, event, syms)
 	if err != nil {
 		return false, NewRuleReport(r.ID, ConditionError{Err: err})
 	}
@@ -147,11 +147,11 @@ func (r *Rule[I, O]) evaluateOutputCondition(
 	event O,
 	syms boolexpr.Symbols,
 ) (bool, Report) {
-	if r.IfOutput == nil {
+	if r.Having == nil {
 		return true, Report{Rule: "", Err: nil}
 	}
 
-	pass, err := r.IfOutput.Evaluate(ctx, event, syms)
+	pass, err := r.Having.Evaluate(ctx, event, syms)
 	if err != nil {
 		return false, NewRuleReport(r.ID, ConditionError{Err: err})
 	}
@@ -192,7 +192,7 @@ func (r *Rule[I, O]) resolveAction() Action[I, O] {
 		return r.actionWrappers
 	}
 
-	return r.Then
+	return r.Select
 }
 
 func (r *Rule[I, O]) resolveDestination() Destination[O] {
@@ -200,7 +200,7 @@ func (r *Rule[I, O]) resolveDestination() Destination[O] {
 		return r.destinationWrappers
 	}
 
-	return r.To
+	return r.Into
 }
 
 func asActionError(err error) error {
@@ -251,7 +251,7 @@ func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p 
 func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
-func (r *Rule[I, O]) getSource() any                     { return r.On }
+func (r *Rule[I, O]) getSource() any                     { return r.From }
 
 // combineConditions is a generic helper that combines two If conditions into a single If.
 // If both are nil, returns nil.

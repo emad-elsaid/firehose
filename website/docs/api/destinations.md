@@ -19,7 +19,7 @@ Function adapter for custom destinations.
 ```go
 import "github.com/emad-elsaid/firehose/destinations"
 
-To: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
+Into: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
     err := saveToDatabase(user)
     return fh.NewReport(err)
 })
@@ -32,7 +32,7 @@ Collect events in memory (useful for testing).
 ```go
 accumulator := &destinations.Accumulator[User]{}
 
-To: accumulator
+Into: accumulator
 
 // Later
 users := accumulator.Items()
@@ -43,7 +43,7 @@ users := accumulator.Items()
 Send to all destinations.
 
 ```go
-To: destinations.Fanout[User]{
+Into: destinations.Fanout[User]{
     Destinations: []fh.Destination[User]{
         Database{},
         EmailService{},
@@ -57,7 +57,7 @@ To: destinations.Fanout[User]{
 Send in round-robin order.
 
 ```go
-To: &destinations.RoundRobin[User]{
+Into: &destinations.RoundRobin[User]{
     Destinations: []fh.Destination[User]{
         Shard1{},
         Shard2{},
@@ -71,7 +71,7 @@ To: &destinations.RoundRobin[User]{
 Send to a random destination.
 
 ```go
-To: &destinations.Random[User]{
+Into: &destinations.Random[User]{
     Destinations: []fh.Destination[User]{
         Server1{},
         Server2{},
@@ -83,13 +83,13 @@ To: &destinations.Random[User]{
 
 ```go
 // Consume from channel
-To: destinations.FromChan[User]{
-    To: UserProcessor{},
+Into: destinations.FromChan[User]{
+    Into: UserProcessor{},
 }
 
 // Wrap as channel
-To: destinations.ToChan[User]{
-    To: ChannelConsumer{},
+Into: destinations.ToChan[User]{
+    Into: ChannelConsumer{},
 }
 ```
 
@@ -97,12 +97,12 @@ To: destinations.ToChan[User]{
 
 ```go
 // Consume from slice
-To: destinations.FromSlice[User]{
-    To: UserProcessor{},
+Into: destinations.FromSlice[User]{
+    Into: UserProcessor{},
 }
 
 // Wrap as slice
-To: destinations.ToSlice[User]{
-    To: BatchProcessor{},
+Into: destinations.ToSlice[User]{
+    Into: BatchProcessor{},
 }
 ```

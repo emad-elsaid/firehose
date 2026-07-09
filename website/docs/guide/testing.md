@@ -28,9 +28,9 @@ func TestEventProcessing(t *testing.T) {
     
     rule := &fh.Rule[OrderEvent, ProcessedOrder]{
         ID:   "test_rule",
-        On:   manual,
-        Then: ProcessOrder{},
-        To:   accumulator,
+        Select: ProcessOrder{},
+        Into:   accumulator,
+        From:   manual,
     }
     
     ctx := context.Background()
@@ -217,10 +217,10 @@ func TestCompleteRule(t *testing.T) {
     
     rule := &fh.Rule[OrderEvent, Email]{
         ID:   "order_notification",
-        On:   manual,
-        If:   ifs.Cond[OrderEvent]("amount > 100"),
-        Then: CreateEmail{},
-        To:   accumulator,
+        Select: CreateEmail{},
+        Into:   accumulator,
+        Where:   ifs.Cond[OrderEvent]("amount > 100"),
+        From:   manual,
     }
     
     ctx := context.Background()
@@ -256,21 +256,21 @@ func TestSubRules(t *testing.T) {
     
     rule := &fh.Rule[Event, Alert]{
         ID: "alerts",
-        On: manual,
-        If: ifs.Cond[Event](`severity > 0`),
+        From: manual,
+        Where: ifs.Cond[Event](`severity > 0`),
         
         SubRules: []fh.Rule[Event, Alert]{
             {
                 ID:   "high",
-                If:   ifs.Cond[Event](`severity >= 3`),
-                Then: CreateHighAlert{},
-                To:   highPriority,
+                Where:   ifs.Cond[Event](`severity >= 3`),
+                Select: CreateHighAlert{},
+                Into:   highPriority,
             },
             {
                 ID:   "low",
-                If:   ifs.Cond[Event](`severity < 3`),
-                Then: CreateLowAlert{},
-                To:   lowPriority,
+                Where:   ifs.Cond[Event](`severity < 3`),
+                Select: CreateLowAlert{},
+                Into:   lowPriority,
             },
         },
     }
@@ -351,9 +351,9 @@ func TestKafkaIntegration(t *testing.T) {
     
     rule := &fh.Rule[Message, Message]{
         ID:   "kafka_consumer",
-        On:   source,
-        Then: actions.Identity[Message]{},
-        To:   accumulator,
+        Select: actions.Identity[Message]{},
+        Into:   accumulator,
+        From:   source,
     }
     
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -399,9 +399,9 @@ func BenchmarkPipeline(b *testing.B) {
     
     rule := &fh.Rule[Event, Output]{
         ID:   "bench",
-        On:   manual,
-        Then: ProcessEvent{},
-        To:   accumulator,
+        Select: ProcessEvent{},
+        Into:   accumulator,
+        From:   manual,
     }
     
     ctx := context.Background()
@@ -437,9 +437,9 @@ func newTestRule[I, O any](
     
     rule := &fh.Rule[I, O]{
         ID:   t.Name(),
-        On:   manual,
-        Then: action,
-        To:   accumulator,
+        Select: action,
+        Into:   accumulator,
+        From:   manual,
     }
     
     ctx := context.Background()

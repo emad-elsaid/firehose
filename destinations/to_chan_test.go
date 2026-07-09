@@ -29,7 +29,7 @@ func TestToChanSend(t *testing.T) {
 			item:      7,
 			wantItems: []int{7},
 			wrapper: ToChan[int]{
-				To: Func[chan int](func(_ context.Context, _ chan int) fh.Report {
+				Into: Func[chan int](func(_ context.Context, _ chan int) fh.Report {
 					return fh.NewSuccessReport()
 				}),
 			},
@@ -39,9 +39,9 @@ func TestToChanSend(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			received := []int{}
-			if tc.wrapper.To != nil {
-				target := tc.wrapper.To
-				tc.wrapper.To = Func[chan int](func(ctx context.Context, event chan int) fh.Report {
+			if tc.wrapper.Into != nil {
+				target := tc.wrapper.Into
+				tc.wrapper.Into = Func[chan int](func(ctx context.Context, event chan int) fh.Report {
 					for item := range event {
 						received = append(received, item)
 					}

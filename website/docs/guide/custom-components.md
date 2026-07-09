@@ -296,7 +296,7 @@ func (b BusinessHours) Evaluate(
 }
 
 // Usage
-If: &BusinessHours{Start: 9, End: 17}
+Where: &BusinessHours{Start: 9, End: 17}
 ```
 
 ### Example: External Service Check
@@ -488,7 +488,7 @@ func TestEmailSender(t *testing.T) {
     sender := EmailSender{/* ... */}
     
     email := Email{
-        To:      "test@example.com",
+        Into:    "test@example.com",
         Subject: "Test",
         Body:    "Hello",
     }

@@ -19,7 +19,7 @@ Function adapter for transformations.
 ```go
 import "github.com/emad-elsaid/firehose/actions"
 
-Then: actions.Func[HTTPRequest, User](func(
+Select: actions.Func[HTTPRequest, User](func(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
@@ -34,7 +34,7 @@ Then: actions.Func[HTTPRequest, User](func(
 Memoize action output.
 
 ```go
-Then: &actions.Cache[Event, Result]{
+Select: &actions.Cache[Event, Result]{
     Action: ExpensiveOperation{},
     Cache:  cache.NewMemory[Result](10*time.Minute, time.Minute),
     TTL:    5 * time.Minute,
@@ -46,7 +46,7 @@ Then: &actions.Cache[Event, Result]{
 Compose two actions (I → M → O).
 
 ```go
-Then: actions.Chain[HTTPRequest, ParsedRequest, User]{
+Select: actions.Chain[HTTPRequest, ParsedRequest, User]{
     First:  ParseRequest{},
     Second: ExtractUser{},
 }
@@ -57,7 +57,7 @@ Then: actions.Chain[HTTPRequest, ParsedRequest, User]{
 Compose 3, 4, or 5 actions sequentially.
 
 ```go
-Then: actions.Chain3[HTTPRequest, Parsed, Validated, User]{
+Select: actions.Chain3[HTTPRequest, Parsed, Validated, User]{
     First:  Parse{},
     Second: Validate{},
     Third:  Extract{},
@@ -69,7 +69,7 @@ Then: actions.Chain3[HTTPRequest, Parsed, Validated, User]{
 Distribute events across actions in round-robin order.
 
 ```go
-Then: &actions.RoundRobin[Event, Result]{
+Select: &actions.RoundRobin[Event, Result]{
     Actions: []fh.Action[Event, Result]{
         ProcessA{},
         ProcessB{},
@@ -83,7 +83,7 @@ Then: &actions.RoundRobin[Event, Result]{
 Dispatch to a random action.
 
 ```go
-Then: &actions.Random[Event, Result]{
+Select: &actions.Random[Event, Result]{
     Actions: []fh.Action[Event, Result]{
         ProcessA{},
         ProcessB{},

@@ -95,9 +95,9 @@ func (m LoggingMiddleware[I, O]) WrapDestination(
 ```go
 rule := &fh.Rule[Event, Output]{
     ID:   "my_rule",
-    On:   source,
-    Then: action,
-    To:   destination,
+    Select: action,
+    Into:   destination,
+    From:   source,
     Middlewares: []fh.Middleware[Event, Output]{
         &LoggingMiddleware[Event, Output]{},
     },

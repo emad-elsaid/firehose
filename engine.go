@@ -12,7 +12,7 @@ import (
 )
 
 // ErrRuleNotActivatable is returned when a rule cannot be activated because
-// it is missing required properties (Id, When, Then, To).
+// it is missing required properties (ID, Select, From, Into).
 var ErrRuleNotActivatable = errors.New("rule is not activatable, missing required properties")
 
 // AddRule registers a new processing rule in the context.
@@ -179,7 +179,7 @@ func addRuleToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 	}
 
 	tail := registry.getPrev()
-	sameSourceTail := getSameSourceTail(registry, rule.On)
+	sameSourceTail := getSameSourceTail(registry, rule.From)
 
 	linkRule(rule, registry, tail)
 	linkSameSourceRule(rule, sameSourceTail)
@@ -311,10 +311,10 @@ func inherit[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 
 func combine[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 	// Combine parent and child If conditions
-	child.If = combineConditions(parent.If, child.If)
+	child.Where = combineConditions(parent.Where, child.Where)
 
-	// Combine parent and child IfOutput conditions
-	child.IfOutput = combineConditions(parent.IfOutput, child.IfOutput)
+	// Combine parent and child Having conditions
+	child.Having = combineConditions(parent.Having, child.Having)
 
 	if len(parent.Middlewares) > 0 {
 		child.Middlewares = append(parent.Middlewares, child.Middlewares...)
@@ -331,9 +331,9 @@ func combine[I, O any](index int, parent *Rule[I, O], child *Rule[I, O]) {
 
 func isActivatable[I, O any](rule *Rule[I, O]) bool {
 	return rule.ID != "" &&
-		rule.On != nil &&
-		rule.Then != nil &&
-		rule.To != nil
+		rule.From != nil &&
+		rule.Select != nil &&
+		rule.Into != nil
 }
 
 // IsValid validates the rule's fields.

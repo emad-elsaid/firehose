@@ -53,7 +53,7 @@ type Item struct {
 }
 
 type EmailNotification struct {
-    To      string
+    Into    string
     Subject string
     Body    string
 }
@@ -118,7 +118,7 @@ func (a CreateEmailAction) Process(
     _ boolexpr.Symbols,
 ) (EmailNotification, fh.Report) {
     return EmailNotification{
-        To:      fmt.Sprintf("customer-%s@example.com", order.CustomerID),
+        Into:    fmt.Sprintf("customer-%s@example.com", order.CustomerID),
         Subject: "Order Confirmation",
         Body:    fmt.Sprintf("Your order %s has been confirmed", order.OrderID),
     }, fh.NewReport(nil)
@@ -163,7 +163,7 @@ func (a CreateAnalytics) Process(
 type EmailService struct{}
 
 func (s EmailService) Send(ctx context.Context, email EmailNotification) fh.Report {
-    log.Printf("Sending email to %s: %s", email.To, email.Subject)
+    log.Printf("Sending email to %s: %s", email.Into, email.Subject)
     // Send email logic
     return fh.NewReport(nil)
 }
@@ -192,9 +192,9 @@ func main() {
     // Email notification pipeline
     emailRule := &fh.Rule[OrderCreated, EmailNotification]{
         ID:   "send_order_email",
-        On:   api,
-        Then: CreateEmailAction{},
-        To:   EmailService{},
+        Select: CreateEmailAction{},
+        Into:   EmailService{},
+        From:   api,
         Middlewares: []fh.Middleware[OrderCreated, EmailNotification]{
             &middlewares.Panic[OrderCreated, EmailNotification]{},
             &middlewares.Slog[OrderCreated, EmailNotification]{},
@@ -204,10 +204,10 @@ func main() {
     // Inventory update pipeline
     inventoryRule := &fh.Rule[OrderCreated, []InventoryUpdate]{
         ID:   "update_inventory",
-        On:   api,
-        Then: CreateInventoryUpdates{},
-        To: destinations.FromSlice[InventoryUpdate]{
-            To: InventoryService{},
+        Select: CreateInventoryUpdates{},
+        Into: destinations.FromSlice[InventoryUpdate]{
+        From:   api,
+            Into: InventoryService{},
         },
         Middlewares: []fh.Middleware[OrderCreated, []InventoryUpdate]{
             &middlewares.Panic[OrderCreated, []InventoryUpdate]{},
@@ -217,9 +217,9 @@ func main() {
     // Analytics pipeline
     analyticsRule := &fh.Rule[OrderCreated, AnalyticsEvent]{
         ID:   "record_analytics",
-        On:   api,
-        Then: CreateAnalytics{},
-        To:   AnalyticsService{},
+        Select: CreateAnalytics{},
+        Into:   AnalyticsService{},
+        From:   api,
     }
     
     // Register all rules
