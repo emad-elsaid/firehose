@@ -124,14 +124,14 @@ Share sources across rules instead of creating duplicates:
 // ✅ Good - source shared, starts once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Email]{From: kafkaSource, ...})
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{From: kafkaSource, ...})
+reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Email]{From: kafkaSource, ...})
+reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Metrics]{From: kafkaSource, ...})
 
 // ❌ Bad - creates separate sources
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Email]{
+reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Email]{
     From: &KafkaConsumer{Topic: "orders"},
 })
-reg, _ = fh.AddRule(ctx, reg, &fh.Rule[Event, Metrics]{
+reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Metrics]{
     From: &KafkaConsumer{Topic: "orders"},
 })
 ```

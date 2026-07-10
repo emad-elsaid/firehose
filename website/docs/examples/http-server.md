@@ -146,7 +146,7 @@ func main() {
         },
     }
     
-    registry, err := fh.AddRule(ctx, nil, apiGateway)
+    registry, err := fh.Add(ctx, nil, apiGateway)
     if err != nil {
         log.Fatal(err)
     }

@@ -143,8 +143,8 @@ When multiple rules share the same source instance, Firehose starts it only once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // kafkaSource starts once, events go to both rules
-reg, _ = AddRule(ctx, reg, &Rule[Event, Email]{From: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[Event, Metrics]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[Event, Email]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[Event, Metrics]{From: kafkaSource, ...})
 ```
 
 Different source instances start independently.

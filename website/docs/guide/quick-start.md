@@ -108,7 +108,7 @@ func main() {
         From:   Timer{Interval: 1 * time.Second},
     }
 
-    registry, err := fh.AddRule(ctx, nil, rule)
+    registry, err := fh.Add(ctx, nil, rule)
     if err != nil {
         log.Fatal(err)
     }
@@ -206,7 +206,7 @@ func main() {
         From:   Timer{Interval: 1 * time.Second},
     }
 
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
 
     errHandler := func(err error) {
         if err != nil && !errors.Is(err, context.Canceled) {

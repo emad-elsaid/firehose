@@ -15,23 +15,23 @@ import (
 // it is missing required properties (ID, Select, From, Into).
 var ErrRuleNotActivatable = errors.New("rule is not activatable, missing required properties")
 
-// AddRule registers a new processing rule in the context.
-func AddRule[I, O any](
+// Add registers a new processing rule in the context.
+func Add[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
 ) (Registry, error) {
 	flatten(rule)
 
-	return addSingleRule(
+	return addSingle(
 		ctx,
 		registry,
 		rule,
 	)
 }
 
-// addSingleRule registers a single rule and its subrules in the registry.
-func addSingleRule[I, O any](
+// addSingle registers a single rule and its subrules in the registry.
+func addSingle[I, O any](
 	ctx context.Context,
 	registry Registry,
 	rule *Rule[I, O],
@@ -92,7 +92,7 @@ func registerActivatableRule[I, O any](
 		return nil, err
 	}
 
-	return addRuleToRegistry(registry, rule), nil
+	return addToRegistry(registry, rule), nil
 }
 
 func registerSubRules[I, O any](
@@ -105,7 +105,7 @@ func registerSubRules[I, O any](
 
 		var err error
 
-		registry, err = addSingleRule(
+		registry, err = addSingle(
 			ctx,
 			registry,
 			subrule,
@@ -170,7 +170,7 @@ func wrapWithMiddleware[I, O any](
 	return nil
 }
 
-func addRuleToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
+func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 	if registry == nil {
 		rule.setNext(rule)
 		rule.setPrev(rule)

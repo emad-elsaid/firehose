@@ -138,7 +138,7 @@
         <span class="field">Where</span>:  condition.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
     }
     
-    registry, _ := fh.<span class="function">AddRule</span>(ctx, <span class="keyword">nil</span>, rule)
+    registry, _ := fh.<span class="function">Add</span>(ctx, <span class="keyword">nil</span>, rule)
     fh.<span class="function">Start</span>(ctx, registry, <span class="keyword">nil</span>)
     fh.<span class="function">Wait</span>(registry, <span class="keyword">nil</span>)
 }</code></pre>

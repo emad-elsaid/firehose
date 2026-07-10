@@ -223,9 +223,9 @@ func main() {
     }
     
     // Register all rules
-    registry, _ := fh.AddRule(ctx, nil, emailRule)
-    registry, _ = fh.AddRule(ctx, registry, inventoryRule)
-    registry, _ = fh.AddRule(ctx, registry, analyticsRule)
+    registry, _ := fh.Add(ctx, nil, emailRule)
+    registry, _ = fh.Add(ctx, registry, inventoryRule)
+    registry, _ = fh.Add(ctx, registry, analyticsRule)
     
     fh.Start(ctx, registry, func(err error) {
         log.Printf("Error: %v", err)

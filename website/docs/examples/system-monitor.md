@@ -175,7 +175,7 @@ func main() {
         },
     }
     
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
     fh.Start(ctx, registry, nil)
     
     log.Println("System monitor running...")

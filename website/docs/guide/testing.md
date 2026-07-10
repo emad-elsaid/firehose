@@ -34,7 +34,7 @@ func TestEventProcessing(t *testing.T) {
     }
     
     ctx := context.Background()
-    registry, err := fh.AddRule(ctx, nil, rule)
+    registry, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
     fh.Start(ctx, registry, func(err error) {
@@ -224,7 +224,7 @@ func TestCompleteRule(t *testing.T) {
     }
     
     ctx := context.Background()
-    registry, err := fh.AddRule(ctx, nil, rule)
+    registry, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
     fh.Start(ctx, registry, nil)
@@ -276,7 +276,7 @@ func TestSubRules(t *testing.T) {
     }
     
     ctx := context.Background()
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
     fh.Start(ctx, registry, nil)
     
     // High severity event
@@ -359,7 +359,7 @@ func TestKafkaIntegration(t *testing.T) {
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
     
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
     fh.Start(ctx, registry, nil)
     
     // Produce test messages
@@ -405,7 +405,7 @@ func BenchmarkPipeline(b *testing.B) {
     }
     
     ctx := context.Background()
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
     fh.Start(ctx, registry, nil)
     
     event := Event{ID: "test"}
@@ -443,7 +443,7 @@ func newTestRule[I, O any](
     }
     
     ctx := context.Background()
-    registry, err := fh.AddRule(ctx, nil, rule)
+    registry, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
     fh.Start(ctx, registry, nil)

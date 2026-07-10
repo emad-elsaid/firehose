@@ -172,7 +172,7 @@ Used with `Start` and `Wait` to handle errors from source operations.
 
 ## Registry
 
-Opaque type representing registered rules. Do not construct directly; use `AddRule`.
+Opaque type representing registered rules. Do not construct directly; use `Add`.
 
 ```go
 type Registry interface {

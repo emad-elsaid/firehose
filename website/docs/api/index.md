@@ -10,12 +10,12 @@ import fh "github.com/emad-elsaid/firehose"
 
 ## Core Functions
 
-### AddRule
+### Add
 
 Registers a rule and returns an updated registry.
 
 ```go
-func AddRule[I, O any](
+func Add[I, O any](
     ctx context.Context,
     registry Registry,
     rule *Rule[I, O],
@@ -34,7 +34,7 @@ func AddRule[I, O any](
 **Example:**
 
 ```go
-registry, err := fh.AddRule(ctx, nil, &fh.Rule[Event, Output]{
+registry, err := fh.Add(ctx, nil, &fh.Rule[Event, Output]{
     ID:   "my_rule",
     Select: action,
     Into:   destination,

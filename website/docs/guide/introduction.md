@@ -52,8 +52,8 @@ Register multiple rules with the same source instance. The framework detects thi
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 ### Hierarchical Composition

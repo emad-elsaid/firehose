@@ -85,8 +85,8 @@ fanning events out to all rules that share it:
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
-reg, _ = AddRule(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 Different source instances (even of the same type) start independently.
@@ -249,7 +249,7 @@ rule := &fh.Rule[Event, Out]{
 }
 ```
 
-`AddRule` includes such a rule only when `ENV` matches one of `Environments`.
+`Add` includes such a rule only when `ENV` matches one of `Environments`.
 If `Environments` is empty, the rule is always active.
 
 ## Reports and Error Classification
@@ -452,7 +452,7 @@ func main() {
     }
 
     // 7. Register and start
-    registry, _ := fh.AddRule(ctx, nil, rule)
+    registry, _ := fh.Add(ctx, nil, rule)
 
     errHandler := func(err error) {
         if err != nil && !errors.Is(err, context.Canceled) {
@@ -570,8 +570,8 @@ type Report struct {
 ### Core Functions
 
 ```go
-// AddRule registers a rule and returns updated registry
-func AddRule[I, O any](
+// Add registers a rule and returns updated registry
+func Add[I, O any](
     ctx context.Context,
     registry Registry,
     rule *Rule[I, O],
@@ -657,7 +657,7 @@ parentRule := &fh.Rule[I, O]{
 //   cache_alert:    (env="production" AND user="app") AND (name="redis")
 //   web_alert:      (env="production" AND user="app") AND (name="nginx")
 
-registry, _ := fh.AddRule(ctx, nil, parentRule)
+registry, _ := fh.Add(ctx, nil, parentRule)
 ```
 
 
