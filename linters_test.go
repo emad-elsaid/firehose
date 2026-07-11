@@ -93,6 +93,13 @@ func TestFilePairing(t *testing.T) {
 					continue
 				}
 			}
+			// Check if it's a benchmark test file (e.g., rule_bench_test.go → rule.go)
+			if strings.Contains(testFile, "_bench_test.go") {
+				benchSourceFile := strings.TrimSuffix(testFile, "_bench_test.go") + ".go"
+				if goFiles[benchSourceFile] {
+					continue
+				}
+			}
 			errors = append(errors, "Test file has no matching source: "+testFile)
 		}
 	}
