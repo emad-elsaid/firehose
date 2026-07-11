@@ -88,7 +88,7 @@ func TestMemory_Get(t *testing.T) {
 			cache := NewMemory[string](5*time.Minute, 10*time.Minute)
 			tc.setup(&cache)
 
-			value, err, ok := cache.Get(context.Background(), tc.key)
+			value, ok, err := cache.Get(context.Background(), tc.key)
 
 			assert.Equal(t, tc.expectedValue, value)
 			assert.Equal(t, tc.expectedOK, ok)
@@ -119,7 +119,7 @@ func TestMemory_Set(t *testing.T) {
 			err := cache.Set(context.Background(), tc.key, tc.ttl, tc.value)
 			require.NoError(t, err)
 
-			value, cachedErr, ok := cache.Get(context.Background(), tc.key)
+			value, ok, cachedErr := cache.Get(context.Background(), tc.key)
 			require.True(t, ok)
 			assert.Equal(t, tc.value, value)
 			assert.NoError(t, cachedErr)
@@ -191,7 +191,7 @@ func TestMemory_GetOrSet(t *testing.T) {
 				return tc.callback()
 			}
 
-			value, err, cached := cache.GetOrSet(context.Background(), tc.key, tc.ttl, wrappedCallback)
+			value, cached, err := cache.GetOrSet(context.Background(), tc.key, tc.ttl, wrappedCallback)
 
 			assert.Equal(t, tc.expectedValue, value)
 			assert.Equal(t, tc.expectedCached, cached)
@@ -219,14 +219,14 @@ func TestMemory_Expiration(t *testing.T) {
 	err := cache.Set(ctx, "expiring_key", 100*time.Millisecond, "expiring_value")
 	require.NoError(t, err)
 
-	value, cacheErr, ok := cache.Get(ctx, "expiring_key")
+	value, ok, cacheErr := cache.Get(ctx, "expiring_key")
 	require.True(t, ok)
 	assert.Equal(t, "expiring_value", value)
 	assert.NoError(t, cacheErr)
 
 	time.Sleep(200 * time.Millisecond)
 
-	_, cacheErr, ok = cache.Get(ctx, "expiring_key")
+	_, ok, cacheErr = cache.Get(ctx, "expiring_key")
 	assert.False(t, ok)
 	assert.ErrorIs(t, cacheErr, ErrCacheMiss)
 }
@@ -292,7 +292,7 @@ func TestMemory_DifferentTypes(t *testing.T) {
 				ctx := context.Background()
 				err := cache.Set(ctx, "num", time.Minute, 42)
 				require.NoError(t, err)
-				value, cacheErr, ok := cache.Get(ctx, "num")
+				value, ok, cacheErr := cache.Get(ctx, "num")
 				require.True(t, ok)
 				assert.Equal(t, 42, value)
 				assert.NoError(t, cacheErr)
@@ -310,7 +310,7 @@ func TestMemory_DifferentTypes(t *testing.T) {
 				data := testStruct{Name: "test", Value: 100}
 				err := cache.Set(ctx, "struct", time.Minute, data)
 				require.NoError(t, err)
-				value, cacheErr, ok := cache.Get(ctx, "struct")
+				value, ok, cacheErr := cache.Get(ctx, "struct")
 				require.True(t, ok)
 				assert.Equal(t, data, value)
 				assert.NoError(t, cacheErr)
@@ -324,7 +324,7 @@ func TestMemory_DifferentTypes(t *testing.T) {
 				str := "pointer_value"
 				err := cache.Set(ctx, "ptr", time.Minute, &str)
 				require.NoError(t, err)
-				value, cacheErr, ok := cache.Get(ctx, "ptr")
+				value, ok, cacheErr := cache.Get(ctx, "ptr")
 				require.True(t, ok)
 				require.NotNil(t, value)
 				assert.Equal(t, "pointer_value", *value)

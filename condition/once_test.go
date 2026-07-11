@@ -34,11 +34,11 @@ func TestOnce_Evaluate(t *testing.T) {
 				key := strconv.FormatUint(id, 10)
 
 				cache.On("Get", context.Background(), key).
-					Return("", nil, false).Once()
+					Return("", false, error(nil)).Once()
 				cache.On("Set", context.Background(), key, time.Second, "1").
 					Return(error(nil)).Once()
 				cache.On("Get", context.Background(), key).
-					Return("1", nil, true).Once()
+					Return("1", true, error(nil)).Once()
 
 				return cond, event
 			},

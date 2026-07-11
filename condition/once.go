@@ -30,7 +30,7 @@ func (o Once[I]) Evaluate(ctx context.Context, event I, _ boolexpr.Symbols) (boo
 
 	key := strconv.FormatUint(id, 10)
 
-	_, _, ok := o.Cache.Get(ctx, key)
+	_, ok, _ := o.Cache.Get(ctx, key)
 	if ok {
 		return false, nil
 	}

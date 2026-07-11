@@ -34,28 +34,28 @@ type MemoryItem[O any] struct {
 	Err   error
 }
 
-// Get retrieves a value from the cache by key, returning the value, error, and whether it was found.
-func (m Memory[O]) Get(_ context.Context, key string) (O, error, bool) {
+// Get retrieves a value from the cache by key, returning the value, ok status, and error.
+func (m Memory[O]) Get(_ context.Context, key string) (O, bool, error) {
 	cachedValue, found := m.cache.Get(key)
 	if !found {
 		var zero O
 
-		return zero, ErrCacheMiss, false
+		return zero, false, ErrCacheMiss
 	}
 
 	item, ok := cachedValue.(MemoryItem[O])
 	if !ok {
 		var zero O
 
-		return zero, fmt.Errorf("%w: key %q", ErrInvalidCachedItemType, key), false
+		return zero, false, fmt.Errorf("%w: key %q", ErrInvalidCachedItemType, key)
 	}
 
-	return item.Value, item.Err, true
+	return item.Value, true, item.Err
 }
 
 // Set stores a value in the cache with the given key and TTL.
 func (m Memory[O]) Set(_ context.Context, key string, ttl time.Duration, value O) error {
-	m.cache.Set(key, MemoryItem[O]{Value: value}, ttl)
+	m.cache.Set(key, MemoryItem[O]{Value: value, Err: nil}, ttl)
 
 	return nil
 }
@@ -66,14 +66,18 @@ func (m Memory[O]) GetOrSet(
 	key string,
 	ttl time.Duration,
 	callback func() (O, error),
-) (O, error, bool) {
-	value, err, ok := m.Get(ctx, key)
+) (O, bool, error) {
+	value, ok, err := m.Get(ctx, key)
 	if ok {
-		return value, err, true
+		return value, true, err
 	}
 
 	output, computedErr := callback()
-	m.Set(ctx, key, ttl, output)
 
-	return output, computedErr, false
+	err = m.Set(ctx, key, ttl, output)
+	if err != nil {
+		computedErr = err
+	}
+
+	return output, false, computedErr
 }

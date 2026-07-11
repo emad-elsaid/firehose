@@ -39,7 +39,7 @@ func (_m *MockCacheStorage[O]) EXPECT() *MockCacheStorage_Expecter[O] {
 }
 
 // Get provides a mock function for the type MockCacheStorage
-func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, error, bool) {
+func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, bool, error) {
 	ret := _mock.Called(ctx, key)
 
 	if len(ret) == 0 {
@@ -47,9 +47,9 @@ func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, error
 	}
 
 	var r0 O
-	var r1 error
-	var r2 bool
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (O, error, bool)); ok {
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (O, bool, error)); ok {
 		return returnFunc(ctx, key)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) O); ok {
@@ -59,15 +59,15 @@ func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, error
 			r0 = ret.Get(0).(O)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) bool); ok {
 		r1 = returnFunc(ctx, key)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(bool)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) bool); ok {
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
 		r2 = returnFunc(ctx, key)
 	} else {
-		r2 = ret.Get(2).(bool)
+		r2 = ret.Error(2)
 	}
 	return r0, r1, r2
 }
@@ -102,18 +102,18 @@ func (_c *MockCacheStorage_Get_Call[O]) Run(run func(ctx context.Context, key st
 	return _c
 }
 
-func (_c *MockCacheStorage_Get_Call[O]) Return(v O, err error, b bool) *MockCacheStorage_Get_Call[O] {
-	_c.Call.Return(v, err, b)
+func (_c *MockCacheStorage_Get_Call[O]) Return(v O, b bool, err error) *MockCacheStorage_Get_Call[O] {
+	_c.Call.Return(v, b, err)
 	return _c
 }
 
-func (_c *MockCacheStorage_Get_Call[O]) RunAndReturn(run func(ctx context.Context, key string) (O, error, bool)) *MockCacheStorage_Get_Call[O] {
+func (_c *MockCacheStorage_Get_Call[O]) RunAndReturn(run func(ctx context.Context, key string) (O, bool, error)) *MockCacheStorage_Get_Call[O] {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetOrSet provides a mock function for the type MockCacheStorage
-func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, error, bool) {
+func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, bool, error) {
 	ret := _mock.Called(ctx, key, ttl, cb)
 
 	if len(ret) == 0 {
@@ -121,9 +121,9 @@ func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl 
 	}
 
 	var r0 O
-	var r1 error
-	var r2 bool
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, error)) (O, error, bool)); ok {
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, error)) (O, bool, error)); ok {
 		return returnFunc(ctx, key, ttl, cb)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, error)) O); ok {
@@ -133,15 +133,15 @@ func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl 
 			r0 = ret.Get(0).(O)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Duration, func() (O, error)) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Duration, func() (O, error)) bool); ok {
 		r1 = returnFunc(ctx, key, ttl, cb)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(bool)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, time.Duration, func() (O, error)) bool); ok {
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, time.Duration, func() (O, error)) error); ok {
 		r2 = returnFunc(ctx, key, ttl, cb)
 	} else {
-		r2 = ret.Get(2).(bool)
+		r2 = ret.Error(2)
 	}
 	return r0, r1, r2
 }
@@ -188,12 +188,12 @@ func (_c *MockCacheStorage_GetOrSet_Call[O]) Run(run func(ctx context.Context, k
 	return _c
 }
 
-func (_c *MockCacheStorage_GetOrSet_Call[O]) Return(v O, err error, b bool) *MockCacheStorage_GetOrSet_Call[O] {
-	_c.Call.Return(v, err, b)
+func (_c *MockCacheStorage_GetOrSet_Call[O]) Return(v O, b bool, err error) *MockCacheStorage_GetOrSet_Call[O] {
+	_c.Call.Return(v, b, err)
 	return _c
 }
 
-func (_c *MockCacheStorage_GetOrSet_Call[O]) RunAndReturn(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, error, bool)) *MockCacheStorage_GetOrSet_Call[O] {
+func (_c *MockCacheStorage_GetOrSet_Call[O]) RunAndReturn(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, bool, error)) *MockCacheStorage_GetOrSet_Call[O] {
 	_c.Call.Return(run)
 	return _c
 }

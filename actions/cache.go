@@ -12,9 +12,9 @@ import (
 
 // CacheStorage defines the interface for caching action results.
 type CacheStorage[O any] interface {
-	Get(ctx context.Context, key string) (O, error, bool)
+	Get(ctx context.Context, key string) (O, bool, error)
 	Set(ctx context.Context, key string, ttl time.Duration, value O) error
-	GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, error, bool)
+	GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, bool, error)
 }
 
 // Cache is an action that caches the results of another action based on event IDs.
@@ -36,8 +36,9 @@ func (c *Cache[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbol
 		return zero, fh.NewReport(fh.ActionError{Err: err})
 	}
 
-	out, err, _ := c.Cache.GetOrSet(ctx, strconv.FormatUint(eventID, 10), c.TTL, func() (O, error) {
+	out, _, err := c.Cache.GetOrSet(ctx, strconv.FormatUint(eventID, 10), c.TTL, func() (O, error) {
 		out, report := c.Action.Process(ctx, event, syms)
+
 		return out, report.Err
 	})
 

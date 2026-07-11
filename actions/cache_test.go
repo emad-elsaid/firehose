@@ -33,7 +33,7 @@ func TestCache_Process(t *testing.T) {
 						cb := args.Get(3).(func() (*event, error))
 						_, _ = cb()
 					}).
-					Return(ev, nil, false).Once()
+					Return(ev, false, nil).Once()
 			},
 			wantErr:          nil,
 			wantCacheHit:     false,
@@ -43,7 +43,7 @@ func TestCache_Process(t *testing.T) {
 			name: "cache hit returns cached result without calling action",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, nil, true).Once()
+					Return(ev, true, nil).Once()
 			},
 			wantErr:          nil,
 			wantCacheHit:     true,
@@ -61,7 +61,7 @@ func TestCache_Process(t *testing.T) {
 						cb := args.Get(3).(func() (*event, error))
 						_, _ = cb()
 					}).
-					Return((*event)(nil), actionErr, false).Once()
+					Return((*event)(nil), false, actionErr).Once()
 			},
 			wantErr:          errors.New("action failed"),
 			wantCacheHit:     false,
@@ -154,7 +154,7 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 						cb := args.Get(3).(func() (*simpleEvent, error))
 						_, _ = cb()
 					}).
-					Return(ev, nil, false).Once()
+					Return(ev, false, nil).Once()
 			}
 
 			// kept as in the original suite
@@ -195,11 +195,11 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 					cb := args.Get(3).(func() (*event, error))
 					_, _ = cb()
 				}).
-				Return(ev, nil, false).Once()
+				Return(ev, false, nil).Once()
 
 			if tc.processCount > 1 {
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, nil, true).
+					Return(ev, true, nil).
 					Times(tc.processCount - 1)
 			}
 
@@ -249,7 +249,7 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 					cb := args.Get(3).(func() (*event, error))
 					_, _ = cb()
 				}).
-				Return(ev, nil, false).Once()
+				Return(ev, false, nil).Once()
 
 			mw := &Cache[*event, *event]{
 				Cache:  mockCache,
