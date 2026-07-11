@@ -23,6 +23,8 @@ template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
   github.com/emad-elsaid/firehose: {}
+  github.com/emad-elsaid/firehose/actions: {}
+  github.com/emad-elsaid/firehose/condition: {}
   github.com/emad-elsaid/firehose/middlewares/actions: {}
   github.com/emad-elsaid/firehose/middlewares/callbacks: {}
   github.com/emad-elsaid/firehose/middlewares/destinations: {}

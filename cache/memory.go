@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	fh "github.com/emad-elsaid/firehose"
-
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -30,36 +28,36 @@ type Memory[O any] struct {
 	cache *gocache.Cache
 }
 
-// MemoryItem wraps a cached value with its associated report.
+// MemoryItem wraps a cached value with its associated error.
 type MemoryItem[O any] struct {
-	Value  O
-	Report fh.Report
+	Value O
+	Err   error
 }
 
-// Get retrieves a value from the cache by key, returning the value, report, and whether it was found.
-func (m Memory[O]) Get(_ context.Context, key string) (O, fh.Report, bool) {
+// Get retrieves a value from the cache by key, returning the value, error, and whether it was found.
+func (m Memory[O]) Get(_ context.Context, key string) (O, error, bool) {
 	cachedValue, found := m.cache.Get(key)
 	if !found {
 		var zero O
 
-		return zero, fh.NewReport(ErrCacheMiss), false
+		return zero, ErrCacheMiss, false
 	}
 
 	item, ok := cachedValue.(MemoryItem[O])
 	if !ok {
 		var zero O
 
-		return zero, fh.NewReport(fmt.Errorf("%w: key %q", ErrInvalidCachedItemType, key)), false
+		return zero, fmt.Errorf("%w: key %q", ErrInvalidCachedItemType, key), false
 	}
 
-	return item.Value, item.Report, true
+	return item.Value, item.Err, true
 }
 
-// Set stores a value in the cache with the given key, report, and TTL.
-func (m Memory[O]) Set(_ context.Context, key string, value O, report fh.Report, ttl time.Duration) fh.Report {
-	m.cache.Set(key, MemoryItem[O]{Value: value, Report: report}, ttl)
+// Set stores a value in the cache with the given key and TTL.
+func (m Memory[O]) Set(_ context.Context, key string, ttl time.Duration, value O) error {
+	m.cache.Set(key, MemoryItem[O]{Value: value}, ttl)
 
-	return fh.NewReport(nil)
+	return nil
 }
 
 // GetOrSet retrieves a value from cache or sets it using the callback if not found.
@@ -67,15 +65,15 @@ func (m Memory[O]) GetOrSet(
 	ctx context.Context,
 	key string,
 	ttl time.Duration,
-	callback func() (O, fh.Report),
-) (O, fh.Report, bool) {
-	value, report, ok := m.Get(ctx, key)
+	callback func() (O, error),
+) (O, error, bool) {
+	value, err, ok := m.Get(ctx, key)
 	if ok {
-		return value, report, true
+		return value, err, true
 	}
 
-	output, computedReport := callback()
-	m.Set(ctx, key, output, computedReport, ttl)
+	output, computedErr := callback()
+	m.Set(ctx, key, ttl, output)
 
-	return output, computedReport, false
+	return output, computedErr, false
 }

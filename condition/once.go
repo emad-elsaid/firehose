@@ -35,7 +35,7 @@ func (o Once[I]) Evaluate(ctx context.Context, event I, _ boolexpr.Symbols) (boo
 		return false, nil
 	}
 
-	o.Cache.Set(ctx, key, "1", firehose.NewReport(nil), o.Duration)
+	err = o.Cache.Set(ctx, key, o.Duration, "1")
 
-	return true, nil
+	return true, err
 }

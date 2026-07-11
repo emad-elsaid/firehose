@@ -30,10 +30,10 @@ func TestCache_Process(t *testing.T) {
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
-						cb := args.Get(3).(func() (*event, firehose.Report))
+						cb := args.Get(3).(func() (*event, error))
 						_, _ = cb()
 					}).
-					Return(ev, firehose.NewReport(nil), false).Once()
+					Return(ev, nil, false).Once()
 			},
 			wantErr:          nil,
 			wantCacheHit:     false,
@@ -43,7 +43,7 @@ func TestCache_Process(t *testing.T) {
 			name: "cache hit returns cached result without calling action",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, firehose.NewReport(nil), true).Once()
+					Return(ev, nil, true).Once()
 			},
 			wantErr:          nil,
 			wantCacheHit:     true,
@@ -58,10 +58,10 @@ func TestCache_Process(t *testing.T) {
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
-						cb := args.Get(3).(func() (*event, firehose.Report))
+						cb := args.Get(3).(func() (*event, error))
 						_, _ = cb()
 					}).
-					Return((*event)(nil), firehose.NewReport(actionErr), false).Once()
+					Return((*event)(nil), actionErr, false).Once()
 			},
 			wantErr:          errors.New("action failed"),
 			wantCacheHit:     false,
@@ -151,10 +151,10 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
-						cb := args.Get(3).(func() (*simpleEvent, firehose.Report))
+						cb := args.Get(3).(func() (*simpleEvent, error))
 						_, _ = cb()
 					}).
-					Return(ev, firehose.NewReport(nil), false).Once()
+					Return(ev, nil, false).Once()
 			}
 
 			// kept as in the original suite
@@ -192,14 +192,14 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 
 			mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 				Run(func(args mock.Arguments) {
-					cb := args.Get(3).(func() (*event, firehose.Report))
+					cb := args.Get(3).(func() (*event, error))
 					_, _ = cb()
 				}).
-				Return(ev, firehose.NewReport(nil), false).Once()
+				Return(ev, nil, false).Once()
 
 			if tc.processCount > 1 {
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
-					Return(ev, firehose.NewReport(nil), true).
+					Return(ev, nil, true).
 					Times(tc.processCount - 1)
 			}
 
@@ -246,10 +246,10 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 
 			mockCache.On("GetOrSet", mock.Anything, key, tc.wantTTL, mock.Anything).
 				Run(func(args mock.Arguments) {
-					cb := args.Get(3).(func() (*event, firehose.Report))
+					cb := args.Get(3).(func() (*event, error))
 					_, _ = cb()
 				}).
-				Return(ev, firehose.NewReport(nil), false).Once()
+				Return(ev, nil, false).Once()
 
 			mw := &Cache[*event, *event]{
 				Cache:  mockCache,

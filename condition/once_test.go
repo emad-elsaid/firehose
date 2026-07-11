@@ -8,7 +8,6 @@ import (
 
 	"github.com/emad-elsaid/firehose"
 	"github.com/emad-elsaid/firehose/condition"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,11 +34,11 @@ func TestOnce_Evaluate(t *testing.T) {
 				key := strconv.FormatUint(id, 10)
 
 				cache.On("Get", context.Background(), key).
-					Return("", firehose.NewReport(nil), false).Once()
-				cache.On("Set", context.Background(), key, "1", mock.Anything, time.Second).
-					Return(firehose.NewSuccessReport()).Once()
+					Return("", nil, false).Once()
+				cache.On("Set", context.Background(), key, time.Second, "1").
+					Return(error(nil)).Once()
 				cache.On("Get", context.Background(), key).
-					Return("1", firehose.NewReport(nil), true).Once()
+					Return("1", nil, true).Once()
 
 				return cond, event
 			},

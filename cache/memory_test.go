@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	fh "github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,18 +43,18 @@ func TestMemory_Get(t *testing.T) {
 		key           string
 		expectedValue string
 		expectedOK    bool
-		checkReport   func(*testing.T, fh.Report)
+		checkErr      func(*testing.T, error)
 	}{
 		{
 			name: "get existing key",
 			setup: func(m *Memory[string]) {
-				m.Set(context.Background(), "key1", "value1", fh.NewReport(nil), time.Minute)
+				m.Set(context.Background(), "key1", time.Minute, "value1")
 			},
 			key:           "key1",
 			expectedValue: "value1",
 			expectedOK:    true,
-			checkReport: func(t *testing.T, r fh.Report) {
-				assert.NoError(t, r.Err)
+			checkErr: func(t *testing.T, err error) {
+				assert.NoError(t, err)
 			},
 		},
 		{
@@ -66,20 +65,20 @@ func TestMemory_Get(t *testing.T) {
 			key:           "nonexistent",
 			expectedValue: "",
 			expectedOK:    false,
-			checkReport: func(t *testing.T, r fh.Report) {
-				assert.ErrorIs(t, r.Err, ErrCacheMiss)
+			checkErr: func(t *testing.T, err error) {
+				assert.ErrorIs(t, err, ErrCacheMiss)
 			},
 		},
 		{
-			name: "get key with custom report",
+			name: "get key with custom error",
 			setup: func(m *Memory[string]) {
-				m.Set(context.Background(), "key2", "value2", fh.NewReport(customErr), time.Minute)
+				m.cache.Set("key2", MemoryItem[string]{Value: "value2", Err: customErr}, time.Minute)
 			},
 			key:           "key2",
 			expectedValue: "value2",
 			expectedOK:    true,
-			checkReport: func(t *testing.T, r fh.Report) {
-				assert.ErrorIs(t, r.Err, customErr)
+			checkErr: func(t *testing.T, err error) {
+				assert.ErrorIs(t, err, customErr)
 			},
 		},
 	}
@@ -89,11 +88,11 @@ func TestMemory_Get(t *testing.T) {
 			cache := NewMemory[string](5*time.Minute, 10*time.Minute)
 			tc.setup(&cache)
 
-			value, report, ok := cache.Get(context.Background(), tc.key)
+			value, err, ok := cache.Get(context.Background(), tc.key)
 
 			assert.Equal(t, tc.expectedValue, value)
 			assert.Equal(t, tc.expectedOK, ok)
-			tc.checkReport(t, report)
+			tc.checkErr(t, err)
 		})
 	}
 }
@@ -102,34 +101,28 @@ func TestMemory_Set(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		key         string
-		value       string
-		ttl         time.Duration
-		inputReport fh.Report
-		wantErr     error
+		name    string
+		key     string
+		value   string
+		ttl     time.Duration
+		wantErr error
 	}{
-		{name: "set with standard TTL", key: "key1", value: "value1", ttl: time.Minute, inputReport: fh.NewReport(nil), wantErr: nil},
-		{name: "set with no expiration", key: "key2", value: "value2", ttl: -1, inputReport: fh.NewReport(nil), wantErr: nil},
-		{name: "set with error report", key: "key3", value: "value3", ttl: time.Hour, inputReport: fh.NewReport(errors.New("test error")), wantErr: errors.New("test error")},
-		{name: "overwrite existing key", key: "key1", value: "new_value", ttl: time.Minute, inputReport: fh.NewReport(nil), wantErr: nil},
+		{name: "set with standard TTL", key: "key1", value: "value1", ttl: time.Minute, wantErr: nil},
+		{name: "set with no expiration", key: "key2", value: "value2", ttl: -1, wantErr: nil},
+		{name: "overwrite existing key", key: "key1", value: "new_value", ttl: time.Minute, wantErr: nil},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cache := NewMemory[string](5*time.Minute, 10*time.Minute)
 
-			report := cache.Set(context.Background(), tc.key, tc.value, tc.inputReport, tc.ttl)
-			require.NoError(t, report.Err)
+			err := cache.Set(context.Background(), tc.key, tc.ttl, tc.value)
+			require.NoError(t, err)
 
-			value, storedReport, ok := cache.Get(context.Background(), tc.key)
+			value, cachedErr, ok := cache.Get(context.Background(), tc.key)
 			require.True(t, ok)
 			assert.Equal(t, tc.value, value)
-			if tc.wantErr == nil {
-				assert.NoError(t, storedReport.Err)
-			} else {
-				assert.EqualError(t, storedReport.Err, tc.wantErr.Error())
-			}
+			assert.NoError(t, cachedErr)
 		})
 	}
 }
@@ -144,7 +137,7 @@ func TestMemory_GetOrSet(t *testing.T) {
 		setup          func(*Memory[string])
 		key            string
 		ttl            time.Duration
-		callback       func() (string, fh.Report)
+		callback       func() (string, error)
 		expectedValue  string
 		expectedCached bool
 		expectedErr    error
@@ -152,11 +145,11 @@ func TestMemory_GetOrSet(t *testing.T) {
 		{
 			name: "get existing cached value",
 			setup: func(m *Memory[string]) {
-				m.Set(context.Background(), "cached_key", "cached_value", fh.NewReport(nil), time.Minute)
+				m.Set(context.Background(), "cached_key", time.Minute, "cached_value")
 			},
 			key:            "cached_key",
 			ttl:            time.Minute,
-			callback:       func() (string, fh.Report) { return "new_value", fh.NewReport(nil) },
+			callback:       func() (string, error) { return "new_value", nil },
 			expectedValue:  "cached_value",
 			expectedCached: true,
 			expectedErr:    nil,
@@ -168,19 +161,19 @@ func TestMemory_GetOrSet(t *testing.T) {
 			},
 			key:            "new_key",
 			ttl:            time.Minute,
-			callback:       func() (string, fh.Report) { return "computed_value", fh.NewReport(nil) },
+			callback:       func() (string, error) { return "computed_value", nil },
 			expectedValue:  "computed_value",
 			expectedCached: false,
 			expectedErr:    nil,
 		},
 		{
-			name: "callback with error report",
+			name: "callback with error",
 			setup: func(*Memory[string]) {
 				// No setup - cache miss
 			},
 			key:            "error_key",
 			ttl:            time.Minute,
-			callback:       func() (string, fh.Report) { return "error_value", fh.NewReport(callbackErr) },
+			callback:       func() (string, error) { return "error_value", callbackErr },
 			expectedValue:  "error_value",
 			expectedCached: false,
 			expectedErr:    callbackErr,
@@ -193,19 +186,19 @@ func TestMemory_GetOrSet(t *testing.T) {
 			tc.setup(&cache)
 
 			callbackInvoked := false
-			wrappedCallback := func() (string, fh.Report) {
+			wrappedCallback := func() (string, error) {
 				callbackInvoked = true
 				return tc.callback()
 			}
 
-			value, report, cached := cache.GetOrSet(context.Background(), tc.key, tc.ttl, wrappedCallback)
+			value, err, cached := cache.GetOrSet(context.Background(), tc.key, tc.ttl, wrappedCallback)
 
 			assert.Equal(t, tc.expectedValue, value)
 			assert.Equal(t, tc.expectedCached, cached)
 			if tc.expectedErr == nil {
-				assert.NoError(t, report.Err)
+				assert.NoError(t, err)
 			} else {
-				assert.ErrorIs(t, report.Err, tc.expectedErr)
+				assert.ErrorIs(t, err, tc.expectedErr)
 			}
 
 			if tc.expectedCached {
@@ -223,18 +216,19 @@ func TestMemory_Expiration(t *testing.T) {
 	cache := NewMemory[string](100*time.Millisecond, 50*time.Millisecond)
 	ctx := context.Background()
 
-	cache.Set(ctx, "expiring_key", "expiring_value", fh.NewReport(nil), 100*time.Millisecond)
+	err := cache.Set(ctx, "expiring_key", 100*time.Millisecond, "expiring_value")
+	require.NoError(t, err)
 
-	value, report, ok := cache.Get(ctx, "expiring_key")
+	value, cacheErr, ok := cache.Get(ctx, "expiring_key")
 	require.True(t, ok)
 	assert.Equal(t, "expiring_value", value)
-	assert.NoError(t, report.Err)
+	assert.NoError(t, cacheErr)
 
 	time.Sleep(200 * time.Millisecond)
 
-	_, report, ok = cache.Get(ctx, "expiring_key")
+	_, cacheErr, ok = cache.Get(ctx, "expiring_key")
 	assert.False(t, ok)
-	assert.ErrorIs(t, report.Err, ErrCacheMiss)
+	assert.ErrorIs(t, cacheErr, ErrCacheMiss)
 }
 
 func TestMemory_ConcurrentAccess(t *testing.T) {
@@ -264,7 +258,7 @@ func TestMemory_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
 				key := "key" + string(rune(id%10))
-				cache.Set(ctx, key, id*j, fh.NewReport(nil), time.Minute)
+				cache.Set(ctx, key, time.Minute, id*j)
 			}
 		}(i)
 	}
@@ -274,8 +268,8 @@ func TestMemory_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
 				key := "getOrSet_key" + string(rune(id%10))
-				cache.GetOrSet(ctx, key, time.Minute, func() (int, fh.Report) {
-					return id * j, fh.NewReport(nil)
+				cache.GetOrSet(ctx, key, time.Minute, func() (int, error) {
+					return id * j, nil
 				})
 			}
 		}(i)
@@ -296,11 +290,12 @@ func TestMemory_DifferentTypes(t *testing.T) {
 			test: func(t *testing.T) {
 				cache := NewMemory[int](time.Minute, time.Minute)
 				ctx := context.Background()
-				cache.Set(ctx, "num", 42, fh.NewReport(nil), time.Minute)
-				value, report, ok := cache.Get(ctx, "num")
+				err := cache.Set(ctx, "num", time.Minute, 42)
+				require.NoError(t, err)
+				value, cacheErr, ok := cache.Get(ctx, "num")
 				require.True(t, ok)
 				assert.Equal(t, 42, value)
-				assert.NoError(t, report.Err)
+				assert.NoError(t, cacheErr)
 			},
 		},
 		{
@@ -313,11 +308,12 @@ func TestMemory_DifferentTypes(t *testing.T) {
 				cache := NewMemory[testStruct](time.Minute, time.Minute)
 				ctx := context.Background()
 				data := testStruct{Name: "test", Value: 100}
-				cache.Set(ctx, "struct", data, fh.NewReport(nil), time.Minute)
-				value, report, ok := cache.Get(ctx, "struct")
+				err := cache.Set(ctx, "struct", time.Minute, data)
+				require.NoError(t, err)
+				value, cacheErr, ok := cache.Get(ctx, "struct")
 				require.True(t, ok)
 				assert.Equal(t, data, value)
-				assert.NoError(t, report.Err)
+				assert.NoError(t, cacheErr)
 			},
 		},
 		{
@@ -326,12 +322,13 @@ func TestMemory_DifferentTypes(t *testing.T) {
 				cache := NewMemory[*string](time.Minute, time.Minute)
 				ctx := context.Background()
 				str := "pointer_value"
-				cache.Set(ctx, "ptr", &str, fh.NewReport(nil), time.Minute)
-				value, report, ok := cache.Get(ctx, "ptr")
+				err := cache.Set(ctx, "ptr", time.Minute, &str)
+				require.NoError(t, err)
+				value, cacheErr, ok := cache.Get(ctx, "ptr")
 				require.True(t, ok)
 				require.NotNil(t, value)
 				assert.Equal(t, "pointer_value", *value)
-				assert.NoError(t, report.Err)
+				assert.NoError(t, cacheErr)
 			},
 		},
 	}

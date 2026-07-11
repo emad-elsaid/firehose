@@ -8,7 +8,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/emad-elsaid/firehose"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -40,7 +39,7 @@ func (_m *MockCacheStorage[O]) EXPECT() *MockCacheStorage_Expecter[O] {
 }
 
 // Get provides a mock function for the type MockCacheStorage
-func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, firehose.Report, bool) {
+func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, error, bool) {
 	ret := _mock.Called(ctx, key)
 
 	if len(ret) == 0 {
@@ -48,9 +47,9 @@ func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, fireh
 	}
 
 	var r0 O
-	var r1 firehose.Report
+	var r1 error
 	var r2 bool
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (O, firehose.Report, bool)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (O, error, bool)); ok {
 		return returnFunc(ctx, key)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) O); ok {
@@ -60,10 +59,10 @@ func (_mock *MockCacheStorage[O]) Get(ctx context.Context, key string) (O, fireh
 			r0 = ret.Get(0).(O)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) firehose.Report); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, key)
 	} else {
-		r1 = ret.Get(1).(firehose.Report)
+		r1 = ret.Error(1)
 	}
 	if returnFunc, ok := ret.Get(2).(func(context.Context, string) bool); ok {
 		r2 = returnFunc(ctx, key)
@@ -78,7 +77,7 @@ type MockCacheStorage_Get_Call[O any] struct {
 	*mock.Call
 }
 
-// Get is a helper method to define mock.From call
+// Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - key string
 func (_e *MockCacheStorage_Expecter[O]) Get(ctx any, key any) *MockCacheStorage_Get_Call[O] {
@@ -103,18 +102,18 @@ func (_c *MockCacheStorage_Get_Call[O]) Run(run func(ctx context.Context, key st
 	return _c
 }
 
-func (_c *MockCacheStorage_Get_Call[O]) Return(v O, report firehose.Report, b bool) *MockCacheStorage_Get_Call[O] {
-	_c.Call.Return(v, report, b)
+func (_c *MockCacheStorage_Get_Call[O]) Return(v O, err error, b bool) *MockCacheStorage_Get_Call[O] {
+	_c.Call.Return(v, err, b)
 	return _c
 }
 
-func (_c *MockCacheStorage_Get_Call[O]) RunAndReturn(run func(ctx context.Context, key string) (O, firehose.Report, bool)) *MockCacheStorage_Get_Call[O] {
+func (_c *MockCacheStorage_Get_Call[O]) RunAndReturn(run func(ctx context.Context, key string) (O, error, bool)) *MockCacheStorage_Get_Call[O] {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetOrSet provides a mock function for the type MockCacheStorage
-func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, firehose.Report)) (O, firehose.Report, bool) {
+func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, error, bool) {
 	ret := _mock.Called(ctx, key, ttl, cb)
 
 	if len(ret) == 0 {
@@ -122,24 +121,24 @@ func (_mock *MockCacheStorage[O]) GetOrSet(ctx context.Context, key string, ttl 
 	}
 
 	var r0 O
-	var r1 firehose.Report
+	var r1 error
 	var r2 bool
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, firehose.Report)) (O, firehose.Report, bool)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, error)) (O, error, bool)); ok {
 		return returnFunc(ctx, key, ttl, cb)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, firehose.Report)) O); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, func() (O, error)) O); ok {
 		r0 = returnFunc(ctx, key, ttl, cb)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(O)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Duration, func() (O, firehose.Report)) firehose.Report); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Duration, func() (O, error)) error); ok {
 		r1 = returnFunc(ctx, key, ttl, cb)
 	} else {
-		r1 = ret.Get(1).(firehose.Report)
+		r1 = ret.Error(1)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, time.Duration, func() (O, firehose.Report)) bool); ok {
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, time.Duration, func() (O, error)) bool); ok {
 		r2 = returnFunc(ctx, key, ttl, cb)
 	} else {
 		r2 = ret.Get(2).(bool)
@@ -152,16 +151,16 @@ type MockCacheStorage_GetOrSet_Call[O any] struct {
 	*mock.Call
 }
 
-// GetOrSet is a helper method to define mock.From call
+// GetOrSet is a helper method to define mock.On call
 //   - ctx context.Context
 //   - key string
 //   - ttl time.Duration
-//   - cb func() (O, firehose.Report)
+//   - cb func() (O, error)
 func (_e *MockCacheStorage_Expecter[O]) GetOrSet(ctx any, key any, ttl any, cb any) *MockCacheStorage_GetOrSet_Call[O] {
 	return &MockCacheStorage_GetOrSet_Call[O]{Call: _e.mock.On("GetOrSet", ctx, key, ttl, cb)}
 }
 
-func (_c *MockCacheStorage_GetOrSet_Call[O]) Run(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, firehose.Report))) *MockCacheStorage_GetOrSet_Call[O] {
+func (_c *MockCacheStorage_GetOrSet_Call[O]) Run(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, error))) *MockCacheStorage_GetOrSet_Call[O] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -175,9 +174,9 @@ func (_c *MockCacheStorage_GetOrSet_Call[O]) Run(run func(ctx context.Context, k
 		if args[2] != nil {
 			arg2 = args[2].(time.Duration)
 		}
-		var arg3 func() (O, firehose.Report)
+		var arg3 func() (O, error)
 		if args[3] != nil {
-			arg3 = args[3].(func() (O, firehose.Report))
+			arg3 = args[3].(func() (O, error))
 		}
 		run(
 			arg0,
@@ -189,29 +188,29 @@ func (_c *MockCacheStorage_GetOrSet_Call[O]) Run(run func(ctx context.Context, k
 	return _c
 }
 
-func (_c *MockCacheStorage_GetOrSet_Call[O]) Return(v O, report firehose.Report, b bool) *MockCacheStorage_GetOrSet_Call[O] {
-	_c.Call.Return(v, report, b)
+func (_c *MockCacheStorage_GetOrSet_Call[O]) Return(v O, err error, b bool) *MockCacheStorage_GetOrSet_Call[O] {
+	_c.Call.Return(v, err, b)
 	return _c
 }
 
-func (_c *MockCacheStorage_GetOrSet_Call[O]) RunAndReturn(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, firehose.Report)) (O, firehose.Report, bool)) *MockCacheStorage_GetOrSet_Call[O] {
+func (_c *MockCacheStorage_GetOrSet_Call[O]) RunAndReturn(run func(ctx context.Context, key string, ttl time.Duration, cb func() (O, error)) (O, error, bool)) *MockCacheStorage_GetOrSet_Call[O] {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Set provides a mock function for the type MockCacheStorage
-func (_mock *MockCacheStorage[O]) Set(ctx context.Context, key string, value O, report firehose.Report, ttl time.Duration) firehose.Report {
-	ret := _mock.Called(ctx, key, value, report, ttl)
+func (_mock *MockCacheStorage[O]) Set(ctx context.Context, key string, ttl time.Duration, value O) error {
+	ret := _mock.Called(ctx, key, ttl, value)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Set")
 	}
 
-	var r0 firehose.Report
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, O, firehose.Report, time.Duration) firehose.Report); ok {
-		r0 = returnFunc(ctx, key, value, report, ttl)
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Duration, O) error); ok {
+		r0 = returnFunc(ctx, key, ttl, value)
 	} else {
-		r0 = ret.Get(0).(firehose.Report)
+		r0 = ret.Error(0)
 	}
 	return r0
 }
@@ -221,17 +220,16 @@ type MockCacheStorage_Set_Call[O any] struct {
 	*mock.Call
 }
 
-// Set is a helper method to define mock.From call
+// Set is a helper method to define mock.On call
 //   - ctx context.Context
 //   - key string
-//   - value O
-//   - report firehose.Report
 //   - ttl time.Duration
-func (_e *MockCacheStorage_Expecter[O]) Set(ctx any, key any, value any, report any, ttl any) *MockCacheStorage_Set_Call[O] {
-	return &MockCacheStorage_Set_Call[O]{Call: _e.mock.On("Set", ctx, key, value, report, ttl)}
+//   - value O
+func (_e *MockCacheStorage_Expecter[O]) Set(ctx any, key any, ttl any, value any) *MockCacheStorage_Set_Call[O] {
+	return &MockCacheStorage_Set_Call[O]{Call: _e.mock.On("Set", ctx, key, ttl, value)}
 }
 
-func (_c *MockCacheStorage_Set_Call[O]) Run(run func(ctx context.Context, key string, value O, report firehose.Report, ttl time.Duration)) *MockCacheStorage_Set_Call[O] {
+func (_c *MockCacheStorage_Set_Call[O]) Run(run func(ctx context.Context, key string, ttl time.Duration, value O)) *MockCacheStorage_Set_Call[O] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -241,35 +239,30 @@ func (_c *MockCacheStorage_Set_Call[O]) Run(run func(ctx context.Context, key st
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 O
+		var arg2 time.Duration
 		if args[2] != nil {
-			arg2 = args[2].(O)
+			arg2 = args[2].(time.Duration)
 		}
-		var arg3 firehose.Report
+		var arg3 O
 		if args[3] != nil {
-			arg3 = args[3].(firehose.Report)
-		}
-		var arg4 time.Duration
-		if args[4] != nil {
-			arg4 = args[4].(time.Duration)
+			arg3 = args[3].(O)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
-			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *MockCacheStorage_Set_Call[O]) Return(report1 firehose.Report) *MockCacheStorage_Set_Call[O] {
-	_c.Call.Return(report1)
+func (_c *MockCacheStorage_Set_Call[O]) Return(err error) *MockCacheStorage_Set_Call[O] {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockCacheStorage_Set_Call[O]) RunAndReturn(run func(ctx context.Context, key string, value O, report firehose.Report, ttl time.Duration) firehose.Report) *MockCacheStorage_Set_Call[O] {
+func (_c *MockCacheStorage_Set_Call[O]) RunAndReturn(run func(ctx context.Context, key string, ttl time.Duration, value O) error) *MockCacheStorage_Set_Call[O] {
 	_c.Call.Return(run)
 	return _c
 }
