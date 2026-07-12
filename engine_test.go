@@ -1216,7 +1216,7 @@ func Test_wrapMiddlewares(t *testing.T) {
 		validate    func(t *testing.T, rule *MockRule)
 	}{
 		{
-			name: "nil middleware function does not modify callback",
+			name: "no middlewares initializes wrapped fields",
 			setup: func() *MockRule {
 				rule := &MockRule{
 					ID:     "test-rule",
@@ -1228,7 +1228,9 @@ func Test_wrapMiddlewares(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.Nil(t, rule.wrappedCallback)
+				require.NotNil(t, rule.wrappedCallback)
+				require.NotNil(t, rule.wrappedAction)
+				require.NotNil(t, rule.wrappedDestination)
 			},
 		},
 		{

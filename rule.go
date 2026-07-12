@@ -53,14 +53,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 		return nil
 	}
 
-	// use default callback function if not wrapped by any middleware,
-	// otherwise use the wrapped callback.
-	cb := r.callback
-	if r.wrappedCallback != nil {
-		cb = r.wrappedCallback
-	}
-
-	srcCtx, err := r.From.Start(ctx, cb)
+	srcCtx, err := r.From.Start(ctx, r.wrappedCallback)
 	if err != nil {
 		return fmt.Errorf("failed to start source: %w", err)
 	}
@@ -96,12 +89,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) er
 	}
 
 	// Process action
-	action := r.Select
-	if r.wrappedAction != nil {
-		action = r.wrappedAction
-	}
-
-	output, err := action.Process(ctx, event, syms)
+	output, err := r.wrappedAction.Process(ctx, event, syms)
 	if err != nil {
 		var actionErr ActionError
 		if !errors.As(err, &actionErr) {
@@ -124,12 +112,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) er
 	}
 
 	// Send to destination
-	destination := r.Into
-	if r.wrappedDestination != nil {
-		destination = r.wrappedDestination
-	}
-
-	err = destination.Send(ctx, output)
+	err = r.wrappedDestination.Send(ctx, output)
 	if err != nil {
 		var destinationErr DestinationError
 		if !errors.As(err, &destinationErr) {

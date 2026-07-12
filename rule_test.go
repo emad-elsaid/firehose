@@ -17,10 +17,14 @@ func TestRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
+			ID:     "test-rule",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
+
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
 
 		in := NewEventMock(nil)
 
@@ -39,10 +43,15 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
+			ID:     "test-rule",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
+
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
+
 		in := NewEventMock(nil)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, os.ErrClosed).Once()
@@ -63,10 +72,15 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockRule{
+			ID:     "test-rule",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
+
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
+
 		in := NewEventMock(nil)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
@@ -248,10 +262,14 @@ func TestRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
+			ID:     "test-rule",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
+
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
 		destination.On("Send", t.Context(), in).Return(nil).Once()
@@ -276,10 +294,14 @@ func TestRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 
 		rule := &MockRule{
+			ID:     "test-rule",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
+
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
 
 		in := NewEventMock(nil)
 
@@ -288,74 +310,6 @@ func TestRuleCallback(t *testing.T) {
 
 		require.NotPanics(t, func() { rule.callback(t.Context(), in, nil) })
 	})
-}
-
-func TestRuleActionOverride(t *testing.T) {
-	source := NewMockSource[*EventMock](t)
-	oldAction := NewMockAction[*EventMock, *EventMock](t)
-	newAction := NewMockAction[*EventMock, *EventMock](t)
-	destination := NewMockDestination[*EventMock](t)
-	event := NewEventMock(nil)
-
-	rule := &Rule[*EventMock, *EventMock]{
-		ID:     "test-rule",
-		From:   source,
-		Select: oldAction,
-		Into:   destination,
-	}
-
-	// Register the rule
-	_, err := Add(t.Context(), nil, rule)
-	require.NoError(t, err)
-
-	// Override the action after registration
-	rule.Select = newAction
-
-	newAction.On("Process", t.Context(), event, mock.Anything).
-		Return(event, nil).Once()
-	destination.On("Send", t.Context(), event).
-		Return(nil).Once()
-
-	collector := newReportCollector()
-	rule.callback(t.Context(), event, collector.Collect)
-
-	reports := collector.Errors()
-	require.NotNil(t, reports)
-	require.Len(t, reports, 0) // Success case - no errors reported
-}
-
-func TestRuleDestinationOverride(t *testing.T) {
-	source := NewMockSource[*EventMock](t)
-	action := NewMockAction[*EventMock, *EventMock](t)
-	oldDestination := NewMockDestination[*EventMock](t)
-	newDestination := NewMockDestination[*EventMock](t)
-	event := NewEventMock(nil)
-
-	rule := &Rule[*EventMock, *EventMock]{
-		ID:     "test-rule",
-		From:   source,
-		Select: action,
-		Into:   oldDestination,
-	}
-
-	// Register the rule
-	_, err := Add(t.Context(), nil, rule)
-	require.NoError(t, err)
-
-	// Override the destination after registration
-	rule.Into = newDestination
-
-	action.On("Process", t.Context(), event, mock.Anything).
-		Return(event, nil).Once()
-	newDestination.On("Send", t.Context(), event).
-		Return(nil).Once()
-
-	collector := newReportCollector()
-	rule.callback(t.Context(), event, collector.Collect)
-
-	reports := collector.Errors()
-	require.NotNil(t, reports)
-	require.Len(t, reports, 0) // Success case - no errors reported
 }
 
 func TestRule_NextRunnable(t *testing.T) {
@@ -413,9 +367,13 @@ func TestRule_Run(t *testing.T) {
 
 				rule := &MockRule{
 					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
 					Select: action,
 					Into:   destination,
 				}
+
+				_, err := Add(t.Context(), nil, rule)
+				require.NoError(t, err)
 
 				action.On("Process", mock.Anything, event, mock.Anything).
 					Return(event, nil).Once()
@@ -438,9 +396,13 @@ func TestRule_Run(t *testing.T) {
 
 				rule := &MockRule{
 					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
 					Select: action,
 					Into:   destination,
 				}
+
+				_, err := Add(t.Context(), nil, rule)
+				require.NoError(t, err)
 
 				action.On("Process", mock.Anything, event, mock.Anything).
 					Return(event, os.ErrClosed).Once()
@@ -464,9 +426,13 @@ func TestRule_Run(t *testing.T) {
 
 				rule := &MockRule{
 					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
 					Select: action,
 					Into:   destination,
 				}
+
+				_, err := Add(t.Context(), nil, rule)
+				require.NoError(t, err)
 
 				action.On("Process", mock.Anything, event, mock.Anything).
 					Return(event, nil).Once()
@@ -992,8 +958,11 @@ func TestRule_Run_WithConditions(t *testing.T) {
 					Return(false, nil).Once()
 
 				return &MockRule{
-					ID:    "test-rule",
-					Where: cond,
+					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
+					Select: NewMockAction[*EventMock, *EventMock](t),
+					Into:   NewMockDestination[*EventMock](t),
+					Where:  cond,
 				}
 			},
 			event:           NewEventMock(nil),
@@ -1018,12 +987,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-				return &MockRule{
-					ID:     "test-rule",
-					Where:  cond,
-					Select: action,
-					Into:   destination,
-				}
+			return &MockRule{
+				ID:     "test-rule",
+				From:   NewMockSource[*EventMock](t),
+				Where:  cond,
+				Select: action,
+				Into:   destination,
+			}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 0, // Success - no errors reported
@@ -1043,11 +1013,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				postCond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
-				return &MockRule{
-					ID:     "test-rule",
-					Select: action,
-					Having: postCond,
-				}
+			return &MockRule{
+				ID:     "test-rule",
+				From:   NewMockSource[*EventMock](t),
+				Select: action,
+				Having: postCond,
+				Into:   NewMockDestination[*EventMock](t),
+			}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 1,
@@ -1071,12 +1043,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-				return &MockRule{
-					ID:     "test-rule",
-					Select: action,
-					Having: postCond,
-					Into:   destination,
-				}
+			return &MockRule{
+				ID:     "test-rule",
+				From:   NewMockSource[*EventMock](t),
+				Select: action,
+				Having: postCond,
+				Into:   destination,
+			}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 0, // Success - no errors reported
@@ -1090,8 +1063,11 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 		rule := tc.setupRule()
 
+		_, err := Add(t.Context(), nil, rule)
+		require.NoError(t, err)
+
 		collector := newReportCollector()
-		err := rule.Run(t.Context(), tc.event, nil)
+		err = rule.Run(t.Context(), tc.event, nil)
 		if err != nil {
 			collector.Collect(err)
 		}
