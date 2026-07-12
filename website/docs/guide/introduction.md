@@ -1,6 +1,6 @@
 # Introduction
 
-Firehose is a type-safe event processing framework for Go that enables you to build composable event pipelines with conditional execution, hierarchical rules, and middleware support.
+Firehose is a type-safe event processing framework for Go that enables you to build composable event pipelines with conditional execution and middleware support.
 
 ## The Problem
 
@@ -55,35 +55,6 @@ kafkaSource := &KafkaConsumer{Topic: "orders"}
 reg, _ = Add(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
 reg, _ = Add(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
-
-### Hierarchical Composition
-
-Define rule families with `SubRules`. Child rules inherit parent's source, conditions, and middlewares:
-
-```go
-&Rule[ProcessEvent, any]{
-    From: processMonitor,
-    Where: condition.Cond[ProcessEvent](`env = "production"`),
-    SubRules: []Rule[ProcessEvent, any]{
-        {
-            ID:   "alert_postgres",
-            Where:   condition.Cond[ProcessEvent](`name = "postgres"`),
-            Select: CreateAlert{Type: "database"},
-            Into:   PagerDuty{},
-        },
-        {
-            ID:   "alert_nginx", 
-            Where:   condition.Cond[ProcessEvent](`name = "nginx"`),
-            Select: CreateAlert{Type: "webserver"},
-            Into:   PagerDuty{},
-        },
-    },
-}
-```
-
-Both sub-rules inherit the parent condition. Final conditions become:
-- `(env = "production") AND (name = "postgres")`
-- `(env = "production") AND (name = "nginx")`
 
 ### Middleware System
 

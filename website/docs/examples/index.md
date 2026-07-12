@@ -30,7 +30,6 @@ Monitor system processes and send alerts based on conditions.
 
 **Topics:**
 - Process monitoring sources
-- Hierarchical rules
 - Conditional alerting
 - Multiple destinations
 

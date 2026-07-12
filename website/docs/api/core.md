@@ -15,7 +15,6 @@ type Rule[I, O any] struct {
     From         Source[I]
     Where        Condition[I]
     Having       Condition[O]
-    SubRules     []Rule[I, O]
     Middlewares  []Middleware[I, O]
 }
 ```
@@ -71,16 +70,6 @@ Optional condition that filters transformed output events before sending to dest
 
 ```go
 Having: condition.Cond[ProcessedOrder]("status = \"ready\"")
-```
-
-#### SubRules ([]Rule[I, O])
-Child rules that inherit parent's source, conditions, and middlewares.
-
-```go
-SubRules: []Rule[I, O]{
-    {ID: "high_value", Where: condition.Cond[I]("amount > 10000"), ...},
-    {ID: "premium", Where: condition.Cond[I]("tier = premium"), ...},
-}
 ```
 
 #### Middlewares ([]Middleware[I, O])

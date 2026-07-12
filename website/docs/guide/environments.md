@@ -108,29 +108,6 @@ rule := &fh.Rule[Event, Output]{
 }
 ```
 
-## Hierarchical Rules and Environments
-
-SubRules inherit parent environments:
-
-```go
-parent := &fh.Rule[Event, Output]{
-    Environments: []string{"production"},
-    From:           source,
-    
-    SubRules: []fh.Rule[Event, Output]{
-        {
-            ID: "child1",
-            // Inherits production environment
-        },
-        {
-            ID:           "child2",
-            Environments: []string{"staging"},
-            // Overrides parent - only active in staging
-        },
-    },
-}
-```
-
 ## Testing Different Environments
 
 ```go

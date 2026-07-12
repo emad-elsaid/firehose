@@ -146,27 +146,33 @@ func main() {
         GroupID: "order-processor",
     }
     
-    rule := &fh.Rule[OrderEvent, OrderEvent]{
-        ID: "order_processor",
-        From: kafkaSource,
-        
-        SubRules: []fh.Rule[OrderEvent, OrderEvent]{
-            {
-                ID:   "high_value",
-                Where:   condition.Cond[OrderEvent](`amount > 1000`),
-                Select: ProcessHighValueOrder{},
-                Into:   DatabaseWriter{},
-            },
-            {
-                ID:   "failed_orders",
-                Where:   condition.Cond[OrderEvent](`status = "failed"`),
-                Select: actions.Identity[OrderEvent]{},
-                Into:   DeadLetterQueue{},
-            },
-        },
+    var registry fh.Registry
+    var err error
+    
+    // High-value order processing
+    registry, err = fh.Add(ctx, registry, &fh.Rule[OrderEvent, OrderEvent]{
+        ID:     "high_value",
+        From:   kafkaSource,
+        Where:  condition.Cond[OrderEvent](`amount > 1000`),
+        Select: ProcessHighValueOrder{},
+        Into:   DatabaseWriter{},
+    })
+    if err != nil {
+        log.Fatal(err)
     }
     
-    registry, _ := fh.Add(ctx, nil, rule)
+    // Failed order handling
+    registry, err = fh.Add(ctx, registry, &fh.Rule[OrderEvent, OrderEvent]{
+        ID:     "failed_orders",
+        From:   kafkaSource,
+        Where:  condition.Cond[OrderEvent](`status = "failed"`),
+        Select: actions.Identity[OrderEvent]{},
+        Into:   DeadLetterQueue{},
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
     fh.Start(ctx, registry, nil)
     fh.Wait(registry, nil)
 }

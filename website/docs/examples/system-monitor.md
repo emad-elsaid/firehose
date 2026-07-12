@@ -6,7 +6,6 @@ Monitor system processes and send alerts based on conditions.
 
 This example demonstrates:
 - Process monitoring as event source
-- Hierarchical alert rules
 - Multi-destination alerting
 - Conditional severity escalation
 
@@ -149,33 +148,45 @@ func main() {
     
     monitor := &ProcessMonitor{PollInterval: 5 * time.Second}
     
-    rule := &fh.Rule[ProcessEvent, Alert]{
-        ID: "system_monitor",
-        From: monitor,
-        
-        SubRules: []fh.Rule[ProcessEvent, Alert]{
-            {
-                ID:   "critical_cpu",
-                Where:   condition.Cond[ProcessEvent](`cpu > 80`),
-                Select: CreateCriticalAlert{},
-                Into:   PagerDuty{},
-            },
-            {
-                ID:   "critical_memory",
-                Where:   condition.Cond[ProcessEvent](`memory > 1000`),
-                Select: CreateCriticalAlert{},
-                Into:   PagerDuty{},
-            },
-            {
-                ID:   "warning_cpu",
-                Where:   condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
-                Select: CreateWarningAlert{},
-                Into:   Slack{},
-            },
-        },
+    var registry fh.Registry
+    var err error
+    
+    // Critical CPU alerts to PagerDuty
+    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+        ID:     "critical_cpu",
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`cpu > 80`),
+        Select: CreateCriticalAlert{},
+        Into:   PagerDuty{},
+    })
+    if err != nil {
+        log.Fatal(err)
     }
     
-    registry, _ := fh.Add(ctx, nil, rule)
+    // Critical memory alerts to PagerDuty
+    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+        ID:     "critical_memory",
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`memory > 1000`),
+        Select: CreateCriticalAlert{},
+        Into:   PagerDuty{},
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Warning CPU alerts to Slack
+    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+        ID:     "warning_cpu",
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
+        Select: CreateWarningAlert{},
+        Into:   Slack{},
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    
     fh.Start(ctx, registry, nil)
     
     log.Println("System monitor running...")

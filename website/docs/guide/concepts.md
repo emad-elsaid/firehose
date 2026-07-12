@@ -66,9 +66,8 @@ type Rule[I, O any] struct {
     Select       Action[I, O]       // Event transformation
     Into         Destination[O]     // Output handler
     From         Source[I]          // Event source
-    Where        Condition[I]              // Optional filter condition
-    Having       Condition[O]              // Optional post-transform condition
-    SubRules     []Rule[I, O]       // Child rules
+    Where        Condition[I]       // Optional filter condition
+    Having       Condition[O]       // Optional post-transform condition
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
 ```
@@ -260,35 +259,6 @@ type Middleware[I, O any] interface {
 ```
 
 Middlewares apply cross-cutting concerns like logging, metrics, retry logic, or rate limiting. They compose in registration order.
-
-## SubRules
-
-SubRules enable hierarchical event processing. Child rules inherit parent's source, conditions, and middlewares:
-
-```go
-&Rule[ProcessEvent, Alert]{
-    From: processMonitor,
-    Where: condition.Cond[ProcessEvent](`env = "production"`),
-    SubRules: []Rule[ProcessEvent, Alert]{
-        {
-            ID:   "database_alert",
-            Where:   condition.Cond[ProcessEvent](`name = "postgres"`),
-            Select: CreateAlert{Type: "database"},
-            Into:   PagerDuty{},
-        },
-        {
-            ID:   "cache_alert",
-            Where:   condition.Cond[ProcessEvent](`name = "redis"`),
-            Select: CreateAlert{Type: "cache"},
-            Into:   Slack{},
-        },
-    },
-}
-```
-
-Effective conditions:
-- `database_alert`: `(env = "production") AND (name = "postgres")`
-- `cache_alert`: `(env = "production") AND (name = "redis")`
 
 ## Next Steps
 

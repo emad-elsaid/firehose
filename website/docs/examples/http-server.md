@@ -125,28 +125,31 @@ func (d JSONResponse) Send(ctx context.Context, resp HTTPResponse) fh.Report {
 func main() {
     ctx := context.Background()
     
-    // Define routing rules
-    apiGateway := &fh.Rule[HTTPRequest, HTTPResponse]{
-        ID: "api_gateway",
-        From: HTTPServer{Addr: ":8080"},
-        
-        SubRules: []fh.Rule[HTTPRequest, HTTPResponse]{
-            {
-                ID:   "get_user",
-                Where:   condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
-                Select: GetUserHandler{},
-                Into:   JSONResponse{},
-            },
-            {
-                ID:   "create_user",
-                Where:   condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
-                Select: CreateUserHandler{},
-                Into:   JSONResponse{},
-            },
-        },
+    httpSource := HTTPServer{Addr: ":8080"}
+    
+    var registry fh.Registry
+    var err error
+    
+    // GET /api/users route
+    registry, err = fh.Add(ctx, registry, &fh.Rule[HTTPRequest, HTTPResponse]{
+        ID:     "get_user",
+        From:   httpSource,
+        Where:  condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
+        Select: GetUserHandler{},
+        Into:   JSONResponse{},
+    })
+    if err != nil {
+        log.Fatal(err)
     }
     
-    registry, err := fh.Add(ctx, nil, apiGateway)
+    // POST /api/users route
+    registry, err = fh.Add(ctx, registry, &fh.Rule[HTTPRequest, HTTPResponse]{
+        ID:     "create_user",
+        From:   httpSource,
+        Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
+        Select: CreateUserHandler{},
+        Into:   JSONResponse{},
+    })
     if err != nil {
         log.Fatal(err)
     }
@@ -174,5 +177,5 @@ curl -X POST http://localhost:8080/api/users -d '{"name":"bob"}'
 
 - **Path-based routing** using `starts_with` operator
 - **Method filtering** with conditions
-- **SubRules** for clean route organization
+- **Shared source** for multiple route rules
 - **Type-safe handlers** for each endpoint

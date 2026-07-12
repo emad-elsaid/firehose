@@ -245,56 +245,6 @@ func TestCompleteRule(t *testing.T) {
 }
 ```
 
-## Testing SubRules
-
-```go
-func TestSubRules(t *testing.T) {
-    manual := &sources.Manual[Event]{}
-    
-    highPriority := &destinations.Accumulator[Alert]{}
-    lowPriority := &destinations.Accumulator[Alert]{}
-    
-    rule := &fh.Rule[Event, Alert]{
-        ID: "alerts",
-        From: manual,
-        Where: condition.Cond[Event](`severity > 0`),
-        
-        SubRules: []fh.Rule[Event, Alert]{
-            {
-                ID:   "high",
-                Where:   condition.Cond[Event](`severity >= 3`),
-                Select: CreateHighAlert{},
-                Into:   highPriority,
-            },
-            {
-                ID:   "low",
-                Where:   condition.Cond[Event](`severity < 3`),
-                Select: CreateLowAlert{},
-                Into:   lowPriority,
-            },
-        },
-    }
-    
-    ctx := context.Background()
-    registry, _ := fh.Add(ctx, nil, rule)
-    fh.Start(ctx, registry, nil)
-    
-    // High severity event
-    manual.Emit(ctx, Event{Severity: 4})
-    time.Sleep(50 * time.Millisecond)
-    
-    assert.Equal(t, 1, len(highPriority.Items()))
-    assert.Equal(t, 0, len(lowPriority.Items()))
-    
-    // Low severity event
-    manual.Emit(ctx, Event{Severity: 1})
-    time.Sleep(50 * time.Millisecond)
-    
-    assert.Equal(t, 1, len(highPriority.Items()))
-    assert.Equal(t, 1, len(lowPriority.Items()))
-}
-```
-
 ## Testing Middlewares
 
 ```go

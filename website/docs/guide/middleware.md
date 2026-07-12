@@ -329,6 +329,5 @@ func (a *circuitBreakerAction[I, O]) Process(
 
 ## Next Steps
 
-- Learn about [Hierarchical Rules](/guide/hierarchical-rules)
 - Explore [Built-in Components](/guide/components)
 - See [Examples](/examples/)
