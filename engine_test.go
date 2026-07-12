@@ -1570,7 +1570,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		expectedOutput := &EventMock{}
 
 		innerAction.On("Process", mock.Anything, event, mock.Anything).
-			Return(expectedOutput, Report{}).Once()
+			Return(expectedOutput, nil).Once()
 
 		middleware := &MockMiddleware[*EventMock, *EventMock]{}
 		wrappedAction := NewMockAction[*EventMock, *EventMock](t)
@@ -1590,11 +1590,11 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				innerAction.Process(args.Get(0).(context.Context), event, args.Get(2).(boolexpr.Symbols))
 			}).
-			Return(expectedOutput, Report{}).Once()
+			Return(expectedOutput, nil).Once()
 
 		dest := &MockDestination[*EventMock]{}
 		dest.On("Send", mock.Anything, expectedOutput).
-			Return(Report{}).Once()
+			Return(nil).Once()
 
 		rule := &MockRule{
 			ID:          "test-rule",
@@ -1614,7 +1614,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, func(Report) {})
+		rule.Run(ctx, event, syms, func(error) {})
 
 		wrappedAction.AssertExpectations(t)
 		innerAction.AssertExpectations(t)
@@ -1632,11 +1632,11 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		output := &EventMock{}
 
 		action.On("Process", mock.Anything, event, mock.Anything).
-			Return(output, Report{}).Once()
+			Return(output, nil).Once()
 
 		innerDest := &MockDestination[*EventMock]{}
 		innerDest.On("Send", mock.Anything, output).
-			Return(Report{}).Once()
+			Return(nil).Once()
 
 		middleware := &MockMiddleware[*EventMock, *EventMock]{}
 		wrappedDest := &MockDestination[*EventMock]{}
@@ -1656,7 +1656,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				innerDest.Send(args.Get(0).(context.Context), output)
 			}).
-			Return(Report{}).Once()
+			Return(nil).Once()
 
 		rule := &MockRule{
 			ID:          "test-rule",
@@ -1676,7 +1676,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, func(Report) {})
+		rule.Run(ctx, event, syms, func(error) {})
 
 		wrappedDest.AssertExpectations(t)
 		innerDest.AssertExpectations(t)

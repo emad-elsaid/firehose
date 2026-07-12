@@ -28,14 +28,14 @@ func TestRandomProcess(t *testing.T) {
 		{
 			name: "selects one of configured actions",
 			actions: []fh.Action[int, int]{
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 10, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 10, nil
 				}),
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 20, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 20, nil
 				}),
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 30, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 30, nil
 				}),
 			},
 			calls:     20,
@@ -51,7 +51,7 @@ func TestRandomProcess(t *testing.T) {
 				out, report := random.Process(t.Context(), 1, boolexpr.SymbolsMap{})
 
 				if tc.wantErrAs == nil {
-					require.NoError(t, report.Err)
+					require.NoError(t, report)
 					if len(tc.wantInSet) > 0 {
 						require.Contains(t, tc.wantInSet, out)
 					}
@@ -59,8 +59,8 @@ func TestRandomProcess(t *testing.T) {
 					continue
 				}
 
-				require.ErrorIs(t, report.Err, tc.wantErrIs)
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorIs(t, report, tc.wantErrIs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 		})
 	}

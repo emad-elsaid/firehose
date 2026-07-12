@@ -104,7 +104,7 @@ func TestSlog_Callback(t *testing.T) {
 		setupEvent      func() *mockEvent
 		setupDownstream func() fh.Callback[*mockEvent]
 		validateLog     func(t *testing.T, logOutput string)
-		validateReports func(t *testing.T, reports []fh.Report)
+		validateReports func(t *testing.T, reports []error)
 	}{
 		{
 			name: "logs event and reports with correct level",
@@ -128,7 +128,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("log-rule", nil))
+					report(fh.NewRuleError("log-rule", nil))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
@@ -137,9 +137,8 @@ func TestSlog_Callback(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, "INFO", entry.Level)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
-				assert.NoError(t, reports[0].Err)
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0) // Nil not collected
 			},
 		},
 		{
@@ -163,7 +162,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("source-log-rule", nil))
+					report(fh.NewRuleError("source-log-rule", nil))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
@@ -172,8 +171,8 @@ func TestSlog_Callback(t *testing.T) {
 				require.NoError(t, err)
 				assert.NotNil(t, entry.Source)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0) // Nil not collected
 			},
 		},
 		{
@@ -196,7 +195,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("event-log-rule", nil))
+					report(fh.NewRuleError("event-log-rule", nil))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
@@ -205,8 +204,8 @@ func TestSlog_Callback(t *testing.T) {
 				require.NoError(t, err)
 				assert.NotNil(t, entry.Event)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0) // Nil not collected
 			},
 		},
 		{
@@ -229,19 +228,23 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("multi-report-rule", nil))
-					report(fh.NewRuleReport("multi-report-rule", nil))
-					report(fh.NewRuleReport("multi-report-rule", nil))
+					report(fh.NewRuleError("multi-report-rule", nil))
+					report(fh.NewRuleError("multi-report-rule", nil))
+					report(fh.NewRuleError("multi-report-rule", nil))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
+				// Nil errors are not logged
+				if logOutput == "" {
+					return
+				}
 				var entry logEntry
 				err := json.Unmarshal([]byte(logOutput), &entry)
 				require.NoError(t, err)
-				assert.Len(t, entry.Reports, 3)
+				assert.Len(t, entry.Reports, 0) // Nil errors not logged
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 3)
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0) // Nil errors not collected
 			},
 		},
 		{
@@ -264,16 +267,19 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("forward-rule", nil))
+					report(fh.NewRuleError("forward-rule", errors.New("test error")))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
 				assert.NotEmpty(t, logOutput)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
+			validateReports: func(t *testing.T, reports []error) {
 				require.Len(t, reports, 1)
-				assert.Equal(t, "forward-rule", reports[0].Rule)
-				assert.NoError(t, reports[0].Err)
+				var ruleErr fh.RuleError
+				if assert.ErrorAs(t, reports[0], &ruleErr) {
+					assert.Equal(t, "forward-rule", ruleErr.Rule)
+					assert.Error(t, ruleErr.Err)
+				}
 			},
 		},
 		{
@@ -296,7 +302,7 @@ func TestSlog_Callback(t *testing.T) {
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewRuleReport("error-rule", errors.New("test error")))
+					report(fh.NewRuleError("error-rule", errors.New("test error")))
 				}
 			},
 			validateLog: func(t *testing.T, logOutput string) {
@@ -305,9 +311,9 @@ func TestSlog_Callback(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, entry.Reports, 1)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
+			validateReports: func(t *testing.T, reports []error) {
 				require.Len(t, reports, 1)
-				assert.Error(t, reports[0].Err)
+				assert.Error(t, reports[0])
 			},
 		},
 		{
@@ -339,7 +345,7 @@ func TestSlog_Callback(t *testing.T) {
 				require.NoError(t, err)
 				assert.Empty(t, entry.Reports)
 			},
-			validateReports: func(t *testing.T, reports []fh.Report) {
+			validateReports: func(t *testing.T, reports []error) {
 				assert.Empty(t, reports)
 			},
 		},
@@ -364,7 +370,7 @@ func TestSlog_Callback(t *testing.T) {
 			// Execute the callback - it now synchronizes internally
 			wrappedCallback(ctx, event, collector.Collect)
 
-			collectedReports := collector.Reports()
+			collectedReports := collector.Errors()
 
 			if tc.validateLog != nil && buf.Len() > 0 {
 				tc.validateLog(t, buf.String())
@@ -389,7 +395,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 				m := &mock.Mock{}
 				cb := func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
 					m.MethodCalled("callback", ctx, e, report)
-					report(fh.NewReport(nil))
+					report(nil)
 				}
 				m.On("callback", mock.Anything, mock.Anything, mock.Anything).Return()
 				return cb, m
@@ -424,7 +430,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 			ctx := context.Background()
 
 			wrappedCallback(ctx, event, collector.Collect)
-			_ = collector.Reports()
+			_ = collector.Errors()
 
 			mockObj.AssertNumberOfCalls(t, "callback", tc.expectedCallCount)
 		})
@@ -441,7 +447,7 @@ func TestSlog_CallbackDoesNotPanic(t *testing.T) {
 			name: "returns without panic while reporting",
 			setupDownstream: func() fh.Callback[*mockEvent] {
 				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
-					report(fh.NewReport(nil))
+					report(nil)
 				}
 			},
 			validateClosure: func(t *testing.T, panicked bool) {
@@ -482,7 +488,7 @@ func TestSlog_CallbackDoesNotPanic(t *testing.T) {
 				}()
 
 				wrappedCallback(ctx, event, collector.Collect)
-				_ = collector.Reports()
+				_ = collector.Errors()
 			}()
 
 			if tc.validateClosure != nil {

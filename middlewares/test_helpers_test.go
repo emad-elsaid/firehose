@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/emad-elsaid/boolexpr"
-	"github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -32,7 +31,7 @@ type action[I, O any] struct {
 	mock.Mock
 }
 
-func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, firehose.Report) {
+func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	args := a.Called(ctx, event, syms)
 
 	var result O
@@ -40,7 +39,7 @@ func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbo
 		result = args.Get(0).(O)
 	}
 
-	return result, args.Get(1).(firehose.Report)
+	return result, args.Error(1)
 }
 
 // mockDestination implements Destination interface with mock.Mock for use in tests
@@ -48,26 +47,29 @@ type mockDestination[T any] struct {
 	mock.Mock
 }
 
-func (d *mockDestination[T]) Send(ctx context.Context, event T) firehose.Report {
+func (d *mockDestination[T]) Send(ctx context.Context, event T) error {
 	args := d.Called(ctx, event)
-	return args.Get(0).(firehose.Report)
+	return args.Error(0)
 }
 
 type reportCollector struct {
-	reports []firehose.Report
+	errors []error
 }
 
 func newReportCollector() *reportCollector {
 	return &reportCollector{}
 }
 
-func (c *reportCollector) Collect(r firehose.Report) {
-	c.reports = append(c.reports, r)
+func (c *reportCollector) Collect(err error) {
+	// Only collect actual errors, not nil (success)
+	if err != nil {
+		c.errors = append(c.errors, err)
+	}
 }
 
-func (c *reportCollector) Reports() []firehose.Report {
-	out := make([]firehose.Report, len(c.reports))
-	copy(out, c.reports)
+func (c *reportCollector) Errors() []error {
+	out := make([]error, len(c.errors))
+	copy(out, c.errors)
 
 	return out
 }

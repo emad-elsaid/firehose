@@ -15,18 +15,18 @@ type Random[I, O any] struct {
 }
 
 // Process dispatches the event to a random action.
-func (r *Random[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
+func (r *Random[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	if len(r.Actions) == 0 {
 		var zero O
 
-		return zero, fh.NewReport(fh.ActionError{Err: ErrNoActionsConfigured})
+		return zero, fh.ActionError{Err: ErrNoActionsConfigured}
 	}
 
 	index, err := r.nextIndex(len(r.Actions))
 	if err != nil {
 		var zero O
 
-		return zero, fh.NewReport(fh.ActionError{Err: err})
+		return zero, fh.ActionError{Err: err}
 	}
 
 	return r.Actions[index].Process(ctx, event, syms)

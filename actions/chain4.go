@@ -16,26 +16,26 @@ type Chain4[I, A, B, C, O any] struct {
 }
 
 // Process runs the chain in order.
-func (c Chain4[I, A, B, C, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
-	firstOut, report := c.First.Process(ctx, event, syms)
-	if report.Err != nil {
+func (c Chain4[I, A, B, C, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
+	firstOut, err := c.First.Process(ctx, event, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	secondOut, report := c.Second.Process(ctx, firstOut, syms)
-	if report.Err != nil {
+	secondOut, err := c.Second.Process(ctx, firstOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	thirdOut, report := c.Third.Process(ctx, secondOut, syms)
-	if report.Err != nil {
+	thirdOut, err := c.Third.Process(ctx, secondOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
 	return c.Fourth.Process(ctx, thirdOut, syms)

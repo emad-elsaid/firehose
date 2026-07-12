@@ -14,14 +14,14 @@ type Random[T any] struct {
 }
 
 // Send forwards the event to a random destination.
-func (r *Random[T]) Send(ctx context.Context, event T) fh.Report {
+func (r *Random[T]) Send(ctx context.Context, event T) error {
 	if len(r.Destinations) == 0 {
-		return fh.NewReport(fh.DestinationError{Err: ErrNoDestinationsConfigured})
+		return fh.DestinationError{Err: ErrNoDestinationsConfigured}
 	}
 
 	index, err := r.nextIndex(len(r.Destinations))
 	if err != nil {
-		return fh.NewReport(fh.DestinationError{Err: err})
+		return fh.DestinationError{Err: err}
 	}
 
 	return r.Destinations[index].Send(ctx, event)

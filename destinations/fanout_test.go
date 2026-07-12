@@ -28,22 +28,22 @@ func TestFanoutSend(t *testing.T) {
 		{
 			name: "returns success when all destinations succeed",
 			targets: []fh.Destination[int]{
-				Func[int](func(_ context.Context, _ int) fh.Report {
-					return fh.NewSuccessReport()
+				Func[int](func(_ context.Context, _ int) error {
+					return nil
 				}),
-				Func[int](func(_ context.Context, _ int) fh.Report {
-					return fh.NewSuccessReport()
+				Func[int](func(_ context.Context, _ int) error {
+					return nil
 				}),
 			},
 		},
 		{
 			name: "joins destination errors",
 			targets: []fh.Destination[int]{
-				Func[int](func(_ context.Context, _ int) fh.Report {
-					return fh.NewReport(firstErr)
+				Func[int](func(_ context.Context, _ int) error {
+					return (firstErr)
 				}),
-				Func[int](func(_ context.Context, _ int) fh.Report {
-					return fh.NewReport(secondErr)
+				Func[int](func(_ context.Context, _ int) error {
+					return (secondErr)
 				}),
 			},
 			wantErrIs: []error{firstErr, secondErr},
@@ -57,13 +57,13 @@ func TestFanoutSend(t *testing.T) {
 			report := fanout.Send(t.Context(), 1)
 
 			for _, expectedErr := range tc.wantErrIs {
-				require.ErrorIs(t, report.Err, expectedErr)
+				require.ErrorIs(t, report, expectedErr)
 			}
 
 			if tc.wantErrAs == nil {
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			} else {
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 		})
 	}

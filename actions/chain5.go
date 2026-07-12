@@ -17,33 +17,33 @@ type Chain5[I, A, B, C, D, O any] struct {
 }
 
 // Process runs the chain in order.
-func (c Chain5[I, A, B, C, D, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
-	firstOut, report := c.First.Process(ctx, event, syms)
-	if report.Err != nil {
+func (c Chain5[I, A, B, C, D, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
+	firstOut, err := c.First.Process(ctx, event, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	secondOut, report := c.Second.Process(ctx, firstOut, syms)
-	if report.Err != nil {
+	secondOut, err := c.Second.Process(ctx, firstOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	thirdOut, report := c.Third.Process(ctx, secondOut, syms)
-	if report.Err != nil {
+	thirdOut, err := c.Third.Process(ctx, secondOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	fourthOut, report := c.Fourth.Process(ctx, thirdOut, syms)
-	if report.Err != nil {
+	fourthOut, err := c.Fourth.Process(ctx, thirdOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
 	return c.Fifth.Process(ctx, fourthOut, syms)

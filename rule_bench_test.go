@@ -12,28 +12,28 @@ import (
 // Global sink to prevent compiler optimizations from eliminating benchmark work
 var (
 	benchSinkEvent  *EventMock
-	benchSinkReport Report
+	benchSinkReport error
 	benchEventCount atomic.Uint64
 )
 
 // Action that does minimal work but prevents optimization
 type benchAction struct{}
 
-func (a benchAction) Process(ctx context.Context, event *EventMock, syms boolexpr.Symbols) (*EventMock, Report) {
+func (a benchAction) Process(ctx context.Context, event *EventMock, syms boolexpr.Symbols) (*EventMock, error) {
 	// Write to global sink to prevent dead code elimination
 	benchSinkEvent = event
-	return event, NewReport(nil)
+	return event, nil
 }
 
 // Destination that counts events to prevent optimization
 type benchDestination struct{}
 
-func (d benchDestination) Send(ctx context.Context, event *EventMock) Report {
+func (d benchDestination) Send(ctx context.Context, event *EventMock) error {
 	// Atomic increment prevents compiler from optimizing away the call
 	benchEventCount.Add(1)
-	report := NewReport(nil)
-	benchSinkReport = report
-	return report
+	// report := nil
+	// // benchSinkReport = report
+	return nil
 }
 
 // benchSource is a simple manual source for benchmarking that allows controlled event emission
@@ -92,7 +92,7 @@ func BenchmarkEngine_SingleRule(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		source.Emit(ctx, event, func(Report) {})
+		source.Emit(ctx, event, func(error) {})
 	}
 
 	b.StopTimer()
@@ -146,7 +146,7 @@ func BenchmarkEngine_100Rules(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// Each event will be processed by all 100 rules
-		source.Emit(ctx, event, func(Report) {})
+		source.Emit(ctx, event, func(error) {})
 	}
 
 	b.StopTimer()

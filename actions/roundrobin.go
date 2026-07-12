@@ -22,11 +22,11 @@ type RoundRobin[I, O any] struct {
 }
 
 // Process dispatches the event to the next action.
-func (r *RoundRobin[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
+func (r *RoundRobin[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	if len(r.Actions) == 0 {
 		var zero O
 
-		return zero, fh.NewReport(fh.ActionError{Err: ErrNoActionsConfigured})
+		return zero, fh.ActionError{Err: ErrNoActionsConfigured}
 	}
 
 	r.mutex.Lock()

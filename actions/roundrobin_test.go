@@ -28,14 +28,14 @@ func TestRoundRobinProcess(t *testing.T) {
 		{
 			name: "cycles across actions",
 			actions: []fh.Action[int, int]{
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 1, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 1, nil
 				}),
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 2, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 2, nil
 				}),
-				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-					return 3, fh.NewSuccessReport()
+				Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+					return 3, nil
 				}),
 			},
 			calls:       5,
@@ -53,12 +53,12 @@ func TestRoundRobinProcess(t *testing.T) {
 				outputs = append(outputs, out)
 
 				if tc.wantErrAs == nil {
-					require.NoError(t, report.Err)
+					require.NoError(t, report)
 					continue
 				}
 
-				require.ErrorIs(t, report.Err, tc.wantErrIs)
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorIs(t, report, tc.wantErrIs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 
 			if len(tc.wantOutputs) > 0 {

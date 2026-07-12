@@ -18,14 +18,14 @@ type mockAction[I, O any] struct {
 	mock.Mock
 }
 
-func (a *mockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
+func (a *mockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	args := a.Called(ctx, event, syms)
 	var zero O
 	r1, ok := args.Get(0).(O)
 	if !ok {
 		r1 = zero
 	}
-	return r1, args.Get(1).(fh.Report)
+	return r1, args.Error(1)
 }
 
 // mockSource implements Source interface
@@ -161,7 +161,7 @@ func TestParallel_Callback(t *testing.T) {
 		setupEvent      func() *mockEvent
 		setupRunner     func() TaskRunner
 		expectedReports int
-		validateReports func(t *testing.T, reports []fh.Report)
+		validateReports func(t *testing.T, reports []error)
 	}{
 		{
 			name: "executes single rule in parallel",
@@ -170,9 +170,9 @@ func TestParallel_Callback(t *testing.T) {
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(newMockEvent(nil), fh.NewReport(nil))
+					Return(newMockEvent(nil), nil)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(fh.NewReport(nil))
+					Return(nil)
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:     "rule-1",
@@ -187,10 +187,9 @@ func TestParallel_Callback(t *testing.T) {
 			setupRunner: func() TaskRunner {
 				return &syncTaskRunner{}
 			},
-			expectedReports: 1,
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
-				assert.NoError(t, reports[0].Err)
+			expectedReports: 0,
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0)  // Nil not collected
 			},
 		},
 
@@ -201,9 +200,9 @@ func TestParallel_Callback(t *testing.T) {
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(newMockEvent(nil), fh.NewReport(nil))
+					Return(newMockEvent(nil), nil)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(fh.NewReport(nil))
+					Return(nil)
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:     "concurrent-rule",
@@ -218,10 +217,9 @@ func TestParallel_Callback(t *testing.T) {
 			setupRunner: func() TaskRunner {
 				return &concurrentTaskRunner{}
 			},
-			expectedReports: 1,
-			validateReports: func(t *testing.T, reports []fh.Report) {
-				require.Len(t, reports, 1)
-				assert.NoError(t, reports[0].Err)
+			expectedReports: 0,
+			validateReports: func(t *testing.T, reports []error) {
+				require.Len(t, reports, 0)  // Nil not collected
 			},
 		},
 	}
@@ -241,7 +239,7 @@ func TestParallel_Callback(t *testing.T) {
 
 			parallel.callback(ctx, event, collector.Collect)
 
-			collectedReports := collector.Reports()
+			collectedReports := collector.Errors()
 
 			assert.Equal(t, tc.expectedReports, len(collectedReports))
 			if tc.validateReports != nil {
@@ -284,10 +282,10 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 				Run(func(args mock.Arguments) {
 					atomic.AddInt32(&counter, 1)
 				}).
-				Return(newMockEvent(nil), fh.NewReport(nil))
+				Return(newMockEvent(nil), nil)
 
 			dest.On("Send", mock.Anything, mock.Anything).
-				Return(fh.NewReport(nil))
+				Return(nil)
 
 			rule := &fh.Rule[*mockEvent, *mockEvent]{
 				ID:     "concurrent-rule",
@@ -310,7 +308,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 					defer wg.Done()
 					collector := newReportCollector()
 					parallel.callback(context.Background(), event, collector.Collect)
-					_ = collector.Reports()
+					_ = collector.Errors()
 				}()
 			}
 
@@ -336,9 +334,9 @@ func TestParallel_WaitGroup(t *testing.T) {
 				dest := &mockDestination[*mockEvent]{}
 
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(newMockEvent(nil), fh.NewReport(nil))
+					Return(newMockEvent(nil), nil)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(fh.NewReport(nil))
+					Return(nil)
 
 				return &fh.Rule[*mockEvent, *mockEvent]{
 					ID:     "wait-rule",
@@ -372,7 +370,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 			// The callback should wait for tasks to complete
 			parallel.callback(ctx, event, collector.Collect)
 			taskExecuted = true
-			_ = collector.Reports()
+			_ = collector.Errors()
 
 			if tc.validateTiming != nil {
 				tc.validateTiming(t, taskExecuted)

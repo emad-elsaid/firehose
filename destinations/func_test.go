@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	fh "github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,14 +18,14 @@ func TestFuncSend(t *testing.T) {
 	}{
 		{
 			name: "success",
-			destination: func(_ context.Context, _ int) fh.Report {
-				return fh.NewSuccessReport()
+			destination: func(_ context.Context, _ int) error {
+				return nil
 			},
 		},
 		{
 			name: "error report",
-			destination: func(_ context.Context, _ int) fh.Report {
-				return fh.NewReport(sendFailedErr)
+			destination: func(_ context.Context, _ int) error {
+				return (sendFailedErr)
 			},
 			wantErr: sendFailedErr,
 		},
@@ -35,7 +34,7 @@ func TestFuncSend(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			report := tc.destination.Send(t.Context(), 1)
-			require.ErrorIs(t, report.Err, tc.wantErr)
+			require.ErrorIs(t, report, tc.wantErr)
 		})
 	}
 }

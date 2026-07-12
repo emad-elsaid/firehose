@@ -56,11 +56,11 @@ func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ReportF
 		mutex     sync.Mutex
 	)
 
-	safeReport := func(r fh.Report) {
+	safeReport := func(err error) {
 		mutex.Lock()
 		defer mutex.Unlock()
 
-		report(r)
+		report(err)
 	}
 
 	for current := fh.Runnable[I](s.rule); current != nil; current = current.NextRunnable() {

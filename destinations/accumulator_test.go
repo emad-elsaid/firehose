@@ -30,7 +30,7 @@ func TestAccumulatorSend(t *testing.T) {
 
 			for _, event := range tc.events {
 				report := destination.Send(t.Context(), event)
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			}
 
 			require.Equal(t, tc.wantEvents, destination.Items())

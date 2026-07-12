@@ -37,17 +37,17 @@ func TestRandomSend(t *testing.T) {
 			targets := tc.targets
 			if targets == nil && tc.wantErrAs == nil {
 				targets = []fh.Destination[int]{
-					Func[int](func(_ context.Context, _ int) fh.Report {
+					Func[int](func(_ context.Context, _ int) error {
 						counter[0]++
-						return fh.NewSuccessReport()
+						return nil
 					}),
-					Func[int](func(_ context.Context, _ int) fh.Report {
+					Func[int](func(_ context.Context, _ int) error {
 						counter[1]++
-						return fh.NewSuccessReport()
+						return nil
 					}),
-					Func[int](func(_ context.Context, _ int) fh.Report {
+					Func[int](func(_ context.Context, _ int) error {
 						counter[2]++
-						return fh.NewSuccessReport()
+						return nil
 					}),
 				}
 			}
@@ -57,12 +57,12 @@ func TestRandomSend(t *testing.T) {
 			for range tc.calls {
 				report := random.Send(t.Context(), 10)
 				if tc.wantErrAs == nil {
-					require.NoError(t, report.Err)
+					require.NoError(t, report)
 					continue
 				}
 
-				require.ErrorIs(t, report.Err, tc.wantErrIs)
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorIs(t, report, tc.wantErrIs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 
 			if tc.wantTotal > 0 {

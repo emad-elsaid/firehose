@@ -26,7 +26,7 @@ func TestCache_Process(t *testing.T) {
 			name: "cache miss calls downstream action and caches result",
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				a.On("Process", mock.Anything, ev, mock.Anything).
-					Return(ev, firehose.NewReport(nil)).Once()
+					Return(ev, nil).Once()
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
@@ -54,7 +54,7 @@ func TestCache_Process(t *testing.T) {
 			setupCache: func(cache *MockCacheStorage[*event], key string, ev *event, a *action[*event, *event]) {
 				actionErr := errors.New("action failed")
 				a.On("Process", mock.Anything, ev, mock.Anything).
-					Return(nil, firehose.NewReport(actionErr)).Once()
+					Return(nil, actionErr).Once()
 
 				cache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
@@ -93,9 +93,9 @@ func TestCache_Process(t *testing.T) {
 			_, report := mw.Process(context.Background(), ev, syms)
 
 			if tc.wantErr == nil {
-				assert.NoError(t, report.Err)
+				assert.NoError(t, report)
 			} else {
-				assert.EqualError(t, report.Err, tc.wantErr.Error())
+				assert.EqualError(t, report, tc.wantErr.Error())
 			}
 		})
 	}
@@ -147,7 +147,7 @@ func TestCache_Process_DifferentEventIDs(t *testing.T) {
 				key := strconv.FormatUint(id, 10)
 
 				mockAction.On("Process", mock.Anything, ev, mock.Anything).
-					Return(ev, firehose.NewReport(nil)).Once()
+					Return(ev, nil).Once()
 
 				mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 					Run(func(args mock.Arguments) {
@@ -188,7 +188,7 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 			key := strconv.FormatUint(id, 10)
 
 			mockAction.On("Process", mock.Anything, ev, mock.Anything).
-				Return(ev, firehose.NewReport(nil)).Once()
+				Return(ev, nil).Once()
 
 			mockCache.On("GetOrSet", mock.Anything, key, 5*time.Minute, mock.Anything).
 				Run(func(args mock.Arguments) {
@@ -212,7 +212,7 @@ func TestCache_Process_SameEventMultipleTimes(t *testing.T) {
 
 			for i := 0; i < tc.processCount; i++ {
 				_, report := mw.Process(context.Background(), ev, syms)
-				assert.NoError(t, report.Err)
+				assert.NoError(t, report)
 			}
 		})
 	}
@@ -242,7 +242,7 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 			key := strconv.FormatUint(id, 10)
 
 			mockAction.On("Process", mock.Anything, ev, mock.Anything).
-				Return(ev, firehose.NewReport(nil)).Once()
+				Return(ev, nil).Once()
 
 			mockCache.On("GetOrSet", mock.Anything, key, tc.wantTTL, mock.Anything).
 				Run(func(args mock.Arguments) {
@@ -259,7 +259,7 @@ func TestCache_Process_TTLRespected(t *testing.T) {
 			syms := boolexpr.NewCachedMap(map[string]any{})
 
 			_, report := mw.Process(context.Background(), ev, syms)
-			assert.NoError(t, report.Err)
+			assert.NoError(t, report)
 		})
 	}
 }
@@ -277,6 +277,6 @@ func TestCache_Process_EventIDFailureReturnsActionError(t *testing.T) {
 
 	require.Nil(t, out)
 	var actionErr firehose.ActionError
-	require.ErrorAs(t, report.Err, &actionErr)
-	require.Error(t, actionErr.Err)
+	require.ErrorAs(t, report, &actionErr)
+	require.Error(t, actionErr)
 }

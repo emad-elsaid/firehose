@@ -56,7 +56,7 @@ func (p *Panic[I, O]) WrapDestination(
 func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, report firehose.ReportFunc) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			report(firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered)))
+			report(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))
 		}
 	}()
 
@@ -70,32 +70,32 @@ func (p *Panic[I, O]) Process(
 	ctx context.Context,
 	event I,
 	syms boolexpr.Symbols,
-) (output O, report firehose.Report) {
+) (output O, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			var zero O
 
 			output = zero
-			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))
+			err = fmt.Errorf("%w: %v", ErrPanicRecovered, recovered)
 		}
 	}()
 
-	output, report = p.downstreamAction.Process(ctx, event, syms)
+	output, err = p.downstreamAction.Process(ctx, event, syms)
 
-	return output, report
+	return output, err
 }
 
 // Send executes the downstream destination with panic recovery.
 //
-//nolint:nonamedreturns // Named return allows defer to modify return value on panic recovery
-func (p *Panic[I, O]) Send(ctx context.Context, event O) (report firehose.Report) {
+// Named return allows defer to modify return value on panic recovery.
+func (p *Panic[I, O]) Send(ctx context.Context, event O) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			report = firehose.NewReport(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))
+			err = fmt.Errorf("%w: %v", ErrPanicRecovered, recovered)
 		}
 	}()
 
-	report = p.downstreamDest.Send(ctx, event)
+	err = p.downstreamDest.Send(ctx, event)
 
-	return report
+	return err
 }

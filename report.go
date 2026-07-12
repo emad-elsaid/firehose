@@ -1,38 +1,26 @@
 package firehose
 
-// Report represents the result of processing an event through a rule.
-type Report struct {
+// RuleError wraps an error with the rule ID that produced it.
+type RuleError struct {
 	Rule string
 	Err  error
 }
 
-// NewSuccessReport creates a new Report for a successful operation.
-func NewSuccessReport() Report {
-	return Report{Rule: "", Err: nil}
-}
-
-// NewReport creates a new Report with the given error.
-func NewReport(err error) Report {
-	return Report{Rule: "", Err: err}
-}
-
-// NewRuleReport creates a new Report with the given rule and error.
-func NewRuleReport(rule string, err error) Report {
-	return Report{Rule: rule, Err: err}
-}
-
-func (r Report) String() string {
-	if r.Err == nil {
-		if r.Rule == "" {
-			return "Success"
-		}
-
-		return "Success " + r.Rule
+func (e RuleError) Error() string {
+	if e.Rule == "" {
+		return e.Err.Error()
 	}
 
-	if r.Rule == "" {
-		return r.Err.Error()
+	return e.Rule + ": " + e.Err.Error()
+}
+
+func (e RuleError) Unwrap() error { return e.Err }
+
+// NewRuleError creates an error with the given rule and underlying error.
+func NewRuleError(rule string, err error) error {
+	if err == nil {
+		return nil
 	}
 
-	return r.Rule + ": " + r.Err.Error()
+	return RuleError{Rule: rule, Err: err}
 }

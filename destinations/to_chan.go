@@ -12,9 +12,9 @@ type ToChan[T any] struct {
 }
 
 // Send wraps event in a one-item channel and forwards it to Into.
-func (t ToChan[T]) Send(ctx context.Context, event T) fh.Report {
+func (t ToChan[T]) Send(ctx context.Context, event T) error {
 	if t.Into == nil {
-		return fh.NewReport(fh.DestinationError{Err: ErrWrappedDestinationRequired})
+		return fh.DestinationError{Err: ErrWrappedDestinationRequired}
 	}
 
 	items := make(chan T, 1)

@@ -29,8 +29,8 @@ func TestToChanSend(t *testing.T) {
 			item:      7,
 			wantItems: []int{7},
 			wrapper: ToChan[int]{
-				Into: Func[chan int](func(_ context.Context, _ chan int) fh.Report {
-					return fh.NewSuccessReport()
+				Into: Func[chan int](func(_ context.Context, _ chan int) error {
+					return nil
 				}),
 			},
 		},
@@ -41,7 +41,7 @@ func TestToChanSend(t *testing.T) {
 			received := []int{}
 			if tc.wrapper.Into != nil {
 				target := tc.wrapper.Into
-				tc.wrapper.Into = Func[chan int](func(ctx context.Context, event chan int) fh.Report {
+				tc.wrapper.Into = Func[chan int](func(ctx context.Context, event chan int) error {
 					for item := range event {
 						received = append(received, item)
 					}
@@ -63,10 +63,10 @@ func TestToChanSend(t *testing.T) {
 			}
 
 			if tc.wantErrAs == nil {
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			} else {
-				require.ErrorIs(t, report.Err, tc.wantErrIs)
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorIs(t, report, tc.wantErrIs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 		})
 	}

@@ -54,13 +54,13 @@ func TestManualEmitWithReport(t *testing.T) {
 	source := &Manual[int]{}
 
 	_, err := source.Start(t.Context(), func(_ context.Context, _ int, report firehose.ReportFunc) {
-		report(firehose.NewReport(context.Canceled))
+		report(context.Canceled)
 	})
 	require.NoError(t, err)
 
 	gotReported := false
-	err = source.EmitWithReport(t.Context(), 1, func(report firehose.Report) {
-		gotReported = report.Err == context.Canceled
+	err = source.EmitWithReport(t.Context(), 1, func(report error) {
+		gotReported = report == context.Canceled
 	})
 	require.NoError(t, err)
 	require.True(t, gotReported)

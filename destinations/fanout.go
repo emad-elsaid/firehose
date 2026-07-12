@@ -21,23 +21,23 @@ type Fanout[T any] struct {
 }
 
 // Send forwards the event to all destinations.
-func (f Fanout[T]) Send(ctx context.Context, event T) fh.Report {
+func (f Fanout[T]) Send(ctx context.Context, event T) error {
 	if len(f.Destinations) == 0 {
-		return fh.NewReport(fh.DestinationError{Err: ErrNoDestinationsConfigured})
+		return fh.DestinationError{Err: ErrNoDestinationsConfigured}
 	}
 
 	var errs []error
 
 	for _, destination := range f.Destinations {
-		report := destination.Send(ctx, event)
-		if report.Err != nil {
-			errs = append(errs, report.Err)
+		err := destination.Send(ctx, event)
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 
 	if len(errs) > 0 {
-		return fh.NewReport(fh.DestinationError{Err: errors.Join(errs...)})
+		return fh.DestinationError{Err: errors.Join(errs...)}
 	}
 
-	return fh.NewSuccessReport()
+	return nil
 }

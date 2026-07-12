@@ -15,19 +15,19 @@ type Chain3[I, A, B, O any] struct {
 }
 
 // Process runs the chain in order.
-func (c Chain3[I, A, B, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
-	firstOut, report := c.First.Process(ctx, event, syms)
-	if report.Err != nil {
+func (c Chain3[I, A, B, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
+	firstOut, err := c.First.Process(ctx, event, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
-	secondOut, report := c.Second.Process(ctx, firstOut, syms)
-	if report.Err != nil {
+	secondOut, err := c.Second.Process(ctx, firstOut, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
 	return c.Third.Process(ctx, secondOut, syms)

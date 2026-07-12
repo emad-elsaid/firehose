@@ -13,23 +13,23 @@ type FromSlice[T any] struct {
 }
 
 // Send forwards every item received from event to Into.
-func (f FromSlice[T]) Send(ctx context.Context, event []T) fh.Report {
+func (f FromSlice[T]) Send(ctx context.Context, event []T) error {
 	if f.Into == nil {
-		return fh.NewReport(fh.DestinationError{Err: ErrWrappedDestinationRequired})
+		return fh.DestinationError{Err: ErrWrappedDestinationRequired}
 	}
 
 	var errs []error
 
 	for _, item := range event {
-		report := f.Into.Send(ctx, item)
-		if report.Err != nil {
-			errs = append(errs, report.Err)
+		err := f.Into.Send(ctx, item)
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 
 	if len(errs) > 0 {
-		return fh.NewReport(fh.DestinationError{Err: errors.Join(errs...)})
+		return fh.DestinationError{Err: errors.Join(errs...)}
 	}
 
-	return fh.NewSuccessReport()
+	return nil
 }

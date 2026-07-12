@@ -134,7 +134,7 @@ func (_m *MockAction[I, O]) EXPECT() *MockAction_Expecter[I, O] {
 }
 
 // Process provides a mock function for the type MockAction
-func (_mock *MockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+func (_mock *MockAction[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	ret := _mock.Called(ctx, event, syms)
 
 	if len(ret) == 0 {
@@ -142,8 +142,8 @@ func (_mock *MockAction[I, O]) Process(ctx context.Context, event I, syms boolex
 	}
 
 	var r0 O
-	var r1 Report
-	if returnFunc, ok := ret.Get(0).(func(context.Context, I, boolexpr.Symbols) (O, Report)); ok {
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, I, boolexpr.Symbols) (O, error)); ok {
 		return returnFunc(ctx, event, syms)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, I, boolexpr.Symbols) O); ok {
@@ -153,10 +153,10 @@ func (_mock *MockAction[I, O]) Process(ctx context.Context, event I, syms boolex
 			r0 = ret.Get(0).(O)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, I, boolexpr.Symbols) Report); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, I, boolexpr.Symbols) error); ok {
 		r1 = returnFunc(ctx, event, syms)
 	} else {
-		r1 = ret.Get(1).(Report)
+		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
@@ -197,12 +197,12 @@ func (_c *MockAction_Process_Call[I, O]) Run(run func(ctx context.Context, event
 	return _c
 }
 
-func (_c *MockAction_Process_Call[I, O]) Return(v O, report Report) *MockAction_Process_Call[I, O] {
-	_c.Call.Return(v, report)
+func (_c *MockAction_Process_Call[I, O]) Return(v O, err error) *MockAction_Process_Call[I, O] {
+	_c.Call.Return(v, err)
 	return _c
 }
 
-func (_c *MockAction_Process_Call[I, O]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)) *MockAction_Process_Call[I, O] {
+func (_c *MockAction_Process_Call[I, O]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols) (O, error)) *MockAction_Process_Call[I, O] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -235,18 +235,18 @@ func (_m *MockDestination[T]) EXPECT() *MockDestination_Expecter[T] {
 }
 
 // Send provides a mock function for the type MockDestination
-func (_mock *MockDestination[T]) Send(ctx context.Context, event T) Report {
+func (_mock *MockDestination[T]) Send(ctx context.Context, event T) error {
 	ret := _mock.Called(ctx, event)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Send")
 	}
 
-	var r0 Report
-	if returnFunc, ok := ret.Get(0).(func(context.Context, T) Report); ok {
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, T) error); ok {
 		r0 = returnFunc(ctx, event)
 	} else {
-		r0 = ret.Get(0).(Report)
+		r0 = ret.Error(0)
 	}
 	return r0
 }
@@ -281,12 +281,12 @@ func (_c *MockDestination_Send_Call[T]) Run(run func(ctx context.Context, event 
 	return _c
 }
 
-func (_c *MockDestination_Send_Call[T]) Return(report Report) *MockDestination_Send_Call[T] {
-	_c.Call.Return(report)
+func (_c *MockDestination_Send_Call[T]) Return(err error) *MockDestination_Send_Call[T] {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockDestination_Send_Call[T]) RunAndReturn(run func(ctx context.Context, event T) Report) *MockDestination_Send_Call[T] {
+func (_c *MockDestination_Send_Call[T]) RunAndReturn(run func(ctx context.Context, event T) error) *MockDestination_Send_Call[T] {
 	_c.Call.Return(run)
 	return _c
 }

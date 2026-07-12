@@ -16,12 +16,12 @@ type Chain[I, M, O any] struct {
 }
 
 // Process runs the chain in order.
-func (c Chain[I, M, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, fh.Report) {
-	mid, report := c.First.Process(ctx, event, syms)
-	if report.Err != nil {
+func (c Chain[I, M, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
+	mid, err := c.First.Process(ctx, event, syms)
+	if err != nil {
 		var zero O
 
-		return zero, report
+		return zero, err
 	}
 
 	return c.Second.Process(ctx, mid, syms)

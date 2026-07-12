@@ -32,8 +32,8 @@ func TestFromChanSend(t *testing.T) {
 			name:  "forwards all items",
 			items: []int{1, 2, 3},
 			wrapper: FromChan[int]{
-				Into: Func[int](func(_ context.Context, event int) fh.Report {
-					return fh.NewSuccessReport()
+				Into: Func[int](func(_ context.Context, event int) error {
+					return nil
 				}),
 			},
 			wantEvents: []int{1, 2, 3},
@@ -42,14 +42,14 @@ func TestFromChanSend(t *testing.T) {
 			name:  "joins destination errors while continuing",
 			items: []int{1, 2, 3},
 			wrapper: FromChan[int]{
-				Into: Func[int](func(_ context.Context, event int) fh.Report {
+				Into: Func[int](func(_ context.Context, event int) error {
 					switch event {
 					case 1:
-						return fh.NewReport(firstErr)
+						return (firstErr)
 					case 3:
-						return fh.NewReport(thirdErr)
+						return (thirdErr)
 					default:
-						return fh.NewSuccessReport()
+						return nil
 					}
 				}),
 			},
@@ -63,7 +63,7 @@ func TestFromChanSend(t *testing.T) {
 			received := []int{}
 			if tc.wrapper.Into != nil {
 				target := tc.wrapper.Into
-				tc.wrapper.Into = Func[int](func(ctx context.Context, event int) fh.Report {
+				tc.wrapper.Into = Func[int](func(ctx context.Context, event int) error {
 					received = append(received, event)
 					return target.Send(ctx, event)
 				})
@@ -82,13 +82,13 @@ func TestFromChanSend(t *testing.T) {
 			}
 
 			for _, expectedErr := range tc.wantErrIs {
-				require.ErrorIs(t, report.Err, expectedErr)
+				require.ErrorIs(t, report, expectedErr)
 			}
 
 			if tc.wantErrAs == nil {
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			} else {
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 		})
 	}

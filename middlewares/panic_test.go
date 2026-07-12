@@ -39,7 +39,7 @@ func TestPanic_WrapAction(t *testing.T) {
 
 func TestPanic_WrapDestination(t *testing.T) {
 	mw := &Panic[*event, *event]{}
-	mockDest := &simpleDestination[*event]{returnReport: firehose.NewReport(nil)}
+	mockDest := &simpleDestination[*event]{returnReport: nil}
 
 	wrappedDest, err := mw.WrapDestination(
 		context.Background(),
@@ -55,27 +55,28 @@ func TestPanic_RecoverCallback(t *testing.T) {
 	tests := []struct {
 		name       string
 		downstream firehose.Callback[*event]
-		assertion  func(t *testing.T, reports []firehose.Report)
+		assertion  func(t *testing.T, reports []error)
 	}{
 		{
 			name: "recovers from panic",
 			downstream: func(_ context.Context, _ *event, _ firehose.ReportFunc) {
 				panic("callback panic!")
 			},
-			assertion: func(t *testing.T, reports []firehose.Report) {
+			assertion: func(t *testing.T, reports []error) {
 				require.Len(t, reports, 1)
-				assert.ErrorIs(t, reports[0].Err, ErrPanicRecovered)
-				assert.Contains(t, reports[0].Err.Error(), "callback panic!")
+				assert.ErrorIs(t, reports[0], ErrPanicRecovered)
+				assert.Contains(t, reports[0].Error(), "callback panic!")
 			},
 		},
 		{
 			name: "passes through report",
 			downstream: func(_ context.Context, _ *event, report firehose.ReportFunc) {
-				report(firehose.NewReport(nil))
+				// Report nil - should not be collected since nil means success
+				report(nil)
 			},
-			assertion: func(t *testing.T, reports []firehose.Report) {
-				require.Len(t, reports, 1)
-				assert.NoError(t, reports[0].Err)
+			assertion: func(t *testing.T, reports []error) {
+				// Nil errors are not reported
+				require.Len(t, reports, 0)
 			},
 		},
 	}
@@ -86,7 +87,7 @@ func TestPanic_RecoverCallback(t *testing.T) {
 			collector := newReportCollector()
 
 			mw.recoverCallback(context.Background(), &event{}, collector.Collect)
-			tc.assertion(t, collector.Reports())
+			tc.assertion(t, collector.Errors())
 		})
 	}
 }
@@ -100,24 +101,24 @@ func TestPanic_Process(t *testing.T) {
 	tests := []struct {
 		name      string
 		action    *panicAction
-		assertion func(t *testing.T, out *event, report firehose.Report)
+		assertion func(t *testing.T, out *event, report error)
 	}{
 		{
 			name:   "recovers from panic string",
 			action: &panicAction{shouldPanic: true, panicValue: "action panic!"},
-			assertion: func(t *testing.T, out *event, report firehose.Report) {
+			assertion: func(t *testing.T, out *event, report error) {
 				assert.Nil(t, out)
-				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-				assert.Contains(t, report.Err.Error(), "action panic!")
+				assert.ErrorIs(t, report, ErrPanicRecovered)
+				assert.Contains(t, report.Error(), "action panic!")
 			},
 		},
 		{
 			name:   "recovers from panic custom type",
 			action: &panicAction{shouldPanic: true, panicValue: customPanic{message: "boom", code: 500}},
-			assertion: func(t *testing.T, out *event, report firehose.Report) {
+			assertion: func(t *testing.T, out *event, report error) {
 				assert.Nil(t, out)
-				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-				assert.Contains(t, report.Err.Error(), "boom")
+				assert.ErrorIs(t, report, ErrPanicRecovered)
+				assert.Contains(t, report.Error(), "boom")
 			},
 		},
 		{
@@ -125,12 +126,12 @@ func TestPanic_Process(t *testing.T) {
 			action: &panicAction{
 				shouldPanic:  false,
 				returnEvent:  &event{Value: "result"},
-				returnReport: firehose.NewReport(nil),
+				returnReport: nil,
 			},
-			assertion: func(t *testing.T, out *event, report firehose.Report) {
+			assertion: func(t *testing.T, out *event, report error) {
 				require.NotNil(t, out)
 				assert.Equal(t, "result", out.Value)
-				assert.NoError(t, report.Err)
+				assert.NoError(t, report)
 			},
 		},
 	}
@@ -148,29 +149,29 @@ func TestPanic_Send(t *testing.T) {
 	tests := []struct {
 		name      string
 		dest      firehose.Destination[*event]
-		assertion func(t *testing.T, report firehose.Report)
+		assertion func(t *testing.T, report error)
 	}{
 		{
 			name: "recovers from panic string",
 			dest: &panicDestination[*event]{panicValue: "destination panic!"},
-			assertion: func(t *testing.T, report firehose.Report) {
-				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-				assert.Contains(t, report.Err.Error(), "destination panic!")
+			assertion: func(t *testing.T, report error) {
+				assert.ErrorIs(t, report, ErrPanicRecovered)
+				assert.Contains(t, report.Error(), "destination panic!")
 			},
 		},
 		{
 			name: "recovers from panic error",
 			dest: &panicDestination[*event]{panicValue: errors.New("boom")},
-			assertion: func(t *testing.T, report firehose.Report) {
-				assert.ErrorIs(t, report.Err, ErrPanicRecovered)
-				assert.Contains(t, report.Err.Error(), "boom")
+			assertion: func(t *testing.T, report error) {
+				assert.ErrorIs(t, report, ErrPanicRecovered)
+				assert.Contains(t, report.Error(), "boom")
 			},
 		},
 		{
 			name: "passes through",
-			dest: &simpleDestination[*event]{returnReport: firehose.NewReport(nil)},
-			assertion: func(t *testing.T, report firehose.Report) {
-				assert.NoError(t, report.Err)
+			dest: &simpleDestination[*event]{returnReport: nil},
+			assertion: func(t *testing.T, report error) {
+				assert.NoError(t, report)
 			},
 		},
 	}
@@ -188,14 +189,14 @@ type panicAction struct {
 	panicValue   any
 	shouldPanic  bool
 	returnEvent  *event
-	returnReport firehose.Report
+	returnReport error
 }
 
 func (p *panicAction) Process(
 	_ context.Context,
 	_ *event,
 	_ boolexpr.Symbols,
-) (*event, firehose.Report) {
+) (*event, error) {
 	if p.shouldPanic {
 		panic(p.panicValue)
 	}
@@ -205,12 +206,12 @@ func (p *panicAction) Process(
 
 type panicDestination[T any] struct{ panicValue any }
 
-func (d *panicDestination[T]) Send(_ context.Context, _ T) firehose.Report {
+func (d *panicDestination[T]) Send(_ context.Context, _ T) error {
 	panic(d.panicValue)
 }
 
-type simpleDestination[T any] struct{ returnReport firehose.Report }
+type simpleDestination[T any] struct{ returnReport error }
 
-func (d *simpleDestination[T]) Send(_ context.Context, _ T) firehose.Report {
+func (d *simpleDestination[T]) Send(_ context.Context, _ T) error {
 	return d.returnReport
 }

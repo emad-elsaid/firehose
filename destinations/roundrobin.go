@@ -16,9 +16,9 @@ type RoundRobin[T any] struct {
 }
 
 // Send forwards the event to the next destination.
-func (r *RoundRobin[T]) Send(ctx context.Context, event T) fh.Report {
+func (r *RoundRobin[T]) Send(ctx context.Context, event T) error {
 	if len(r.Destinations) == 0 {
-		return fh.NewReport(fh.DestinationError{Err: ErrNoDestinationsConfigured})
+		return fh.DestinationError{Err: ErrNoDestinationsConfigured}
 	}
 
 	r.mutex.Lock()

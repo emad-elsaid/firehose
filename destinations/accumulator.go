@@ -3,8 +3,6 @@ package destinations
 import (
 	"context"
 	"sync"
-
-	fh "github.com/emad-elsaid/firehose"
 )
 
 // Accumulator stores all received events in memory.
@@ -14,12 +12,12 @@ type Accumulator[T any] struct {
 }
 
 // Send appends the event to the in-memory slice.
-func (a *Accumulator[T]) Send(_ context.Context, event T) fh.Report {
+func (a *Accumulator[T]) Send(_ context.Context, event T) error {
 	a.mutex.Lock()
 	a.items = append(a.items, event)
 	a.mutex.Unlock()
 
-	return fh.NewSuccessReport()
+	return nil
 }
 
 // Items returns a copy of the accumulated events.

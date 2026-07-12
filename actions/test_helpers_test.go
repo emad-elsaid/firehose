@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/emad-elsaid/boolexpr"
-	"github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -16,7 +15,7 @@ type action[I, O any] struct {
 	mock.Mock
 }
 
-func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, firehose.Report) {
+func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	args := a.Called(ctx, event, syms)
 
 	var result O
@@ -24,5 +23,5 @@ func (a *action[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbo
 		result = args.Get(0).(O)
 	}
 
-	return result, args.Get(1).(firehose.Report)
+	return result, args.Error(1)
 }

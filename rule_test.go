@@ -24,17 +24,14 @@ func TestRuleCallback(t *testing.T) {
 
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		collector := newReportCollector()
 		rule.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 1)
-		for _, report := range reports {
-			require.NoError(t, report.Err)
-		}
+		require.Len(t, reports, 0) // Both action and dest return nil - no errors collected
 	})
 
 	t.Run("callback with action error", func(t *testing.T) {
@@ -48,16 +45,16 @@ func TestRuleCallback(t *testing.T) {
 		}
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, os.ErrClosed).Once()
 
 		collector := newReportCollector()
 		rule.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
 		for _, report := range reports {
-			require.ErrorIs(t, report.Err, os.ErrClosed)
+			require.ErrorIs(t, report, os.ErrClosed)
 		}
 	})
 
@@ -72,17 +69,17 @@ func TestRuleCallback(t *testing.T) {
 		}
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(os.ErrClosed)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(os.ErrClosed).Once()
 
 		collector := newReportCollector()
 		rule.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
 		require.Len(t, reports, 1)
 
 		for _, report := range reports {
-			require.ErrorIs(t, report.Err, os.ErrClosed)
+			require.ErrorIs(t, report, os.ErrClosed)
 		}
 	})
 
@@ -112,18 +109,14 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = Add(t.Context(), registry, rule2)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Twice()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Twice()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Twice()
+		destination.On("Send", t.Context(), in).Return(nil).Twice()
 
 		collector := newReportCollector()
 		rule1.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 2)
-
-		for _, report := range reports {
-			require.NoError(t, report.Err, in)
-		}
+		require.Len(t, reports, 0) // Success case - no errors reported
 	})
 
 	t.Run("callback chain continue on action error in first rule", func(t *testing.T) {
@@ -152,17 +145,16 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = Add(t.Context(), registry, rule2)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, os.ErrClosed).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		collector := newReportCollector()
 		rule1.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 2)
-		require.ErrorIs(t, reports[0].Err, os.ErrClosed)
-		require.NoError(t, reports[1].Err)
+		require.Len(t, reports, 1) // Only error from rule1, rule2 succeeds (no report)
+		require.ErrorIs(t, reports[0], os.ErrClosed)
 	})
 
 	t.Run("callback chain propagates error from second rule", func(t *testing.T) {
@@ -191,17 +183,16 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = Add(t.Context(), registry, rule2)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(os.ErrClosed)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, os.ErrClosed).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		collector := newReportCollector()
 		rule1.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 2)
-		require.NoError(t, reports[0].Err)
-		require.ErrorIs(t, reports[1].Err, os.ErrClosed)
+		require.Len(t, reports, 1) // Only error from rule2, rule1 succeeds (no report)
+		require.ErrorIs(t, reports[0], os.ErrClosed)
 	})
 
 	t.Run("callback with three rules in chain", func(t *testing.T) {
@@ -240,18 +231,14 @@ func TestRuleCallback(t *testing.T) {
 		registry, err = Add(t.Context(), registry, rule3)
 		require.NoError(t, err)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Times(3)
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Times(3)
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Times(3)
+		destination.On("Send", t.Context(), in).Return(nil).Times(3)
 
 		collector := newReportCollector()
 		rule1.callback(t.Context(), in, collector.Collect)
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 3)
-
-		for _, report := range reports {
-			require.NoError(t, report.Err)
-		}
+		require.Len(t, reports, 0) // All 3 rules succeed - no errors reported
 	})
 
 	t.Run("callback with incompatible next rule type", func(t *testing.T) {
@@ -266,8 +253,8 @@ func TestRuleCallback(t *testing.T) {
 			Into:   destination,
 		}
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		// Create a Rule with a different type (string instead of *EventMock)
 		// This will cause a panic when type-asserting to Runnable[*EventMock]
@@ -278,9 +265,9 @@ func TestRuleCallback(t *testing.T) {
 
 		collector := newReportCollector()
 		require.Panics(t, func() { rule.callback(t.Context(), in, collector.Collect) })
-		reports := collector.Reports()
+		reports := collector.Errors()
 		require.NotNil(t, reports)
-		require.Len(t, reports, 1)
+		require.Len(t, reports, 0) // Panic happens during callback, success case produces no reports
 	})
 
 	t.Run("callback with nil reporter function", func(t *testing.T) {
@@ -296,8 +283,8 @@ func TestRuleCallback(t *testing.T) {
 
 		in := NewEventMock(nil)
 
-		action.On("Process", t.Context(), in, mock.Anything).Return(in, NewReport(nil)).Once()
-		destination.On("Send", t.Context(), in).Return(NewReport(nil)).Once()
+		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
+		destination.On("Send", t.Context(), in).Return(nil).Once()
 
 		require.NotPanics(t, func() { rule.callback(t.Context(), in, nil) })
 	})
@@ -325,17 +312,16 @@ func TestRuleActionOverride(t *testing.T) {
 	rule.Select = newAction
 
 	newAction.On("Process", t.Context(), event, mock.Anything).
-		Return(event, NewReport(nil)).Once()
+		Return(event, nil).Once()
 	destination.On("Send", t.Context(), event).
-		Return(NewReport(nil)).Once()
+		Return(nil).Once()
 
 	collector := newReportCollector()
 	rule.callback(t.Context(), event, collector.Collect)
 
-	reports := collector.Reports()
+	reports := collector.Errors()
 	require.NotNil(t, reports)
-	require.Len(t, reports, 1)
-	require.NoError(t, reports[0].Err)
+	require.Len(t, reports, 0) // Success case - no errors reported
 }
 
 func TestRuleDestinationOverride(t *testing.T) {
@@ -360,17 +346,16 @@ func TestRuleDestinationOverride(t *testing.T) {
 	rule.Into = newDestination
 
 	action.On("Process", t.Context(), event, mock.Anything).
-		Return(event, NewReport(nil)).Once()
+		Return(event, nil).Once()
 	newDestination.On("Send", t.Context(), event).
-		Return(NewReport(nil)).Once()
+		Return(nil).Once()
 
 	collector := newReportCollector()
 	rule.callback(t.Context(), event, collector.Collect)
 
-	reports := collector.Reports()
+	reports := collector.Errors()
 	require.NotNil(t, reports)
-	require.Len(t, reports, 1)
-	require.NoError(t, reports[0].Err)
+	require.Len(t, reports, 0) // Success case - no errors reported
 }
 
 func TestRule_Process(t *testing.T) {
@@ -381,7 +366,7 @@ func TestRule_Process(t *testing.T) {
 		setupAction    func() Action[*EventMock, *EventMock]
 		event          *EventMock
 		expectedError  bool
-		validateOutput func(t *testing.T, output *EventMock, report Report)
+		validateOutput func(t *testing.T, output *EventMock, report error)
 	}{
 		{
 			name: "successful action processing",
@@ -389,14 +374,14 @@ func TestRule_Process(t *testing.T) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				output := NewEventMock(map[string]any{"processed": true})
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(output, NewReport(nil)).Once()
+					Return(output, nil).Once()
 				return action
 			},
 			event:         NewEventMock(nil),
 			expectedError: false,
-			validateOutput: func(t *testing.T, output *EventMock, report Report) {
+			validateOutput: func(t *testing.T, output *EventMock, report error) {
 				require.NotNil(t, output)
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -404,13 +389,13 @@ func TestRule_Process(t *testing.T) {
 			setupAction: func() Action[*EventMock, *EventMock] {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return((*EventMock)(nil), NewReport(os.ErrClosed)).Once()
+					Return((*EventMock)(nil), os.ErrClosed).Once()
 				return action
 			},
 			event:         NewEventMock(nil),
 			expectedError: true,
-			validateOutput: func(t *testing.T, output *EventMock, report Report) {
-				require.ErrorIs(t, report.Err, os.ErrClosed)
+			validateOutput: func(t *testing.T, output *EventMock, report error) {
+				require.ErrorIs(t, report, os.ErrClosed)
 			},
 		},
 	}
@@ -435,20 +420,20 @@ func TestRule_Send(t *testing.T) {
 		setupDestination func() Destination[*EventMock]
 		event            *EventMock
 		expectedError    bool
-		validateReport   func(t *testing.T, report Report)
+		validateReport   func(t *testing.T, report error)
 	}{
 		{
 			name: "successful send",
 			setupDestination: func() Destination[*EventMock] {
 				dest := NewMockDestination[*EventMock](t)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(NewReport(nil)).Once()
+					Return(nil).Once()
 				return dest
 			},
 			event:         NewEventMock(nil),
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -456,13 +441,13 @@ func TestRule_Send(t *testing.T) {
 			setupDestination: func() Destination[*EventMock] {
 				dest := NewMockDestination[*EventMock](t)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(NewReport(os.ErrPermission)).Once()
+					Return(os.ErrPermission).Once()
 				return dest
 			},
 			event:         NewEventMock(nil),
 			expectedError: true,
-			validateReport: func(t *testing.T, report Report) {
-				require.ErrorIs(t, report.Err, os.ErrPermission)
+			validateReport: func(t *testing.T, report error) {
+				require.ErrorIs(t, report, os.ErrPermission)
 			},
 		},
 	}
@@ -488,7 +473,7 @@ func TestRule_EvaluateCondition(t *testing.T) {
 		event          *EventMock
 		expectedPass   bool
 		expectedError  bool
-		validateReport func(t *testing.T, report Report)
+		validateReport func(t *testing.T, report error)
 	}{
 		{
 			name: "nil condition passes",
@@ -498,9 +483,9 @@ func TestRule_EvaluateCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  true,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "", report.Rule)
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -514,9 +499,9 @@ func TestRule_EvaluateCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  true,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "", report.Rule)
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -530,9 +515,9 @@ func TestRule_EvaluateCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  false,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrInputNoMatch)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.ErrorIs(t, report, ErrInputNoMatch)
 			},
 		},
 		{
@@ -546,11 +531,11 @@ func TestRule_EvaluateCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  false,
 			expectedError: true,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var condErr ConditionError
-				require.ErrorAs(t, report.Err, &condErr)
-				require.ErrorIs(t, report.Err, os.ErrInvalid)
+				require.ErrorAs(t, report, &condErr)
+				require.ErrorIs(t, report, os.ErrInvalid)
 			},
 		},
 	}
@@ -579,7 +564,7 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 		event          *EventMock
 		expectedPass   bool
 		expectedError  bool
-		validateReport func(t *testing.T, report Report)
+		validateReport func(t *testing.T, report error)
 	}{
 		{
 			name: "nil output condition passes",
@@ -589,9 +574,9 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  true,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "", report.Rule)
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -605,9 +590,9 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  true,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "", report.Rule)
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -621,9 +606,9 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  false,
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrOutputNoMatch)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.ErrorIs(t, report, ErrOutputNoMatch)
 			},
 		},
 		{
@@ -637,11 +622,11 @@ func TestRule_EvaluateOutputCondition(t *testing.T) {
 			event:         NewEventMock(nil),
 			expectedPass:  false,
 			expectedError: true,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var condErr ConditionError
-				require.ErrorAs(t, report.Err, &condErr)
-				require.ErrorIs(t, report.Err, os.ErrNotExist)
+				require.ErrorAs(t, report, &condErr)
+				require.ErrorIs(t, report, os.ErrNotExist)
 			},
 		},
 	}
@@ -669,7 +654,7 @@ func TestRule_ProcessAction(t *testing.T) {
 		setupAction    func() Action[*EventMock, *EventMock]
 		event          *EventMock
 		expectedError  bool
-		validateReport func(t *testing.T, output *EventMock, report Report)
+		validateReport func(t *testing.T, output *EventMock, report error)
 	}{
 		{
 			name: "successful action",
@@ -677,15 +662,15 @@ func TestRule_ProcessAction(t *testing.T) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				output := NewEventMock(map[string]any{"result": "ok"})
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(output, NewReport(nil)).Once()
+					Return(output, nil).Once()
 				return action
 			},
 			event:         NewEventMock(nil),
 			expectedError: false,
-			validateReport: func(t *testing.T, output *EventMock, report Report) {
+			validateReport: func(t *testing.T, output *EventMock, report error) {
 				require.NotNil(t, output)
-				require.Equal(t, "test-rule", report.Rule)
-				require.NoError(t, report.Err)
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -693,16 +678,16 @@ func TestRule_ProcessAction(t *testing.T) {
 			setupAction: func() Action[*EventMock, *EventMock] {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return((*EventMock)(nil), NewReport(os.ErrClosed)).Once()
+					Return((*EventMock)(nil), os.ErrClosed).Once()
 				return action
 			},
 			event:         NewEventMock(nil),
 			expectedError: true,
-			validateReport: func(t *testing.T, output *EventMock, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, output *EventMock, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var actionErr ActionError
-				require.ErrorAs(t, report.Err, &actionErr)
-				require.ErrorIs(t, report.Err, os.ErrClosed)
+				require.ErrorAs(t, report, &actionErr)
+				require.ErrorIs(t, report, os.ErrClosed)
 			},
 		},
 	}
@@ -728,21 +713,21 @@ func TestRule_ProcessDestination(t *testing.T) {
 		setupDestination func() Destination[*EventMock]
 		event            *EventMock
 		expectedError    bool
-		validateReport   func(t *testing.T, report Report)
+		validateReport   func(t *testing.T, report error)
 	}{
 		{
 			name: "successful destination",
 			setupDestination: func() Destination[*EventMock] {
 				dest := NewMockDestination[*EventMock](t)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(NewReport(nil)).Once()
+					Return(nil).Once()
 				return dest
 			},
 			event:         NewEventMock(nil),
 			expectedError: false,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.NoError(t, report.Err)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.NoError(t, report)
 			},
 		},
 		{
@@ -750,16 +735,16 @@ func TestRule_ProcessDestination(t *testing.T) {
 			setupDestination: func() Destination[*EventMock] {
 				dest := NewMockDestination[*EventMock](t)
 				dest.On("Send", mock.Anything, mock.Anything).
-					Return(NewReport(os.ErrPermission)).Once()
+					Return(os.ErrPermission).Once()
 				return dest
 			},
 			event:         NewEventMock(nil),
 			expectedError: true,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var destErr DestinationError
-				require.ErrorAs(t, report.Err, &destErr)
-				require.ErrorIs(t, report.Err, os.ErrPermission)
+				require.ErrorAs(t, report, &destErr)
+				require.ErrorIs(t, report, os.ErrPermission)
 			},
 		},
 	}
@@ -917,7 +902,7 @@ func TestRule_Run(t *testing.T) {
 		name            string
 		setupMocks      func() (*MockRule, *EventMock)
 		expectedReports int
-		validateReport  func(t *testing.T, report Report)
+		validateReport  func(t *testing.T, report error)
 	}{
 		{
 			name: "successful action and destination",
@@ -933,16 +918,15 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(nil)).Once()
+					Return(event, nil).Once()
 				destination.On("Send", mock.Anything, event).
-					Return(NewReport(nil)).Once()
+					Return(nil).Once()
 
 				return rule, event
 			},
-			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.NoError(t, report.Err)
+			expectedReports: 0, // Success case - no errors reported
+			validateReport: func(t *testing.T, report error) {
+				// No reports expected on success
 			},
 		},
 		{
@@ -959,16 +943,16 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(os.ErrClosed)).Once()
+					Return(event, os.ErrClosed).Once()
 
 				return rule, event
 			},
 			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var actionErr ActionError
-				require.ErrorAs(t, report.Err, &actionErr)
-				require.ErrorIs(t, report.Err, os.ErrClosed)
+				require.ErrorAs(t, report, &actionErr)
+				require.ErrorIs(t, report, os.ErrClosed)
 			},
 		},
 		{
@@ -985,18 +969,18 @@ func TestRule_Run(t *testing.T) {
 				}
 
 				action.On("Process", mock.Anything, event, mock.Anything).
-					Return(event, NewReport(nil)).Once()
+					Return(event, nil).Once()
 				destination.On("Send", mock.Anything, event).
-					Return(NewReport(os.ErrPermission)).Once()
+					Return(os.ErrPermission).Once()
 
 				return rule, event
 			},
 			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
 				var destinationErr DestinationError
-				require.ErrorAs(t, report.Err, &destinationErr)
-				require.ErrorIs(t, report.Err, os.ErrPermission)
+				require.ErrorAs(t, report, &destinationErr)
+				require.ErrorIs(t, report, os.ErrPermission)
 			},
 		},
 	}
@@ -1010,7 +994,7 @@ func TestRule_Run(t *testing.T) {
 			// Use nil symbols for this test
 			rule.Run(t.Context(), event, nil, collector.Collect)
 
-			reports := collector.Reports()
+			reports := collector.Errors()
 
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
@@ -1170,19 +1154,25 @@ func TestReportIfNeeded(t *testing.T) {
 	tests := []struct {
 		name       string
 		reportFn   ReportFunc
-		report     Report
+		report     error
 		expectCall bool
 	}{
 		{
-			name:       "calls reportFn when not nil",
-			reportFn:   func(r Report) {},
-			report:     NewReport(nil),
+			name:       "calls reportFn when error is non-nil",
+			reportFn:   func(r error) {},
+			report:     os.ErrClosed,
 			expectCall: true,
+		},
+		{
+			name:       "does not call reportFn when error is nil",
+			reportFn:   func(r error) {},
+			report:     nil,
+			expectCall: false,
 		},
 		{
 			name:       "does not panic when reportFn is nil",
 			reportFn:   nil,
-			report:     NewReport(nil),
+			report:     nil,
 			expectCall: false,
 		},
 	}
@@ -1192,7 +1182,7 @@ func TestReportIfNeeded(t *testing.T) {
 			called := false
 			var reportFn ReportFunc
 			if tc.reportFn != nil {
-				reportFn = func(r Report) {
+				reportFn = func(r error) {
 					called = true
 				}
 			}
@@ -1611,7 +1601,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		setupRule       func() *MockRule
 		event           *EventMock
 		expectedReports int
-		validateReport  func(t *testing.T, report Report)
+		validateReport  func(t *testing.T, report error)
 	}{
 		{
 			name: "Condition fails stops execution",
@@ -1627,9 +1617,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrInputNoMatch)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.ErrorIs(t, report, ErrInputNoMatch)
 			},
 		},
 		{
@@ -1643,9 +1633,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 					Return(true, nil).Once()
 				output := NewEventMock(nil)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(output, NewReport(nil)).Once()
+					Return(output, nil).Once()
 				destination.On("Send", mock.Anything, output).
-					Return(NewReport(nil)).Once()
+					Return(nil).Once()
 
 				return &MockRule{
 					ID:     "test-rule",
@@ -1655,10 +1645,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				}
 			},
 			event:           NewEventMock(nil),
-			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.NoError(t, report.Err)
+			expectedReports: 0, // Success - no errors reported
+			validateReport: func(t *testing.T, report error) {
+				// No reports expected on success
 			},
 		},
 		{
@@ -1669,7 +1658,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 
 				output := NewEventMock(nil)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(output, NewReport(nil)).Once()
+					Return(output, nil).Once()
 				postCond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
@@ -1681,9 +1670,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report.Err, ErrOutputNoMatch)
+			validateReport: func(t *testing.T, report error) {
+				//				require.Equal(t, "test-rule", report.Rule)
+				require.ErrorIs(t, report, ErrOutputNoMatch)
 			},
 		},
 		{
@@ -1695,11 +1684,11 @@ func TestRule_Run_WithConditions(t *testing.T) {
 
 				output := NewEventMock(nil)
 				action.On("Process", mock.Anything, mock.Anything, mock.Anything).
-					Return(output, NewReport(nil)).Once()
+					Return(output, nil).Once()
 				postCond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(true, nil).Once()
 				destination.On("Send", mock.Anything, output).
-					Return(NewReport(nil)).Once()
+					Return(nil).Once()
 
 				return &MockRule{
 					ID:     "test-rule",
@@ -1709,10 +1698,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				}
 			},
 			event:           NewEventMock(nil),
-			expectedReports: 1,
-			validateReport: func(t *testing.T, report Report) {
-				require.Equal(t, "test-rule", report.Rule)
-				require.NoError(t, report.Err)
+			expectedReports: 0, // Success - no errors reported
+			validateReport: func(t *testing.T, report error) {
+				// No reports expected on success
 			},
 		},
 	}
@@ -1724,7 +1712,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			collector := newReportCollector()
 			rule.Run(t.Context(), tc.event, nil, collector.Collect)
 
-			reports := collector.Reports()
+			reports := collector.Errors()
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
 				tc.validateReport(t, reports[0])

@@ -21,20 +21,23 @@ func NewEventMock(attrs map[string]any) *EventMock {
 type MockRule = Rule[*EventMock, *EventMock]
 
 type reportCollector struct {
-	reports []Report
+	errors []error
 }
 
 func newReportCollector() *reportCollector {
 	return &reportCollector{}
 }
 
-func (c *reportCollector) Collect(r Report) {
-	c.reports = append(c.reports, r)
+func (c *reportCollector) Collect(err error) {
+	// Only collect actual errors, not nil (success)
+	if err != nil {
+		c.errors = append(c.errors, err)
+	}
 }
 
-func (c *reportCollector) Reports() []Report {
-	out := make([]Report, len(c.reports))
-	copy(out, c.reports)
+func (c *reportCollector) Errors() []error {
+	out := make([]error, len(c.errors))
+	copy(out, c.errors)
 
 	return out
 }

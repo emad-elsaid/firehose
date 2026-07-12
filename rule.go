@@ -50,14 +50,14 @@ type Rule[I, O any] struct {
 // Process implements the Action interface. it allows using the rule as an action during the wrapping
 // of the action. so that when the action field changes it calls the new action.
 // When called it calls the current action without any middlewares.
-func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	return r.Select.Process(ctx, event, syms)
 }
 
 // Send implements the Destination interface. it allows using the rule as a
 // destination during the wrapping of the destination. so that when the
 // destination field changes it calls the new destination.
-func (r *Rule[I, O]) Send(ctx context.Context, event O) Report {
+func (r *Rule[I, O]) Send(ctx context.Context, event O) error {
 	return r.Into.Send(ctx, event)
 }
 
@@ -94,97 +94,89 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
-	conditionPassed, conditionReport := r.evaluateCondition(ctx, event, syms)
+	conditionPassed, conditionErr := r.evaluateCondition(ctx, event, syms)
 	if !conditionPassed {
-		reportIfNeeded(reportFn, conditionReport)
+		reportIfNeeded(reportFn, conditionErr)
 
 		return
 	}
 
-	output, actionReport := r.processAction(ctx, event, syms)
-	if actionReport.Err != nil {
-		reportIfNeeded(reportFn, actionReport)
+	output, actionErr := r.processAction(ctx, event, syms)
+	if actionErr != nil {
+		reportIfNeeded(reportFn, actionErr)
 
 		return
 	}
 
 	outputSyms := EventSymbols(output)
 
-	postConditionPassed, postConditionReport := r.evaluateOutputCondition(ctx, output, outputSyms)
+	postConditionPassed, postConditionErr := r.evaluateOutputCondition(ctx, output, outputSyms)
 	if !postConditionPassed {
-		reportIfNeeded(reportFn, postConditionReport)
+		reportIfNeeded(reportFn, postConditionErr)
 
 		return
 	}
 
-	destinationReport := r.processDestination(ctx, output)
-	reportIfNeeded(reportFn, destinationReport)
+	destinationErr := r.processDestination(ctx, output)
+	reportIfNeeded(reportFn, destinationErr)
 }
 
-func (r *Rule[I, O]) evaluateCondition(
-	ctx context.Context,
-	event I,
-	syms boolexpr.Symbols,
-) (bool, Report) {
+func (r *Rule[I, O]) evaluateCondition(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
 	if r.Where == nil {
-		return true, Report{Rule: "", Err: nil}
+		return true, nil
 	}
 
 	pass, err := r.Where.Evaluate(ctx, event, syms)
 	if err != nil {
-		return false, NewRuleReport(r.ID, ConditionError{Err: err})
+		return false, NewRuleError(r.ID, ConditionError{Err: err})
 	}
 
 	if !pass {
-		return false, NewRuleReport(r.ID, ErrInputNoMatch)
+		return false, NewRuleError(r.ID, ErrInputNoMatch)
 	}
 
-	return true, Report{Rule: "", Err: nil}
+	return true, nil
 }
 
-func (r *Rule[I, O]) evaluateOutputCondition(
-	ctx context.Context,
-	event O,
-	syms boolexpr.Symbols,
-) (bool, Report) {
+func (r *Rule[I, O]) evaluateOutputCondition(ctx context.Context, event O, syms boolexpr.Symbols) (bool, error) {
 	if r.Having == nil {
-		return true, Report{Rule: "", Err: nil}
+		return true, nil
 	}
 
 	pass, err := r.Having.Evaluate(ctx, event, syms)
 	if err != nil {
-		return false, NewRuleReport(r.ID, ConditionError{Err: err})
+		return false, NewRuleError(r.ID, ConditionError{Err: err})
 	}
 
 	if !pass {
-		return false, NewRuleReport(r.ID, ErrOutputNoMatch)
+		return false, NewRuleError(r.ID, ErrOutputNoMatch)
 	}
 
-	return true, Report{Rule: "", Err: nil}
+	return true, nil
 }
 
-func (r *Rule[I, O]) processAction(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report) {
+func (r *Rule[I, O]) processAction(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
 	action := r.resolveAction()
-	output, report := action.Process(ctx, event, syms)
-	report.Rule = r.ID
 
-	if report.Err != nil {
-		report.Err = asActionError(report.Err)
+	output, err := action.Process(ctx, event, syms)
+	if err != nil {
+		err = asActionError(err)
+		err = NewRuleError(r.ID, err)
 	}
 
-	return output, report
+	return output, err
 }
 
-func (r *Rule[I, O]) processDestination(ctx context.Context, output O) Report {
+func (r *Rule[I, O]) processDestination(ctx context.Context, output O) error {
 	destination := r.resolveDestination()
-	report := destination.Send(ctx, output)
-	report.Rule = r.ID
 
-	if report.Err != nil {
-		report.Err = asDestinationError(report.Err)
+	err := destination.Send(ctx, output)
+	if err != nil {
+		err = asDestinationError(err)
+		err = NewRuleError(r.ID, err)
 	}
 
-	return report
+	return err
 }
 
 func (r *Rule[I, O]) resolveAction() Action[I, O] {
@@ -221,12 +213,12 @@ func asDestinationError(err error) error {
 	return DestinationError{Err: err}
 }
 
-func reportIfNeeded(reportFn ReportFunc, report Report) {
-	if reportFn == nil {
+func reportIfNeeded(reportFn ReportFunc, err error) {
+	if reportFn == nil || err == nil {
 		return
 	}
 
-	reportFn(report)
+	reportFn(err)
 }
 
 // NextRunnable returns the next runnable rule with the same source.

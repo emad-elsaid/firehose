@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/emad-elsaid/boolexpr"
-	fh "github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,17 +21,17 @@ func TestChain4Process(t *testing.T) {
 		{
 			name: "success",
 			chain: Chain4[int, int, int, int, int]{
-				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event + 1, fh.NewSuccessReport()
+				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event + 1, nil
 				}),
-				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event * 2, fh.NewSuccessReport()
+				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event * 2, nil
 				}),
-				Third: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event - 3, fh.NewSuccessReport()
+				Third: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event - 3, nil
 				}),
-				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event + 10, fh.NewSuccessReport()
+				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event + 10, nil
 				}),
 			},
 			wantOutput: 15,
@@ -40,15 +39,15 @@ func TestChain4Process(t *testing.T) {
 		{
 			name: "stops on third error",
 			chain: Chain4[int, int, int, int, int]{
-				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event + 1, fh.NewSuccessReport()
+				First: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event + 1, nil
 				}),
-				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event * 2, fh.NewSuccessReport()
+				Second: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event * 2, nil
 				}),
-				Third: Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) { return 0, fh.NewReport(thirdErr) }),
-				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-					return event + 10, fh.NewSuccessReport()
+				Third: Func[int, int](func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) { return 0, (thirdErr) }),
+				Fourth: Func[int, int](func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+					return event + 10, nil
 				}),
 			},
 			wantErr: thirdErr,
@@ -60,7 +59,7 @@ func TestChain4Process(t *testing.T) {
 			out, report := tc.chain.Process(t.Context(), 3, boolexpr.SymbolsMap{})
 
 			require.Equal(t, tc.wantOutput, out)
-			require.ErrorIs(t, report.Err, tc.wantErr)
+			require.ErrorIs(t, report, tc.wantErr)
 		})
 	}
 }

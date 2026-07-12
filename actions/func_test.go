@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/emad-elsaid/boolexpr"
-	fh "github.com/emad-elsaid/firehose"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,15 +20,15 @@ func TestFuncProcess(t *testing.T) {
 	}{
 		{
 			name: "success",
-			action: func(_ context.Context, event int, _ boolexpr.Symbols) (int, fh.Report) {
-				return event * 2, fh.NewSuccessReport()
+			action: func(_ context.Context, event int, _ boolexpr.Symbols) (int, error) {
+				return event * 2, nil
 			},
 			wantOutput: 8,
 		},
 		{
 			name: "error report",
-			action: func(_ context.Context, _ int, _ boolexpr.Symbols) (int, fh.Report) {
-				return 0, fh.NewReport(boomErr)
+			action: func(_ context.Context, _ int, _ boolexpr.Symbols) (int, error) {
+				return 0, (boomErr)
 			},
 			wantErr: boomErr,
 		},
@@ -39,7 +38,7 @@ func TestFuncProcess(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			out, report := tc.action.Process(t.Context(), 4, boolexpr.SymbolsMap{})
 			require.Equal(t, tc.wantOutput, out)
-			require.ErrorIs(t, report.Err, tc.wantErr)
+			require.ErrorIs(t, report, tc.wantErr)
 		})
 	}
 }

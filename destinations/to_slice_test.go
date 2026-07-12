@@ -29,8 +29,8 @@ func TestToSliceSend(t *testing.T) {
 			item:      7,
 			wantItems: []int{7},
 			wrapper: ToSlice[int]{
-				Into: Func[[]int](func(_ context.Context, _ []int) fh.Report {
-					return fh.NewSuccessReport()
+				Into: Func[[]int](func(_ context.Context, _ []int) error {
+					return nil
 				}),
 			},
 		},
@@ -41,7 +41,7 @@ func TestToSliceSend(t *testing.T) {
 			received := []int{}
 			if tc.wrapper.Into != nil {
 				target := tc.wrapper.Into
-				tc.wrapper.Into = Func[[]int](func(ctx context.Context, event []int) fh.Report {
+				tc.wrapper.Into = Func[[]int](func(ctx context.Context, event []int) error {
 					received = append(received, event...)
 					return target.Send(ctx, event)
 				})
@@ -54,10 +54,10 @@ func TestToSliceSend(t *testing.T) {
 			}
 
 			if tc.wantErrAs == nil {
-				require.NoError(t, report.Err)
+				require.NoError(t, report)
 			} else {
-				require.ErrorIs(t, report.Err, tc.wantErrIs)
-				require.ErrorAs(t, report.Err, tc.wantErrAs)
+				require.ErrorIs(t, report, tc.wantErrIs)
+				require.ErrorAs(t, report, tc.wantErrAs)
 			}
 		})
 	}

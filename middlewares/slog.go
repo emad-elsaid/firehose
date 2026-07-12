@@ -46,17 +46,20 @@ func (s *Slog[I, O]) WrapDestination(
 	return destination, nil
 }
 
-func (s Slog[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
-	results := []fh.Report{}
+func (s *Slog[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
+	results := []error{}
 
 	var mutex sync.Mutex
 
-	reportSink := func(r fh.Report) {
+	reportSink := func(err error) {
 		mutex.Lock()
 		defer mutex.Unlock()
 
-		results = append(results, r)
-		report(r)
+		if err != nil {
+			results = append(results, err)
+		}
+
+		report(err)
 	}
 
 	s.downstream(ctx, event, reportSink)

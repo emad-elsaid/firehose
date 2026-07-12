@@ -31,12 +31,12 @@ type Source[T any] interface {
 
 // Action transforms input events to output events.
 type Action[I, O any] interface {
-	Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
+	Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error)
 }
 
 // Destination consumes events of type T.
 type Destination[T any] interface {
-	Send(ctx context.Context, event T) Report
+	Send(ctx context.Context, event T) error
 }
 
 // Condition evaluates whether an event should be processed by a rule.
@@ -68,8 +68,8 @@ type sourceRegistry interface {
 	getRegistry() Registry
 }
 
-// ReportFunc receives processing reports.
-type ReportFunc func(Report)
+// ReportFunc receives processing errors.
+type ReportFunc func(error)
 
 // Callback is a function type that sources use to send events to the
 // engine. It takes a context, an event, and a report sink callback.
