@@ -41,10 +41,10 @@ type Rule[I, O any] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	ctx                 context.Context
-	wrappedCallback     Callback[I]
-	actionWrappers      Action[I, O]
-	destinationWrappers Destination[O]
+	ctx                context.Context
+	wrappedCallback    Callback[I]
+	wrappedAction      Action[I, O]
+	wrappedDestination Destination[O]
 }
 
 // Process implements the Action interface. it allows using the rule as an action during the wrapping
@@ -106,8 +106,8 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 
 	// Process action
 	action := r.Select
-	if r.actionWrappers != nil {
-		action = r.actionWrappers
+	if r.wrappedAction != nil {
+		action = r.wrappedAction
 	}
 
 	output, err := action.Process(ctx, event, syms)
@@ -150,8 +150,8 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 
 	// Send to destination
 	destination := r.Into
-	if r.destinationWrappers != nil {
-		destination = r.destinationWrappers
+	if r.wrappedDestination != nil {
+		destination = r.wrappedDestination
 	}
 
 	err = destination.Send(ctx, output)

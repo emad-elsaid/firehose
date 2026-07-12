@@ -1409,7 +1409,7 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.actionWrappers)
+				require.NotNil(t, rule.wrappedAction)
 			},
 		},
 		{
@@ -1511,7 +1511,7 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.destinationWrappers)
+				require.NotNil(t, rule.wrappedDestination)
 			},
 		},
 		{

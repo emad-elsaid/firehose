@@ -129,8 +129,8 @@ func wrapMiddlewares[I, O any](
 	}
 
 	rule.wrappedCallback = rule.callback
-	rule.actionWrappers = rule
-	rule.destinationWrappers = rule
+	rule.wrappedAction = rule
+	rule.wrappedDestination = rule
 
 	for _, middleware := range slices.Backward(middlewares) {
 		err := wrapWithMiddleware(ctx, rule, middleware)
@@ -154,19 +154,19 @@ func wrapWithMiddleware[I, O any](
 
 	rule.wrappedCallback = wrappedCallback
 
-	wrappedAction, err := middleware.WrapAction(ctx, rule, rule.actionWrappers)
+	wrappedAction, err := middleware.WrapAction(ctx, rule, rule.wrappedAction)
 	if err != nil {
 		return err
 	}
 
-	rule.actionWrappers = wrappedAction
+	rule.wrappedAction = wrappedAction
 
-	wrappedDestination, err := middleware.WrapDestination(ctx, rule, rule.destinationWrappers)
+	wrappedDestination, err := middleware.WrapDestination(ctx, rule, rule.wrappedDestination)
 	if err != nil {
 		return err
 	}
 
-	rule.destinationWrappers = wrappedDestination
+	rule.wrappedDestination = wrappedDestination
 
 	return nil
 }
