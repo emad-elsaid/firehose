@@ -1051,7 +1051,7 @@ func (_c *MockRunnable_NextRunnable_Call[I]) RunAndReturn(run func() Runnable[I]
 }
 
 // Run provides a mock function for the type MockRunnable
-func (_mock *MockRunnable[I]) Run(ctx context.Context, event I, syms boolexpr.Symbols, report ReportFunc) {
+func (_mock *MockRunnable[I]) Run(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler) {
 	_mock.Called(ctx, event, syms, report)
 	return
 }
@@ -1065,12 +1065,12 @@ type MockRunnable_Run_Call[I any] struct {
 //   - ctx context.Context
 //   - event I
 //   - syms boolexpr.Symbols
-//   - report ReportFunc
+//   - report ErrorHandler
 func (_e *MockRunnable_Expecter[I]) Run(ctx any, event any, syms any, report any) *MockRunnable_Run_Call[I] {
 	return &MockRunnable_Run_Call[I]{Call: _e.mock.On("Run", ctx, event, syms, report)}
 }
 
-func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ReportFunc)) *MockRunnable_Run_Call[I] {
+func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler)) *MockRunnable_Run_Call[I] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1084,10 +1084,10 @@ func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, s
 		if args[2] != nil {
 			arg2 = args[2].(boolexpr.Symbols)
 		}
-		var arg3 ReportFunc
-		if args[3] != nil {
-			arg3 = args[3].(ReportFunc)
-		}
+	var arg3 ErrorHandler
+	if args[3] != nil {
+		arg3 = args[3].(ErrorHandler)
+	}
 		run(
 			arg0,
 			arg1,
@@ -1103,7 +1103,7 @@ func (_c *MockRunnable_Run_Call[I]) Return() *MockRunnable_Run_Call[I] {
 	return _c
 }
 
-func (_c *MockRunnable_Run_Call[I]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ReportFunc)) *MockRunnable_Run_Call[I] {
+func (_c *MockRunnable_Run_Call[I]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler)) *MockRunnable_Run_Call[I] {
 	_c.Run(run)
 	return _c
 }

@@ -32,7 +32,7 @@ func (m *Manual[T]) Emit(ctx context.Context, event T) error {
 }
 
 // EmitWithReport sends one event with a custom report sink.
-func (m *Manual[T]) EmitWithReport(ctx context.Context, event T, report firehose.ReportFunc) error {
+func (m *Manual[T]) EmitWithReport(ctx context.Context, event T, report firehose.ErrorHandler) error {
 	m.mutex.RLock()
 	callback := m.callback
 	m.mutex.RUnlock()

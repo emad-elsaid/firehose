@@ -68,12 +68,9 @@ type sourceRegistry interface {
 	getRegistry() Registry
 }
 
-// ReportFunc receives processing errors.
-type ReportFunc func(error)
-
 // Callback is a function type that sources use to send events to the
 // engine. It takes a context, an event, and a report sink callback.
-type Callback[I any] func(context.Context, I, ReportFunc)
+type Callback[I any] func(context.Context, I, ErrorHandler)
 
 // Runnable represents a rule that can be executed to process events.
 type Runnable[I any] interface {

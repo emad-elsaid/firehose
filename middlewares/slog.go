@@ -46,7 +46,7 @@ func (s *Slog[I, O]) WrapDestination(
 	return destination, nil
 }
 
-func (s *Slog[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
+func (s *Slog[I, O]) callback(ctx context.Context, event I, report fh.ErrorHandler) {
 	results := []error{}
 
 	var mutex sync.Mutex

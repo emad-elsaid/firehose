@@ -48,7 +48,7 @@ func (s *Parallel[I, O]) WrapDestination(
 	return destination, nil
 }
 
-func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ReportFunc) {
+func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ErrorHandler) {
 	syms := fh.EventSymbols(event)
 
 	var waitGroup sync.WaitGroup

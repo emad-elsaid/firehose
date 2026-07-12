@@ -135,11 +135,11 @@ func TestParallel_Wrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setupRule()
 			runner := tc.setupRunner()
-			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
+		parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
 
-			cb := func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {}
+		cb := func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {}
 
-			result, err := parallel.WrapCallback(context.Background(), rule, cb)
+		result, err := parallel.WrapCallback(context.Background(), rule, cb)
 
 			if tc.expectedError {
 				require.Error(t, err)

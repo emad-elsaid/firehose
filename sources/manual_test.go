@@ -37,9 +37,9 @@ func TestManualEmit(t *testing.T) {
 			received := []int{}
 
 			if tc.startSource {
-				_, err := source.Start(t.Context(), func(_ context.Context, event int, _ firehose.ReportFunc) {
-					received = append(received, event)
-				})
+			_, err := source.Start(t.Context(), func(_ context.Context, event int, _ firehose.ErrorHandler) {
+				received = append(received, event)
+			})
 				require.NoError(t, err)
 			}
 
@@ -53,7 +53,7 @@ func TestManualEmit(t *testing.T) {
 func TestManualEmitWithReport(t *testing.T) {
 	source := &Manual[int]{}
 
-	_, err := source.Start(t.Context(), func(_ context.Context, _ int, report firehose.ReportFunc) {
+	_, err := source.Start(t.Context(), func(_ context.Context, _ int, report firehose.ErrorHandler) {
 		report(context.Canceled)
 	})
 	require.NoError(t, err)

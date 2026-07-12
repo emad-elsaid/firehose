@@ -49,7 +49,7 @@ func (s *benchSource) Start(ctx context.Context, cb Callback[*EventMock]) (conte
 	return ctx, nil
 }
 
-func (s *benchSource) Emit(ctx context.Context, event *EventMock, report ReportFunc) {
+func (s *benchSource) Emit(ctx context.Context, event *EventMock, report ErrorHandler) {
 	s.mutex.RLock()
 	callback := s.callback
 	s.mutex.RUnlock()

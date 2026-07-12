@@ -53,7 +53,7 @@ func (p *Panic[I, O]) WrapDestination(
 	return p, nil
 }
 
-func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, report firehose.ReportFunc) {
+func (p *Panic[I, O]) recoverCallback(ctx context.Context, event I, report firehose.ErrorHandler) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			report(fmt.Errorf("%w: %v", ErrPanicRecovered, recovered))

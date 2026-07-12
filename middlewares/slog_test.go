@@ -43,7 +43,7 @@ func TestSlog_Wrap(t *testing.T) {
 				}
 			},
 			setupCallback: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {}
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {}
 			},
 			expectedError: false,
 			validateResult: func(t *testing.T, cb fh.Callback[*mockEvent], err error, middleware *Slog[*mockEvent, *mockEvent]) {
@@ -65,7 +65,7 @@ func TestSlog_Wrap(t *testing.T) {
 				}
 			},
 			setupCallback: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {}
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {}
 			},
 			expectedError: false,
 			validateResult: func(t *testing.T, cb fh.Callback[*mockEvent], err error, middleware *Slog[*mockEvent, *mockEvent]) {
@@ -127,7 +127,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("log-rule", nil))
 				}
 			},
@@ -161,7 +161,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("source-log-rule", nil))
 				}
 			},
@@ -194,7 +194,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("event-log-rule", nil))
 				}
 			},
@@ -227,7 +227,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("multi-report-rule", nil))
 					report(fh.NewRuleError("multi-report-rule", nil))
 					report(fh.NewRuleError("multi-report-rule", nil))
@@ -266,7 +266,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("forward-rule", errors.New("test error")))
 				}
 			},
@@ -301,7 +301,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(fh.NewRuleError("error-rule", errors.New("test error")))
 				}
 			},
@@ -335,7 +335,7 @@ func TestSlog_Callback(t *testing.T) {
 				return newMockEvent(nil)
 			},
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					// No reports
 				}
 			},
@@ -393,7 +393,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 			name: "calls downstream callback exactly once",
 			setupDownstream: func() (fh.Callback[*mockEvent], *mock.Mock) {
 				m := &mock.Mock{}
-				cb := func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				cb := func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					m.MethodCalled("callback", ctx, e, report)
 					report(nil)
 				}
@@ -446,7 +446,7 @@ func TestSlog_CallbackDoesNotPanic(t *testing.T) {
 		{
 			name: "returns without panic while reporting",
 			setupDownstream: func() fh.Callback[*mockEvent] {
-				return func(ctx context.Context, e *mockEvent, report fh.ReportFunc) {
+				return func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {
 					report(nil)
 				}
 			},

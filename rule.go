@@ -63,7 +63,7 @@ func (r *Rule[I, O]) start(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc) {
+func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ErrorHandler) {
 	syms := EventSymbols(event)
 
 	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {

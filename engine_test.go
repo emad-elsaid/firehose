@@ -1236,9 +1236,9 @@ func Test_wrapMiddlewares(t *testing.T) {
 		{
 			name: "wraps callback with single middleware",
 			setup: func() *MockRule {
-				middleware := &MockMiddleware[*EventMock, *EventMock]{}
-				wrappedCb := func(ctx context.Context, event *EventMock, report ReportFunc) {}
-				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
+			middleware := &MockMiddleware[*EventMock, *EventMock]{}
+			wrappedCb := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
+			middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
 					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return wrappedCb, nil
 					}).Once()
@@ -1270,10 +1270,10 @@ func Test_wrapMiddlewares(t *testing.T) {
 			name: "wraps callback with multiple middlewares in reverse order",
 			setup: func() *MockRule {
 
-				middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
-				middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
-				wrappedCb1 := func(ctx context.Context, event *EventMock, report ReportFunc) {}
-				wrappedCb2 := func(ctx context.Context, event *EventMock, report ReportFunc) {}
+			middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
+			middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
+			wrappedCb1 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
+			wrappedCb2 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
 
 				// Should wrap in reverse: middleware2 first, then middleware1
 				middleware2.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
