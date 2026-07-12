@@ -547,7 +547,7 @@ func TestRule_EvaluateCondition(t *testing.T) {
 				Where: tc.setupCondition(),
 			}
 
-			pass, report := rule.evaluateCondition(t.Context(), tc.event, nil)
+			pass, report := rule.Evaluate(t.Context(), tc.event, nil)
 
 			require.Equal(t, tc.expectedPass, pass)
 			tc.validateReport(t, report)
@@ -1719,4 +1719,9 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRule_ImplementsConditionInterface(t *testing.T) {
+	var rule *Rule[int, string]
+	require.Implements(t, (*Condition[int])(nil), rule)
 }

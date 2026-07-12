@@ -94,7 +94,7 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
-	conditionPassed, conditionErr := r.evaluateCondition(ctx, event, syms)
+	conditionPassed, conditionErr := r.Evaluate(ctx, event, syms)
 	if !conditionPassed {
 		reportIfNeeded(reportFn, conditionErr)
 
@@ -121,7 +121,9 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 	reportIfNeeded(reportFn, destinationErr)
 }
 
-func (r *Rule[I, O]) evaluateCondition(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+// Evaluate implements the Condition[I] interface. It evaluates the Where clause.
+// This allows a Rule to be used as a condition in other rules or condition combinators.
+func (r *Rule[I, O]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
 	if r.Where == nil {
 		return true, nil
 	}
