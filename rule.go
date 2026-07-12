@@ -95,13 +95,25 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
 	// Evaluate input condition
-	conditionPassed, conditionErr := r.Evaluate(ctx, event, syms)
-	if !conditionPassed {
-		if reportFn != nil && conditionErr != nil {
-			reportFn(conditionErr)
+	if r.Where != nil {
+		pass, err := r.Where.Evaluate(ctx, event, syms)
+		if err != nil {
+			err = NewRuleError(r.ID, ConditionError{Err: err})
+			if reportFn != nil {
+				reportFn(err)
+			}
+
+			return
 		}
 
-		return
+		if !pass {
+			err = NewRuleError(r.ID, ErrInputNoMatch)
+			if reportFn != nil {
+				reportFn(err)
+			}
+
+			return
+		}
 	}
 
 	// Process action
@@ -166,25 +178,6 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 			reportFn(err)
 		}
 	}
-}
-
-// Evaluate implements the Condition[I] interface. It evaluates the Where clause.
-// This allows a Rule to be used as a condition in other rules or condition combinators.
-func (r *Rule[I, O]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
-	if r.Where == nil {
-		return true, nil
-	}
-
-	pass, err := r.Where.Evaluate(ctx, event, syms)
-	if err != nil {
-		return false, NewRuleError(r.ID, ConditionError{Err: err})
-	}
-
-	if !pass {
-		return false, NewRuleError(r.ID, ErrInputNoMatch)
-	}
-
-	return true, nil
 }
 
 // NextRunnable returns the next runnable rule with the same source.

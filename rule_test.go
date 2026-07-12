@@ -464,97 +464,6 @@ func TestRule_Send(t *testing.T) {
 	}
 }
 
-func TestRule_EvaluateCondition(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		setupCondition func() Condition[*EventMock]
-		event          *EventMock
-		expectedPass   bool
-		expectedError  bool
-		validateReport func(t *testing.T, report error)
-	}{
-		{
-			name: "nil condition passes",
-			setupCondition: func() Condition[*EventMock] {
-				return nil
-			},
-			event:         NewEventMock(nil),
-			expectedPass:  true,
-			expectedError: false,
-			validateReport: func(t *testing.T, report error) {
-				//				require.Equal(t, "", report.Rule)
-				require.NoError(t, report)
-			},
-		},
-		{
-			name: "passing condition",
-			setupCondition: func() Condition[*EventMock] {
-				cond := NewMockCondition[*EventMock](t)
-				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
-					Return(true, nil).Once()
-				return cond
-			},
-			event:         NewEventMock(nil),
-			expectedPass:  true,
-			expectedError: false,
-			validateReport: func(t *testing.T, report error) {
-				//				require.Equal(t, "", report.Rule)
-				require.NoError(t, report)
-			},
-		},
-		{
-			name: "failing condition returns ErrNoMatch",
-			setupCondition: func() Condition[*EventMock] {
-				cond := NewMockCondition[*EventMock](t)
-				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
-					Return(false, nil).Once()
-				return cond
-			},
-			event:         NewEventMock(nil),
-			expectedPass:  false,
-			expectedError: false,
-			validateReport: func(t *testing.T, report error) {
-				//				require.Equal(t, "test-rule", report.Rule)
-				require.ErrorIs(t, report, ErrInputNoMatch)
-			},
-		},
-		{
-			name: "condition evaluation error",
-			setupCondition: func() Condition[*EventMock] {
-				cond := NewMockCondition[*EventMock](t)
-				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
-					Return(false, os.ErrInvalid).Once()
-				return cond
-			},
-			event:         NewEventMock(nil),
-			expectedPass:  false,
-			expectedError: true,
-			validateReport: func(t *testing.T, report error) {
-				//				require.Equal(t, "test-rule", report.Rule)
-				var condErr ConditionError
-				require.ErrorAs(t, report, &condErr)
-				require.ErrorIs(t, report, os.ErrInvalid)
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			rule := &Rule[*EventMock, *EventMock]{
-				ID:    "test-rule",
-				Where: tc.setupCondition(),
-			}
-
-			pass, report := rule.Evaluate(t.Context(), tc.event, nil)
-
-			require.Equal(t, tc.expectedPass, pass)
-			tc.validateReport(t, report)
-		})
-	}
-}
-
 func TestRule_NextRunnable(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1294,9 +1203,4 @@ func TestRule_Run_WithConditions(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestRule_ImplementsConditionInterface(t *testing.T) {
-	var rule *Rule[int, string]
-	require.Implements(t, (*Condition[int])(nil), rule)
 }
