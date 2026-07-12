@@ -1614,7 +1614,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, func(error) {})
+		_ = rule.Run(ctx, event, syms)
 
 		wrappedAction.AssertExpectations(t)
 		innerAction.AssertExpectations(t)
@@ -1676,7 +1676,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		require.NotNil(t, registry)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
-		rule.Run(ctx, event, syms, func(error) {})
+		_ = rule.Run(ctx, event, syms)
 
 		wrappedDest.AssertExpectations(t)
 		innerDest.AssertExpectations(t)

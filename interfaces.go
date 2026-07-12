@@ -77,7 +77,7 @@ type Callback[I any] func(context.Context, I, ReportFunc)
 
 // Runnable represents a rule that can be executed to process events.
 type Runnable[I any] interface {
-	Run(ctx context.Context, event I, syms boolexpr.Symbols, report ReportFunc)
+	Run(ctx context.Context, event I, syms boolexpr.Symbols) error
 	NextRunnable() Runnable[I]
 }
 

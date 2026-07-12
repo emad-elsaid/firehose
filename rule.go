@@ -88,31 +88,24 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 	syms := EventSymbols(event)
 
 	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {
-		current.Run(ctx, event, syms, reportFn)
+		err := current.Run(ctx, event, syms)
+		if err != nil && reportFn != nil {
+			reportFn(err)
+		}
 	}
 }
 
 // Run executes the rule's action and destination for the given event.
-func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
+func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) error {
 	// Evaluate input condition
 	if r.Where != nil {
 		pass, err := r.Where.Evaluate(ctx, event, syms)
 		if err != nil {
-			err = NewRuleError(r.ID, ConditionError{Err: err})
-			if reportFn != nil {
-				reportFn(err)
-			}
-
-			return
+			return NewRuleError(r.ID, ConditionError{Err: err})
 		}
 
 		if !pass {
-			err = NewRuleError(r.ID, ErrInputNoMatch)
-			if reportFn != nil {
-				reportFn(err)
-			}
-
-			return
+			return NewRuleError(r.ID, ErrInputNoMatch)
 		}
 	}
 
@@ -128,13 +121,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		if !errors.As(err, &actionErr) {
 			err = ActionError{Err: err}
 		}
-		err = NewRuleError(r.ID, err)
-
-		if reportFn != nil {
-			reportFn(err)
-		}
-
-		return
+		return NewRuleError(r.ID, err)
 	}
 
 	// Evaluate output condition
@@ -142,21 +129,11 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		outputSyms := EventSymbols(output)
 		pass, err := r.Having.Evaluate(ctx, output, outputSyms)
 		if err != nil {
-			err = NewRuleError(r.ID, ConditionError{Err: err})
-			if reportFn != nil {
-				reportFn(err)
-			}
-
-			return
+			return NewRuleError(r.ID, ConditionError{Err: err})
 		}
 
 		if !pass {
-			err = NewRuleError(r.ID, ErrOutputNoMatch)
-			if reportFn != nil {
-				reportFn(err)
-			}
-
-			return
+			return NewRuleError(r.ID, ErrOutputNoMatch)
 		}
 	}
 
@@ -172,12 +149,10 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, re
 		if !errors.As(err, &destinationErr) {
 			err = DestinationError{Err: err}
 		}
-		err = NewRuleError(r.ID, err)
-
-		if reportFn != nil {
-			reportFn(err)
-		}
+		return NewRuleError(r.ID, err)
 	}
+
+	return nil
 }
 
 // NextRunnable returns the next runnable rule with the same source.

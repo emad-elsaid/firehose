@@ -593,14 +593,17 @@ func TestRule_Run(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rule, event := tc.setupMocks()
+		rule, event := tc.setupMocks()
 
-			collector := newReportCollector()
+		collector := newReportCollector()
 
-			// Use nil symbols for this test
-			rule.Run(t.Context(), event, nil, collector.Collect)
+		// Use nil symbols for this test
+		err := rule.Run(t.Context(), event, nil)
+		if err != nil {
+			collector.Collect(err)
+		}
 
-			reports := collector.Errors()
+		reports := collector.Errors()
 
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
@@ -1191,12 +1194,15 @@ func TestRule_Run_WithConditions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rule := tc.setupRule()
+		rule := tc.setupRule()
 
-			collector := newReportCollector()
-			rule.Run(t.Context(), tc.event, nil, collector.Collect)
+		collector := newReportCollector()
+		err := rule.Run(t.Context(), tc.event, nil)
+		if err != nil {
+			collector.Collect(err)
+		}
 
-			reports := collector.Errors()
+		reports := collector.Errors()
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
 				tc.validateReport(t, reports[0])
