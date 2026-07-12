@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/emad-elsaid/boolexpr"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -341,4 +342,59 @@ func IsValid[I, O any](rule *Rule[I, O]) error {
 	validatorInstance := validator.New(validator.WithRequiredStructEnabled())
 
 	return validatorInstance.Struct(rule)
+}
+
+// combineConditions is a generic helper that combines two conditions into a single Condition.
+// If both are nil, returns nil.
+// If one is nil, returns the other.
+// If both are non-nil, returns a slice-based Condition that evaluates both in sequence.
+func combineConditions[T any](parent, child Condition[T]) Condition[T] {
+	if parent == nil {
+		return child
+	}
+
+	if child == nil {
+		return parent
+	}
+
+	parentConditions := flattenCondition(parent)
+	childConditions := flattenCondition(child)
+	conditions := make([]Condition[T], 0, len(parentConditions)+len(childConditions))
+	conditions = append(conditions, parentConditions...)
+	conditions = append(conditions, childConditions...)
+
+	return conditionSlice[T](conditions)
+}
+
+// flattenCondition extracts individual conditions from a Condition value.
+// If the value is conditionSlice, it returns all elements.
+// Otherwise, it returns a slice containing just the single condition.
+func flattenCondition[I any](conditionVal Condition[I]) []Condition[I] {
+	if conditionVal == nil {
+		return nil
+	}
+
+	if v, ok := conditionVal.(conditionSlice[I]); ok {
+		return []Condition[I](v)
+	}
+
+	return []Condition[I]{conditionVal}
+}
+
+// conditionSlice is a slice of conditions that implements Condition[I].
+type conditionSlice[I any] []Condition[I]
+
+func (conditions conditionSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
+	for _, cond := range conditions {
+		pass, err := cond.Evaluate(ctx, event, syms)
+		if err != nil {
+			return false, err
+		}
+
+		if !pass {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

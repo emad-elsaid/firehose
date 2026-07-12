@@ -94,31 +94,78 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ReportFunc)
 
 // Run executes the rule's action and destination for the given event.
 func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols, reportFn ReportFunc) {
+	// Evaluate input condition
 	conditionPassed, conditionErr := r.Evaluate(ctx, event, syms)
 	if !conditionPassed {
-		reportIfNeeded(reportFn, conditionErr)
+		if reportFn != nil && conditionErr != nil {
+			reportFn(conditionErr)
+		}
 
 		return
 	}
 
-	output, actionErr := r.processAction(ctx, event, syms)
-	if actionErr != nil {
-		reportIfNeeded(reportFn, actionErr)
+	// Process action
+	action := r.Select
+	if r.actionWrappers != nil {
+		action = r.actionWrappers
+	}
+
+	output, err := action.Process(ctx, event, syms)
+	if err != nil {
+		var actionErr ActionError
+		if !errors.As(err, &actionErr) {
+			err = ActionError{Err: err}
+		}
+		err = NewRuleError(r.ID, err)
+
+		if reportFn != nil {
+			reportFn(err)
+		}
 
 		return
 	}
 
-	outputSyms := EventSymbols(output)
+	// Evaluate output condition
+	if r.Having != nil {
+		outputSyms := EventSymbols(output)
+		pass, err := r.Having.Evaluate(ctx, output, outputSyms)
+		if err != nil {
+			err = NewRuleError(r.ID, ConditionError{Err: err})
+			if reportFn != nil {
+				reportFn(err)
+			}
 
-	postConditionPassed, postConditionErr := r.evaluateOutputCondition(ctx, output, outputSyms)
-	if !postConditionPassed {
-		reportIfNeeded(reportFn, postConditionErr)
+			return
+		}
 
-		return
+		if !pass {
+			err = NewRuleError(r.ID, ErrOutputNoMatch)
+			if reportFn != nil {
+				reportFn(err)
+			}
+
+			return
+		}
 	}
 
-	destinationErr := r.processDestination(ctx, output)
-	reportIfNeeded(reportFn, destinationErr)
+	// Send to destination
+	destination := r.Into
+	if r.destinationWrappers != nil {
+		destination = r.destinationWrappers
+	}
+
+	err = destination.Send(ctx, output)
+	if err != nil {
+		var destinationErr DestinationError
+		if !errors.As(err, &destinationErr) {
+			err = DestinationError{Err: err}
+		}
+		err = NewRuleError(r.ID, err)
+
+		if reportFn != nil {
+			reportFn(err)
+		}
+	}
 }
 
 // Evaluate implements the Condition[I] interface. It evaluates the Where clause.
@@ -138,89 +185,6 @@ func (r *Rule[I, O]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbol
 	}
 
 	return true, nil
-}
-
-func (r *Rule[I, O]) evaluateOutputCondition(ctx context.Context, event O, syms boolexpr.Symbols) (bool, error) {
-	if r.Having == nil {
-		return true, nil
-	}
-
-	pass, err := r.Having.Evaluate(ctx, event, syms)
-	if err != nil {
-		return false, NewRuleError(r.ID, ConditionError{Err: err})
-	}
-
-	if !pass {
-		return false, NewRuleError(r.ID, ErrOutputNoMatch)
-	}
-
-	return true, nil
-}
-
-func (r *Rule[I, O]) processAction(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
-	action := r.resolveAction()
-
-	output, err := action.Process(ctx, event, syms)
-	if err != nil {
-		err = asActionError(err)
-		err = NewRuleError(r.ID, err)
-	}
-
-	return output, err
-}
-
-func (r *Rule[I, O]) processDestination(ctx context.Context, output O) error {
-	destination := r.resolveDestination()
-
-	err := destination.Send(ctx, output)
-	if err != nil {
-		err = asDestinationError(err)
-		err = NewRuleError(r.ID, err)
-	}
-
-	return err
-}
-
-func (r *Rule[I, O]) resolveAction() Action[I, O] {
-	if r.actionWrappers != nil {
-		return r.actionWrappers
-	}
-
-	return r.Select
-}
-
-func (r *Rule[I, O]) resolveDestination() Destination[O] {
-	if r.destinationWrappers != nil {
-		return r.destinationWrappers
-	}
-
-	return r.Into
-}
-
-func asActionError(err error) error {
-	var actionErr ActionError
-	if errors.As(err, &actionErr) {
-		return err
-	}
-
-	return ActionError{Err: err}
-}
-
-func asDestinationError(err error) error {
-	var destinationErr DestinationError
-	if errors.As(err, &destinationErr) {
-		return err
-	}
-
-	return DestinationError{Err: err}
-}
-
-func reportIfNeeded(reportFn ReportFunc, err error) {
-	if reportFn == nil || err == nil {
-		return
-	}
-
-	reportFn(err)
 }
 
 // NextRunnable returns the next runnable rule with the same source.
@@ -246,58 +210,3 @@ func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
 func (r *Rule[I, O]) getCtx() context.Context            { return r.ctx }
 func (r *Rule[I, O]) getSource() any                     { return r.From }
-
-// combineConditions is a generic helper that combines two conditions into a single Condition.
-// If both are nil, returns nil.
-// If one is nil, returns the other.
-// If both are non-nil, returns a slice-based Condition that evaluates both in sequence.
-func combineConditions[T any](parent, child Condition[T]) Condition[T] {
-	if parent == nil {
-		return child
-	}
-
-	if child == nil {
-		return parent
-	}
-
-	parentConditions := flattenCondition(parent)
-	childConditions := flattenCondition(child)
-	conditions := make([]Condition[T], 0, len(parentConditions)+len(childConditions))
-	conditions = append(conditions, parentConditions...)
-	conditions = append(conditions, childConditions...)
-
-	return conditionSlice[T](conditions)
-}
-
-// flattenCondition extracts individual conditions from a Condition value.
-// If the value is conditionSlice, it returns all elements.
-// Otherwise, it returns a slice containing just the single condition.
-func flattenCondition[I any](conditionVal Condition[I]) []Condition[I] {
-	if conditionVal == nil {
-		return nil
-	}
-
-	if v, ok := conditionVal.(conditionSlice[I]); ok {
-		return []Condition[I](v)
-	}
-
-	return []Condition[I]{conditionVal}
-}
-
-// conditionSlice is a slice of conditions that implements Condition[I].
-type conditionSlice[I any] []Condition[I]
-
-func (conditions conditionSlice[I]) Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error) {
-	for _, cond := range conditions {
-		pass, err := cond.Evaluate(ctx, event, syms)
-		if err != nil {
-			return false, err
-		}
-
-		if !pass {
-			return false, nil
-		}
-	}
-
-	return true, nil
-}

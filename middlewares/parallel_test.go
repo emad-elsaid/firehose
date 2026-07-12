@@ -189,7 +189,7 @@ func TestParallel_Callback(t *testing.T) {
 			},
 			expectedReports: 0,
 			validateReports: func(t *testing.T, reports []error) {
-				require.Len(t, reports, 0)  // Nil not collected
+				require.Len(t, reports, 0) // Nil not collected
 			},
 		},
 
@@ -219,7 +219,7 @@ func TestParallel_Callback(t *testing.T) {
 			},
 			expectedReports: 0,
 			validateReports: func(t *testing.T, reports []error) {
-				require.Len(t, reports, 0)  // Nil not collected
+				require.Len(t, reports, 0) // Nil not collected
 			},
 		},
 	}
