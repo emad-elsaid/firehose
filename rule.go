@@ -47,20 +47,6 @@ type Rule[I, O any] struct {
 	wrappedDestination Destination[O]
 }
 
-// Process implements the Action interface. it allows using the rule as an action during the wrapping
-// of the action. so that when the action field changes it calls the new action.
-// When called it calls the current action without any middlewares.
-func (r *Rule[I, O]) Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error) {
-	return r.Select.Process(ctx, event, syms)
-}
-
-// Send implements the Destination interface. it allows using the rule as a
-// destination during the wrapping of the destination. so that when the
-// destination field changes it calls the new destination.
-func (r *Rule[I, O]) Send(ctx context.Context, event O) error {
-	return r.Into.Send(ctx, event)
-}
-
 func (r *Rule[I, O]) start(ctx context.Context) error {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
