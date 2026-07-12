@@ -13,16 +13,16 @@ import (
 // I and O represent the input and output event types.
 type Rule[I, O any] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
-	ID string
+	ID string `validate:"required"`
 	// Environments is a list of environment names where the rule is active. If
 	// empty, the rule is active in all environments.
 	Environments []string
 	// Select is the action to process input events into output events.
-	Select Action[I, O] `validate:"required_without=SubRules"`
+	Select Action[I, O] `validate:"required"`
 	// Into is the destination to send the output of the Select action.
-	Into Destination[O] `validate:"required_without=SubRules"`
+	Into Destination[O] `validate:"required"`
 	// From is the source that produces events to be processed by this rule.
-	From Source[I] `validate:"required_without=SubRules"`
+	From Source[I] `validate:"required"`
 	// Where is a condition that must evaluate to true for the rule to process the event.
 	// Use condition.Cond for string expressions, condition.RateLimit for rate limiting,
 	// condition.Once for deduplication, or condition.Conditions for combining multiple conditions.
@@ -30,8 +30,6 @@ type Rule[I, O any] struct {
 	// Having is a condition that must evaluate to true for the rule to send
 	// the output of the Select action to the Into destination.
 	Having Condition[O]
-	// SubRules are the child rules that will inherit the parent fields if set
-	SubRules []Rule[I, O]
 	// Middlewares are the middlewares that will be applied to the action and
 	// destination and callback of the rule. The first middleware wraps the
 	// second middleware, and so on. The last middleware wraps the
