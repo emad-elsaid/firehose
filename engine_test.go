@@ -433,16 +433,14 @@ func TestStart(t *testing.T) {
 		done := make(chan struct{})
 		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
 
-		Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, registry, errorHandler)
 
 		cancel()
 		close(done)
-		Wait(registry, errorHandler)
+		Wait(doneChannels)
 
 		require.Len(t, receivedErrors, 0) // No errors expected with channels
-
-		rule := registry.(*Rule[*EventMock, *EventMock])
-		require.NotNil(t, rule.done)
+		require.Len(t, doneChannels, 1)
 	})
 
 	t.Run("start multiple rules with different sources", func(t *testing.T) {
@@ -475,14 +473,15 @@ func TestStart(t *testing.T) {
 		source1.On("Start", ctx, mock.Anything).Return(done1, nil).Once()
 		source2.On("Start", ctx, mock.Anything).Return(done2, nil).Once()
 
-		Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, registry, errorHandler)
 
 		cancel()
 		close(done1)
 		close(done2)
-		Wait(registry, errorHandler)
+		Wait(doneChannels)
 
 		require.Len(t, receivedErrors, 0) // No errors expected with channels
+		require.Len(t, doneChannels, 2)
 	})
 
 	t.Run("start rule with source error", func(t *testing.T) {
@@ -536,11 +535,11 @@ func TestStart(t *testing.T) {
 		done := make(chan struct{})
 		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
 
-		Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, registry, errorHandler)
 
 	cancel()
 	close(done)
-	Wait(registry, errorHandler)
+	Wait(doneChannels)
 
 	require.Len(t, receivedErrors, 0) // No errors expected with channels
 })

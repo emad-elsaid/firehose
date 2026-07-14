@@ -152,39 +152,32 @@ func getSameSourceTail(registry Registry, source any) sourceRegistry {
 	return nil
 }
 
-// Start activates all registered rules.
-func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) {
+// Start activates all registered rules and returns the done channels.
+func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-chan struct{} {
+	var doneChannels []<-chan struct{}
+
 	for current := registry; current != nil; {
-		err := current.start(ctx)
+		done, err := current.start(ctx)
 		reportError(errFunc, err)
 
-		current = current.getNext()
-		if current == registry {
-			break
+		if done != nil {
+			doneChannels = append(doneChannels, done)
 		}
-	}
-}
-
-// Wait blocks until all rules have completed processing, and sends any errors
-// that occurred during processing to the provided error channel.
-func Wait(registry Registry, errFunc ErrorHandler) {
-	for current := registry; current != nil; {
-		waitForRule(current, errFunc)
 
 		current = current.getNext()
 		if current == registry {
 			break
 		}
 	}
+
+	return doneChannels
 }
 
-func waitForRule(rule Registry, _ ErrorHandler) {
-	done := rule.getDone()
-	if done == nil {
-		return
+// Wait blocks until all done channels have completed.
+func Wait(doneChannels []<-chan struct{}) {
+	for _, done := range doneChannels {
+		<-done
 	}
-
-	<-done
 }
 
 func reportError(errFunc ErrorHandler, err error) {

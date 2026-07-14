@@ -39,26 +39,23 @@ type Rule[I, O any] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	done               <-chan struct{}
 	wrappedCallback    Callback[I]
 	wrappedAction      Action[I, O]
 	wrappedDestination Destination[O]
 }
 
-func (r *Rule[I, O]) start(ctx context.Context) error {
+func (r *Rule[I, O]) start(ctx context.Context) (<-chan struct{}, error) {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
-		return nil
+		return nil, nil
 	}
 
 	done, err := r.From.Start(ctx, r.wrappedCallback)
 	if err != nil {
-		return fmt.Errorf("failed to start source: %w", err)
+		return nil, fmt.Errorf("failed to start source: %w", err)
 	}
 
-	r.done = done
-
-	return nil
+	return done, nil
 }
 
 func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ErrorHandler) {
@@ -143,5 +140,4 @@ func (r *Rule[I, O]) getNextSameSource() sourceRegistry  { return r.nextSameSour
 func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
 func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
 func (r *Rule[I, O]) getRegistry() Registry              { return r }
-func (r *Rule[I, O]) getDone() <-chan struct{}           { return r.done }
 func (r *Rule[I, O]) getSource() any                     { return r.From }

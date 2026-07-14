@@ -54,8 +54,7 @@ type Registry interface {
 	setPrev(p Registry)
 
 	getSource() any
-	getDone() <-chan struct{}
-	start(ctx context.Context) error
+	start(ctx context.Context) (<-chan struct{}, error)
 
 	getSourceRegistry() sourceRegistry
 }

@@ -460,8 +460,8 @@ func main() {
         }
     }
 
-    fh.Start(ctx, registry, errHandler)
-    fh.Wait(registry, errHandler)
+    doneChannels := fh.Start(ctx, registry, errHandler)
+    fh.Wait(doneChannels)
 }
 ```
 
@@ -577,14 +577,14 @@ func Add[I, O any](
     rule *Rule[I, O],
 ) (Registry, error)
 
-// ErrorHandler receives errors from Start/Wait
+// ErrorHandler receives errors from Start
 type ErrorHandler func(error)
 
-// Start activates all registered event sources
-func Start(ctx context.Context, registry Registry, errFunc ErrorHandler)
+// Start activates all registered event sources and returns done channels
+func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-chan struct{}
 
-// Wait blocks until all sources complete
-func Wait(registry Registry, errFunc ErrorHandler)
+// Wait blocks until all done channels complete
+func Wait(doneChannels []<-chan struct{})
 ```
 
 ### Event Symbol Interface

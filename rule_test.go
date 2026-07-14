@@ -527,19 +527,19 @@ func TestRule_Start(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rule, _ := tc.setup()
+		rule, _ := tc.setup()
 
-			err := rule.start(t.Context())
+		done, err := rule.start(t.Context())
 
-			if tc.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+		if tc.expectError {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
 
-			if tc.expectStart && !tc.expectError {
-				require.NotNil(t, rule.done)
-			}
+		if tc.expectStart && !tc.expectError {
+			require.NotNil(t, done)
+		}
 		})
 	}
 }

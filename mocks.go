@@ -426,52 +426,6 @@ func (_m *MockRegistry) EXPECT() *MockRegistry_Expecter {
 	return &MockRegistry_Expecter{mock: &_m.Mock}
 }
 
-// getDone provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getDone() <-chan struct{} {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for getDone")
-	}
-
-	var r0 <-chan struct{}
-	if returnFunc, ok := ret.Get(0).(func() <-chan struct{}); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan struct{})
-		}
-	}
-	return r0
-}
-
-// MockRegistry_getDone_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getDone'
-type MockRegistry_getDone_Call struct {
-	*mock.Call
-}
-
-// getDone is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getDone() *MockRegistry_getDone_Call {
-	return &MockRegistry_getDone_Call{Call: _e.mock.On("getDone")}
-}
-
-func (_c *MockRegistry_getDone_Call) Run(run func()) *MockRegistry_getDone_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockRegistry_getDone_Call) Return(valCh <-chan struct{}) *MockRegistry_getDone_Call {
-	_c.Call.Return(valCh)
-	return _c
-}
-
-func (_c *MockRegistry_getDone_Call) RunAndReturn(run func() <-chan struct{}) *MockRegistry_getDone_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // getNext provides a mock function for the type MockRegistry
 func (_mock *MockRegistry) getNext() Registry {
 	ret := _mock.Called()
@@ -737,20 +691,29 @@ func (_c *MockRegistry_setPrev_Call) RunAndReturn(run func(p Registry)) *MockReg
 }
 
 // start provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) start(ctx context.Context) error {
+func (_mock *MockRegistry) start(ctx context.Context) (<-chan struct{}, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for start")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+	var r0 <-chan struct{}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) <-chan struct{}); ok {
 		r0 = returnFunc(ctx)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(<-chan struct{})
+		}
 	}
-	return r0
+
+	var r1 error
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // MockRegistry_start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'start'
@@ -777,12 +740,12 @@ func (_c *MockRegistry_start_Call) Run(run func(ctx context.Context)) *MockRegis
 	return _c
 }
 
-func (_c *MockRegistry_start_Call) Return(err error) *MockRegistry_start_Call {
-	_c.Call.Return(err)
+func (_c *MockRegistry_start_Call) Return(valCh <-chan struct{}, err error) *MockRegistry_start_Call {
+	_c.Call.Return(valCh, err)
 	return _c
 }
 
-func (_c *MockRegistry_start_Call) RunAndReturn(run func(ctx context.Context) error) *MockRegistry_start_Call {
+func (_c *MockRegistry_start_Call) RunAndReturn(run func(ctx context.Context) (<-chan struct{}, error)) *MockRegistry_start_Call {
 	_c.Call.Return(run)
 	return _c
 }
