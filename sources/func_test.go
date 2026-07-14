@@ -19,16 +19,18 @@ func TestFuncStart(t *testing.T) {
 	}{
 		{
 			name: "calls wrapped source function",
-			source: func(ctx context.Context, cb firehose.Callback[int]) (context.Context, error) {
+			source: func(ctx context.Context, cb firehose.Callback[int]) (<-chan struct{}, error) {
 				cb(ctx, 7, nil)
 
-				return context.WithValue(ctx, "done", true), nil
+				done := make(chan struct{})
+				close(done)
+				return done, nil
 			},
 		},
 		{
 			name: "returns source function error",
-			source: func(ctx context.Context, _ firehose.Callback[int]) (context.Context, error) {
-				return ctx, sourceFailedErr
+			source: func(ctx context.Context, _ firehose.Callback[int]) (<-chan struct{}, error) {
+				return nil, sourceFailedErr
 			},
 			wantErr: sourceFailedErr,
 		},
@@ -41,11 +43,11 @@ func TestFuncStart(t *testing.T) {
 			called = true
 		}
 
-			doneCtx, err := tc.source.Start(t.Context(), cb)
+			done, err := tc.source.Start(t.Context(), cb)
 
 			require.ErrorIs(t, err, tc.wantErr)
-			require.NotNil(t, doneCtx)
 			if tc.wantErr == nil {
+				require.NotNil(t, done)
 				require.True(t, called)
 			}
 		})

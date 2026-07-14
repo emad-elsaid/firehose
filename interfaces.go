@@ -26,7 +26,7 @@ func EventSymbols(event any) boolexpr.Symbols {
 
 // Source produces events of type T.
 type Source[T any] interface {
-	Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
+	Start(ctx context.Context, cb Callback[T]) (done <-chan struct{}, err error)
 }
 
 // Action transforms input events to output events.
@@ -54,7 +54,7 @@ type Registry interface {
 	setPrev(p Registry)
 
 	getSource() any
-	getCtx() context.Context
+	getDone() <-chan struct{}
 	start(ctx context.Context) error
 
 	getSourceRegistry() sourceRegistry

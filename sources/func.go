@@ -8,9 +8,9 @@ import (
 )
 
 // Func is an adapter that allows using ordinary functions as firehose.Source.
-type Func[T any] func(ctx context.Context, cb firehose.Callback[T]) (done context.Context, err error)
+type Func[T any] func(ctx context.Context, cb firehose.Callback[T]) (done <-chan struct{}, err error)
 
 // Start calls the underlying function.
-func (f Func[T]) Start(ctx context.Context, cb firehose.Callback[T]) (context.Context, error) {
+func (f Func[T]) Start(ctx context.Context, cb firehose.Callback[T]) (<-chan struct{}, error) {
 	return f(ctx, cb)
 }

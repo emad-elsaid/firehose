@@ -17,13 +17,13 @@ type Manual[T any] struct {
 	callback firehose.Callback[T]
 }
 
-// Start registers the callback used by Emit and returns the same context.
-func (m *Manual[T]) Start(ctx context.Context, cb firehose.Callback[T]) (context.Context, error) {
+// Start registers the callback used by Emit and returns a channel that is never closed.
+func (m *Manual[T]) Start(ctx context.Context, cb firehose.Callback[T]) (<-chan struct{}, error) {
 	m.mutex.Lock()
 	m.callback = cb
 	m.mutex.Unlock()
 
-	return ctx, nil
+	return ctx.Done(), nil
 }
 
 // Emit sends one event to the registered callback.

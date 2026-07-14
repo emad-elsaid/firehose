@@ -430,17 +430,19 @@ func TestStart(t *testing.T) {
 			receivedErrors = append(receivedErrors, err)
 		}
 
-		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+		done := make(chan struct{})
+		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
 
 		Start(ctx, registry, errorHandler)
 
 		cancel()
+		close(done)
 		Wait(registry, errorHandler)
 
-		require.Len(t, receivedErrors, 1) // context.Canceled when we cancel the context
+		require.Len(t, receivedErrors, 0) // No errors expected with channels
 
 		rule := registry.(*Rule[*EventMock, *EventMock])
-		require.NotNil(t, rule.ctx)
+		require.NotNil(t, rule.done)
 	})
 
 	t.Run("start multiple rules with different sources", func(t *testing.T) {
@@ -468,15 +470,19 @@ func TestStart(t *testing.T) {
 			receivedErrors = append(receivedErrors, err)
 		}
 
-		source1.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
-		source2.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+		done1 := make(chan struct{})
+		done2 := make(chan struct{})
+		source1.On("Start", ctx, mock.Anything).Return(done1, nil).Once()
+		source2.On("Start", ctx, mock.Anything).Return(done2, nil).Once()
 
 		Start(ctx, registry, errorHandler)
 
 		cancel()
+		close(done1)
+		close(done2)
 		Wait(registry, errorHandler)
 
-		require.Len(t, receivedErrors, 2) // context.Canceled for each source
+		require.Len(t, receivedErrors, 0) // No errors expected with channels
 	})
 
 	t.Run("start rule with source error", func(t *testing.T) {
@@ -496,10 +502,9 @@ func TestStart(t *testing.T) {
 			receivedErrors = append(receivedErrors, err)
 		}
 
-		source.On("Start", ctx, mock.Anything).Return(ctx, os.ErrClosed).Once()
+		source.On("Start", ctx, mock.Anything).Return(nil, os.ErrClosed).Once()
 
 		Start(ctx, registry, errorHandler)
-		Wait(registry, errorHandler)
 
 		require.Len(t, receivedErrors, 1)
 	})
@@ -528,14 +533,16 @@ func TestStart(t *testing.T) {
 			receivedErrors = append(receivedErrors, err)
 		}
 
-		source.On("Start", ctx, mock.Anything).Return(ctx, nil).Once()
+		done := make(chan struct{})
+		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
 
 		Start(ctx, registry, errorHandler)
 
 	cancel()
+	close(done)
 	Wait(registry, errorHandler)
 
-	require.Len(t, receivedErrors, 1) // Only one context.Canceled because source is shared
+	require.Len(t, receivedErrors, 0) // No errors expected with channels
 })
 }
 

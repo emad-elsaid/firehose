@@ -178,15 +178,13 @@ func Wait(registry Registry, errFunc ErrorHandler) {
 	}
 }
 
-func waitForRule(rule Registry, errFunc ErrorHandler) {
-	ctx := rule.getCtx()
-	if ctx == nil {
+func waitForRule(rule Registry, _ ErrorHandler) {
+	done := rule.getDone()
+	if done == nil {
 		return
 	}
 
-	<-ctx.Done()
-
-	reportError(errFunc, ctx.Err())
+	<-done
 }
 
 func reportError(errFunc ErrorHandler, err error) {

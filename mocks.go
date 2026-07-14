@@ -6,6 +6,7 @@ package firehose
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/emad-elsaid/boolexpr"
 	mock "github.com/stretchr/testify/mock"
@@ -39,23 +40,31 @@ func (_m *MockSource[T]) EXPECT() *MockSource_Expecter[T] {
 }
 
 // Start provides a mock function for the type MockSource
-func (_mock *MockSource[T]) Start(ctx context.Context, cb Callback[T]) (context.Context, error) {
+func (_mock *MockSource[T]) Start(ctx context.Context, cb Callback[T]) (<-chan struct{}, error) {
 	ret := _mock.Called(ctx, cb)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Start")
 	}
 
-	var r0 context.Context
+	var r0 <-chan struct{}
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Callback[T]) (context.Context, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, Callback[T]) (<-chan struct{}, error)); ok {
 		return returnFunc(ctx, cb)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, Callback[T]) context.Context); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, Callback[T]) <-chan struct{}); ok {
 		r0 = returnFunc(ctx, cb)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(context.Context)
+			// Handle both chan struct{} and <-chan struct{}
+			switch ch := ret.Get(0).(type) {
+			case <-chan struct{}:
+				r0 = ch
+			case chan struct{}:
+				r0 = ch
+			default:
+				panic(fmt.Sprintf("unexpected type %T for done channel", ret.Get(0)))
+			}
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, Callback[T]) error); ok {
@@ -96,12 +105,12 @@ func (_c *MockSource_Start_Call[T]) Run(run func(ctx context.Context, cb Callbac
 	return _c
 }
 
-func (_c *MockSource_Start_Call[T]) Return(done context.Context, err error) *MockSource_Start_Call[T] {
+func (_c *MockSource_Start_Call[T]) Return(done <-chan struct{}, err error) *MockSource_Start_Call[T] {
 	_c.Call.Return(done, err)
 	return _c
 }
 
-func (_c *MockSource_Start_Call[T]) RunAndReturn(run func(ctx context.Context, cb Callback[T]) (context.Context, error)) *MockSource_Start_Call[T] {
+func (_c *MockSource_Start_Call[T]) RunAndReturn(run func(ctx context.Context, cb Callback[T]) (<-chan struct{}, error)) *MockSource_Start_Call[T] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -417,48 +426,48 @@ func (_m *MockRegistry) EXPECT() *MockRegistry_Expecter {
 	return &MockRegistry_Expecter{mock: &_m.Mock}
 }
 
-// getCtx provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getCtx() context.Context {
+// getDone provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) getDone() <-chan struct{} {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for getCtx")
+		panic("no return value specified for getDone")
 	}
 
-	var r0 context.Context
-	if returnFunc, ok := ret.Get(0).(func() context.Context); ok {
+	var r0 <-chan struct{}
+	if returnFunc, ok := ret.Get(0).(func() <-chan struct{}); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(context.Context)
+			r0 = ret.Get(0).(<-chan struct{})
 		}
 	}
 	return r0
 }
 
-// MockRegistry_getCtx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getCtx'
-type MockRegistry_getCtx_Call struct {
+// MockRegistry_getDone_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getDone'
+type MockRegistry_getDone_Call struct {
 	*mock.Call
 }
 
-// getCtx is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getCtx() *MockRegistry_getCtx_Call {
-	return &MockRegistry_getCtx_Call{Call: _e.mock.On("getCtx")}
+// getDone is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) getDone() *MockRegistry_getDone_Call {
+	return &MockRegistry_getDone_Call{Call: _e.mock.On("getDone")}
 }
 
-func (_c *MockRegistry_getCtx_Call) Run(run func()) *MockRegistry_getCtx_Call {
+func (_c *MockRegistry_getDone_Call) Run(run func()) *MockRegistry_getDone_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockRegistry_getCtx_Call) Return(context1 context.Context) *MockRegistry_getCtx_Call {
-	_c.Call.Return(context1)
+func (_c *MockRegistry_getDone_Call) Return(valCh <-chan struct{}) *MockRegistry_getDone_Call {
+	_c.Call.Return(valCh)
 	return _c
 }
 
-func (_c *MockRegistry_getCtx_Call) RunAndReturn(run func() context.Context) *MockRegistry_getCtx_Call {
+func (_c *MockRegistry_getDone_Call) RunAndReturn(run func() <-chan struct{}) *MockRegistry_getDone_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1051,9 +1060,20 @@ func (_c *MockRunnable_NextRunnable_Call[I]) RunAndReturn(run func() Runnable[I]
 }
 
 // Run provides a mock function for the type MockRunnable
-func (_mock *MockRunnable[I]) Run(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler) {
-	_mock.Called(ctx, event, syms, report)
-	return
+func (_mock *MockRunnable[I]) Run(ctx context.Context, event I, syms boolexpr.Symbols) error {
+	ret := _mock.Called(ctx, event, syms)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Run")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, I, boolexpr.Symbols) error); ok {
+		r0 = returnFunc(ctx, event, syms)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
 }
 
 // MockRunnable_Run_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Run'
@@ -1065,12 +1085,11 @@ type MockRunnable_Run_Call[I any] struct {
 //   - ctx context.Context
 //   - event I
 //   - syms boolexpr.Symbols
-//   - report ErrorHandler
-func (_e *MockRunnable_Expecter[I]) Run(ctx any, event any, syms any, report any) *MockRunnable_Run_Call[I] {
-	return &MockRunnable_Run_Call[I]{Call: _e.mock.On("Run", ctx, event, syms, report)}
+func (_e *MockRunnable_Expecter[I]) Run(ctx any, event any, syms any) *MockRunnable_Run_Call[I] {
+	return &MockRunnable_Run_Call[I]{Call: _e.mock.On("Run", ctx, event, syms)}
 }
 
-func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler)) *MockRunnable_Run_Call[I] {
+func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, syms boolexpr.Symbols)) *MockRunnable_Run_Call[I] {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1084,27 +1103,22 @@ func (_c *MockRunnable_Run_Call[I]) Run(run func(ctx context.Context, event I, s
 		if args[2] != nil {
 			arg2 = args[2].(boolexpr.Symbols)
 		}
-	var arg3 ErrorHandler
-	if args[3] != nil {
-		arg3 = args[3].(ErrorHandler)
-	}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *MockRunnable_Run_Call[I]) Return() *MockRunnable_Run_Call[I] {
-	_c.Call.Return()
+func (_c *MockRunnable_Run_Call[I]) Return(err error) *MockRunnable_Run_Call[I] {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockRunnable_Run_Call[I]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols, report ErrorHandler)) *MockRunnable_Run_Call[I] {
-	_c.Run(run)
+func (_c *MockRunnable_Run_Call[I]) RunAndReturn(run func(ctx context.Context, event I, syms boolexpr.Symbols) error) *MockRunnable_Run_Call[I] {
+	_c.Call.Return(run)
 	return _c
 }
 

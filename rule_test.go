@@ -488,8 +488,9 @@ func TestRule_Start(t *testing.T) {
 					ID:   "test-rule",
 					From: source,
 				}
+				done := make(chan struct{})
 				source.On("Start", mock.Anything, mock.Anything).
-					Return(t.Context(), nil).Once()
+					Return(done, nil).Once()
 				return rule, source
 			},
 			expectStart: true,
@@ -516,7 +517,7 @@ func TestRule_Start(t *testing.T) {
 					From: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).
-					Return(t.Context(), os.ErrClosed).Once()
+					Return(nil, os.ErrClosed).Once()
 				return rule, source
 			},
 			expectStart: true,
@@ -537,7 +538,7 @@ func TestRule_Start(t *testing.T) {
 			}
 
 			if tc.expectStart && !tc.expectError {
-				require.NotNil(t, rule.ctx)
+				require.NotNil(t, rule.done)
 			}
 		})
 	}

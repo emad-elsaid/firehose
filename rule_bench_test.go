@@ -42,11 +42,12 @@ type benchSource struct {
 	callback Callback[*EventMock]
 }
 
-func (s *benchSource) Start(ctx context.Context, cb Callback[*EventMock]) (context.Context, error) {
+func (s *benchSource) Start(ctx context.Context, cb Callback[*EventMock]) (<-chan struct{}, error) {
 	s.mutex.Lock()
 	s.callback = cb
 	s.mutex.Unlock()
-	return ctx, nil
+	done := make(chan struct{})
+	return done, nil
 }
 
 func (s *benchSource) Emit(ctx context.Context, event *EventMock, report ErrorHandler) {

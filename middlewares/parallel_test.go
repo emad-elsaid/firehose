@@ -33,9 +33,13 @@ type mockSource[T any] struct {
 	mock.Mock
 }
 
-func (s *mockSource[T]) Start(ctx context.Context, cb fh.Callback[T]) (context.Context, error) {
+func (s *mockSource[T]) Start(ctx context.Context, cb fh.Callback[T]) (<-chan struct{}, error) {
 	args := s.Called(ctx, cb)
-	return args.Get(0).(context.Context), args.Error(1)
+	ch := args.Get(0)
+	if ch == nil {
+		return nil, args.Error(1)
+	}
+	return ch.(<-chan struct{}), args.Error(1)
 }
 
 // testTaskRunner extends MockTaskRunner with ExecuteAll helper for testing
