@@ -612,74 +612,7 @@ func Test_addSingle_Errors(t *testing.T) {
 }
 
 
-func Test_isActivatable(t *testing.T) {
-	tests := []struct {
-		name     string
-		rule     *MockRule
-		expected bool
-	}{
-		{
-			name: "rule with all required fields is activatable",
-			rule: &MockRule{
-				ID:     "complete-rule",
-				From:   NewMockSource[*EventMock](t),
-				Select: &MockAction[*EventMock, *EventMock]{},
-				Into:   &MockDestination[*EventMock]{},
-			},
-			expected: true,
-		},
-		{
-			name: "rule missing ID is not activatable",
-			rule: &MockRule{
-				From:   NewMockSource[*EventMock](t),
-				Select: &MockAction[*EventMock, *EventMock]{},
-				Into:   &MockDestination[*EventMock]{},
-			},
-			expected: false,
-		},
-		{
-			name: "rule missing When is not activatable",
-			rule: &MockRule{
-				ID:     "no-when",
-				Select: &MockAction[*EventMock, *EventMock]{},
-				Into:   &MockDestination[*EventMock]{},
-			},
-			expected: false,
-		},
-		{
-			name: "rule missing Select is not activatable",
-			rule: &MockRule{
-				ID:   "no-then",
-				From: NewMockSource[*EventMock](t),
-				Into: &MockDestination[*EventMock]{},
-			},
-			expected: false,
-		},
-		{
-			name: "rule missing Into is not activatable",
-			rule: &MockRule{
-				ID:     "no-to",
-				From:   NewMockSource[*EventMock](t),
-				Select: &MockAction[*EventMock, *EventMock]{},
-			},
-			expected: false,
-		},
-		{
-			name:     "empty rule is not activatable",
-			rule:     &MockRule{},
-			expected: false,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result := isActivatable(tc.rule)
-			require.Equal(t, tc.expected, result)
-		})
-	}
-}
-
-func Test_wrapMiddlewares(t *testing.T) {
+func TestRuleInit(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func() *MockRule
@@ -700,8 +633,8 @@ func Test_wrapMiddlewares(t *testing.T) {
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
 				require.NotNil(t, rule.wrappedCallback)
-				require.NotNil(t, rule.wrappedAction)
-				require.NotNil(t, rule.wrappedDestination)
+				require.NotNil(t, rule.Select)
+				require.NotNil(t, rule.Into)
 			},
 		},
 		{
@@ -814,7 +747,7 @@ func Test_wrapMiddlewares(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule)
+			err := rule.Init(t.Context())
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -826,7 +759,7 @@ func Test_wrapMiddlewares(t *testing.T) {
 	}
 }
 
-func Test_wrapMiddlewares_action(t *testing.T) {
+func TestRuleInit_action(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func() *MockRule
@@ -882,7 +815,7 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.wrappedAction)
+				require.NotNil(t, rule.Select)
 			},
 		},
 		{
@@ -917,7 +850,7 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule)
+			err := rule.Init(t.Context())
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -929,7 +862,7 @@ func Test_wrapMiddlewares_action(t *testing.T) {
 	}
 }
 
-func Test_wrapMiddlewares_destination(t *testing.T) {
+func TestRuleInit_destination(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func() *MockRule
@@ -984,7 +917,7 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 			},
 			expectError: false,
 			validate: func(t *testing.T, rule *MockRule) {
-				require.NotNil(t, rule.wrappedDestination)
+				require.NotNil(t, rule.Into)
 			},
 		},
 		{
@@ -1022,7 +955,7 @@ func Test_wrapMiddlewares_destination(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setup()
 
-			err := wrapMiddlewares(t.Context(), rule)
+			err := rule.Init(t.Context())
 
 			if tc.expectError {
 				require.Error(t, err)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/emad-elsaid/boolexpr"
 )
@@ -39,9 +40,42 @@ type Rule[I, O any] struct {
 	next, prev                     Registry
 	nextSameSource, prevSameSource sourceRegistry
 
-	wrappedCallback    Callback[I]
-	wrappedAction      Action[I, O]
-	wrappedDestination Destination[O]
+	wrappedCallback Callback[I]
+}
+
+// Init initializes the rule by wrapping the callback, action, and destination
+// with the configured middlewares. Middlewares are applied in reverse order,
+// so the first middleware in the slice wraps all subsequent ones.
+func (r *Rule[I, O]) Init(ctx context.Context) error {
+	r.wrappedCallback = r.callback
+
+	if len(r.Middlewares) == 0 {
+		return nil
+	}
+
+	for i := range slices.Backward(r.Middlewares) {
+		middleware := r.Middlewares[i]
+
+		wrappedCallback, err := middleware.WrapCallback(ctx, r, r.wrappedCallback)
+		if err != nil {
+			return err
+		}
+		r.wrappedCallback = wrappedCallback
+
+		wrappedAction, err := middleware.WrapAction(ctx, r, r.Select)
+		if err != nil {
+			return err
+		}
+		r.Select = wrappedAction
+
+		wrappedDestination, err := middleware.WrapDestination(ctx, r, r.Into)
+		if err != nil {
+			return err
+		}
+		r.Into = wrappedDestination
+	}
+
+	return nil
 }
 
 func (r *Rule[I, O]) start(ctx context.Context) (<-chan struct{}, error) {
@@ -84,7 +118,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) er
 	}
 
 	// Process action
-	output, err := r.wrappedAction.Process(ctx, event, syms)
+	output, err := r.Select.Process(ctx, event, syms)
 	if err != nil {
 		var actionErr ActionError
 		if !errors.As(err, &actionErr) {
@@ -107,7 +141,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) er
 	}
 
 	// Send to destination
-	err = r.wrappedDestination.Send(ctx, output)
+	err = r.Into.Send(ctx, output)
 	if err != nil {
 		var destinationErr DestinationError
 		if !errors.As(err, &destinationErr) {

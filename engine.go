@@ -19,24 +19,16 @@ func Add[I, O any](
 		return nil, err
 	}
 
-	if !shouldRegisterRule(rule) {
+	if !isEnvironmentEnabled(rule.Environments, os.Getenv("ENV")) {
 		return registry, nil
 	}
 
-	err = wrapMiddlewares(ctx, rule)
+	err = rule.Init(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return addToRegistry(registry, rule), nil
-}
-
-func shouldRegisterRule[I, O any](rule *Rule[I, O]) bool {
-	if !isActivatable(rule) {
-		return false
-	}
-
-	return isEnvironmentEnabled(rule.Environments, os.Getenv("ENV"))
 }
 
 func isEnvironmentEnabled(environments []string, currentEnvironment string) bool {
@@ -45,58 +37,6 @@ func isEnvironmentEnabled(environments []string, currentEnvironment string) bool
 	}
 
 	return slices.Contains(environments, currentEnvironment)
-}
-
-func wrapMiddlewares[I, O any](
-	ctx context.Context,
-	rule *Rule[I, O],
-) error {
-	rule.wrappedCallback = rule.callback
-	rule.wrappedAction = rule.Select
-	rule.wrappedDestination = rule.Into
-
-	middlewares := rule.Middlewares
-	if len(middlewares) == 0 {
-		return nil
-	}
-
-	for _, middleware := range slices.Backward(middlewares) {
-		err := wrapWithMiddleware(ctx, rule, middleware)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func wrapWithMiddleware[I, O any](
-	ctx context.Context,
-	rule *Rule[I, O],
-	middleware Middleware[I, O],
-) error {
-	wrappedCallback, err := middleware.WrapCallback(ctx, rule, rule.wrappedCallback)
-	if err != nil {
-		return err
-	}
-
-	rule.wrappedCallback = wrappedCallback
-
-	wrappedAction, err := middleware.WrapAction(ctx, rule, rule.wrappedAction)
-	if err != nil {
-		return err
-	}
-
-	rule.wrappedAction = wrappedAction
-
-	wrappedDestination, err := middleware.WrapDestination(ctx, rule, rule.wrappedDestination)
-	if err != nil {
-		return err
-	}
-
-	rule.wrappedDestination = wrappedDestination
-
-	return nil
 }
 
 func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
@@ -186,13 +126,6 @@ func reportError(errFunc ErrorHandler, err error) {
 	}
 
 	errFunc(err)
-}
-
-func isActivatable[I, O any](rule *Rule[I, O]) bool {
-	return rule.ID != "" &&
-		rule.From != nil &&
-		rule.Select != nil &&
-		rule.Into != nil
 }
 
 // IsValid validates the rule's fields.
