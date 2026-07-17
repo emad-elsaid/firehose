@@ -461,7 +461,9 @@ func main() {
     }
 
     doneChannels := fh.Start(ctx, registry, errHandler)
-    fh.Wait(doneChannels)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 
@@ -582,9 +584,6 @@ type ErrorHandler func(error)
 
 // Start activates all registered event sources and returns done channels
 func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-chan struct{}
-
-// Wait blocks until all done channels complete
-func Wait(doneChannels []<-chan struct{})
 ```
 
 ### Event Symbol Interface

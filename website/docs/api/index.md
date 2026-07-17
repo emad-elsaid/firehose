@@ -65,24 +65,9 @@ errHandler := func(err error) {
 }
 
 fh.Start(ctx, registry, errHandler)
-```
-
-### Wait
-
-Blocks until all sources complete.
-
-```go
-func Wait(registry Registry, errFunc ErrorHandler)
-```
-
-**Parameters:**
-- `registry` - Registry containing rules
-- `errFunc` - Handler for source completion errors
-
-**Example:**
-
-```go
-fh.Wait(registry, errHandler)
+for _, ch := range fh.Start(ctx, registry, errHandler) {
+    <-ch
+}
 ```
 
 ## Type Reference

@@ -9,12 +9,8 @@ import (
 )
 
 // Add registers a new processing rule in the context.
-func Add[I, O any](
-	ctx context.Context,
-	registry Registry,
-	rule *Rule[I, O],
-) (Registry, error) {
-	err := IsValid(rule)
+func Add[I, O any](ctx context.Context, registry Registry, rule *Rule[I, O]) (Registry, error) {
+	err := isValid(rule)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +94,11 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 
 	for current := registry; current != nil; {
 		done, err := current.start(ctx)
-		reportError(errFunc, err)
-
-		if done != nil {
+		if err != nil {
+			if errFunc != nil {
+				errFunc(err)
+			}
+		} else if done != nil {
 			doneChannels = append(doneChannels, done)
 		}
 
@@ -113,23 +111,8 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 	return doneChannels
 }
 
-// Wait blocks until all done channels have completed.
-func Wait(doneChannels []<-chan struct{}) {
-	for _, done := range doneChannels {
-		<-done
-	}
-}
-
-func reportError(errFunc ErrorHandler, err error) {
-	if err == nil || errFunc == nil {
-		return
-	}
-
-	errFunc(err)
-}
-
-// IsValid validates the rule's fields.
-func IsValid[I, O any](rule *Rule[I, O]) error {
+// isValid validates the rule's fields.
+func isValid[I, O any](rule *Rule[I, O]) error {
 	validatorInstance := validator.New(validator.WithRequiredStructEnabled())
 
 	return validatorInstance.Struct(rule)

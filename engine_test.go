@@ -437,7 +437,9 @@ func TestStart(t *testing.T) {
 
 		cancel()
 		close(done)
-		Wait(doneChannels)
+		for _, ch := range doneChannels {
+			<-ch
+		}
 
 		require.Len(t, receivedErrors, 0) // No errors expected with channels
 		require.Len(t, doneChannels, 1)
@@ -478,7 +480,9 @@ func TestStart(t *testing.T) {
 		cancel()
 		close(done1)
 		close(done2)
-		Wait(doneChannels)
+		for _, ch := range doneChannels {
+			<-ch
+		}
 
 		require.Len(t, receivedErrors, 0) // No errors expected with channels
 		require.Len(t, doneChannels, 2)
@@ -537,12 +541,14 @@ func TestStart(t *testing.T) {
 
 		doneChannels := Start(ctx, registry, errorHandler)
 
-	cancel()
-	close(done)
-	Wait(doneChannels)
+		cancel()
+		close(done)
+		for _, ch := range doneChannels {
+			<-ch
+		}
 
-	require.Len(t, receivedErrors, 0) // No errors expected with channels
-})
+		require.Len(t, receivedErrors, 0) // No errors expected with channels
+	})
 }
 
 func Test_addSingle_Errors(t *testing.T) {
@@ -611,7 +617,6 @@ func Test_addSingle_Errors(t *testing.T) {
 	}
 }
 
-
 func TestRuleInit(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -640,9 +645,9 @@ func TestRuleInit(t *testing.T) {
 		{
 			name: "wraps callback with single middleware",
 			setup: func() *MockRule {
-			middleware := &MockMiddleware[*EventMock, *EventMock]{}
-			wrappedCb := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
-			middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
+				middleware := &MockMiddleware[*EventMock, *EventMock]{}
+				wrappedCb := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
+				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
 					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return wrappedCb, nil
 					}).Once()
@@ -674,10 +679,10 @@ func TestRuleInit(t *testing.T) {
 			name: "wraps callback with multiple middlewares in reverse order",
 			setup: func() *MockRule {
 
-			middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
-			middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
-			wrappedCb1 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
-			wrappedCb2 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
+				middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
+				middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
+				wrappedCb1 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
+				wrappedCb2 := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
 
 				// Should wrap in reverse: middleware2 first, then middleware1
 				middleware2.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
@@ -1095,7 +1100,7 @@ func TestIsValid(t *testing.T) {
 	t.Run("empty rule is invalid", func(t *testing.T) {
 		rule := &MockRule{}
 
-		require.Error(t, IsValid(rule))
+		require.Error(t, isValid(rule))
 	})
 
 	t.Run("rule missing source is invalid", func(t *testing.T) {
@@ -1104,7 +1109,7 @@ func TestIsValid(t *testing.T) {
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
-		require.Error(t, IsValid(rule))
+		require.Error(t, isValid(rule))
 	})
 
 	t.Run("rule missing action is invalid", func(t *testing.T) {
@@ -1114,7 +1119,7 @@ func TestIsValid(t *testing.T) {
 			Select: nil,
 			Into:   &MockDestination[*EventMock]{},
 		}
-		require.Error(t, IsValid(rule))
+		require.Error(t, isValid(rule))
 	})
 
 	t.Run("rule missing destination is invalid", func(t *testing.T) {
@@ -1123,6 +1128,6 @@ func TestIsValid(t *testing.T) {
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   nil,
 		}
-		require.Error(t, IsValid(rule))
+		require.Error(t, isValid(rule))
 	})
 }

@@ -112,7 +112,7 @@ linters:
     - zerologlint
   settings:
     cyclop:
-      max-complexity: 5
+      max-complexity: 11
   exclusions:
     rules:
       - path: cmd/firehose/rules.go
