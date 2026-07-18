@@ -56,15 +56,9 @@ type Registry interface {
 	getSource() any
 	start(ctx context.Context) (<-chan struct{}, error)
 
-	getSourceRegistry() sourceRegistry
-}
-
-type sourceRegistry interface {
-	setNextSameSource(n sourceRegistry)
-	setPrevSameSource(p sourceRegistry)
-	getNextSameSource() sourceRegistry
-
-	getRegistry() Registry
+	setNextSameSource(n Registry)
+	setPrevSameSource(p Registry)
+	getNextSameSource() Registry
 }
 
 // Callback is a function type that sources use to send events to the

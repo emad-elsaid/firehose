@@ -13,6 +13,10 @@ import (
 // testCond is a simple test condition implementation
 type testCond[I any] string
 
+// recvChan returns a receive-only view of ch so mock return values match the
+// <-chan struct{} signature without the underlying type assertion panicking.
+func recvChan(ch chan struct{}) <-chan struct{} { return ch }
+
 func (c testCond[I]) Evaluate(_ context.Context, _ I, _ boolexpr.Symbols) (bool, error) {
 	return true, nil
 }
@@ -271,8 +275,8 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.NotNil(t, secondRule.prevSameSource, "rule2 should have prev same source")
 
 		// Verify they point to each other
-		require.Equal(t, secondRule, rule1.nextSameSource.getRegistry())
-		require.Equal(t, rule1, secondRule.prevSameSource.getRegistry())
+		require.Equal(t, secondRule, rule1.nextSameSource)
+		require.Equal(t, rule1, secondRule.prevSameSource)
 	})
 
 	t.Run("three rules with same source form a chain", func(t *testing.T) {
@@ -324,10 +328,10 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.Nil(t, rules[2].nextSameSource, "third rule has no next same source")
 
 		// Verify the chain
-		require.Equal(t, rules[1], rules[0].nextSameSource.getRegistry())
-		require.Equal(t, rules[0], rules[1].prevSameSource.getRegistry())
-		require.Equal(t, rules[2], rules[1].nextSameSource.getRegistry())
-		require.Equal(t, rules[1], rules[2].prevSameSource.getRegistry())
+		require.Equal(t, rules[1], rules[0].nextSameSource)
+		require.Equal(t, rules[0], rules[1].prevSameSource)
+		require.Equal(t, rules[2], rules[1].nextSameSource)
+		require.Equal(t, rules[1], rules[2].prevSameSource)
 	})
 
 	t.Run("mixed sources: two with sourceA, one with sourceB, one more with sourceA", func(t *testing.T) {
@@ -394,16 +398,16 @@ func TestAddSameSourceChaining(t *testing.T) {
 		// Verify sourceA chain
 		require.Nil(t, sourceARules[0].prevSameSource)
 		require.NotNil(t, sourceARules[0].nextSameSource)
-		require.Equal(t, sourceARules[1], sourceARules[0].nextSameSource.getRegistry())
+		require.Equal(t, sourceARules[1], sourceARules[0].nextSameSource)
 
 		require.NotNil(t, sourceARules[1].prevSameSource)
 		require.NotNil(t, sourceARules[1].nextSameSource)
-		require.Equal(t, sourceARules[0], sourceARules[1].prevSameSource.getRegistry())
-		require.Equal(t, sourceARules[2], sourceARules[1].nextSameSource.getRegistry())
+		require.Equal(t, sourceARules[0], sourceARules[1].prevSameSource)
+		require.Equal(t, sourceARules[2], sourceARules[1].nextSameSource)
 
 		require.NotNil(t, sourceARules[2].prevSameSource)
 		require.Nil(t, sourceARules[2].nextSameSource)
-		require.Equal(t, sourceARules[1], sourceARules[2].prevSameSource.getRegistry())
+		require.Equal(t, sourceARules[1], sourceARules[2].prevSameSource)
 
 		// Verify sourceB has no same-source links
 		require.Nil(t, sourceBRules[0].prevSameSource)
@@ -431,7 +435,7 @@ func TestStart(t *testing.T) {
 		}
 
 		done := make(chan struct{})
-		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
+		source.On("Start", ctx, mock.Anything).Return(recvChan(done), nil).Once()
 
 		doneChannels := Start(ctx, registry, errorHandler)
 
@@ -472,8 +476,8 @@ func TestStart(t *testing.T) {
 
 		done1 := make(chan struct{})
 		done2 := make(chan struct{})
-		source1.On("Start", ctx, mock.Anything).Return(done1, nil).Once()
-		source2.On("Start", ctx, mock.Anything).Return(done2, nil).Once()
+		source1.On("Start", ctx, mock.Anything).Return(recvChan(done1), nil).Once()
+		source2.On("Start", ctx, mock.Anything).Return(recvChan(done2), nil).Once()
 
 		doneChannels := Start(ctx, registry, errorHandler)
 
@@ -537,7 +541,7 @@ func TestStart(t *testing.T) {
 		}
 
 		done := make(chan struct{})
-		source.On("Start", ctx, mock.Anything).Return(done, nil).Once()
+		source.On("Start", ctx, mock.Anything).Return(recvChan(done), nil).Once()
 
 		doneChannels := Start(ctx, registry, errorHandler)
 

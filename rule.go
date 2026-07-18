@@ -38,7 +38,7 @@ type Rule[I, O any] struct {
 	Middlewares []Middleware[I, O]
 
 	next, prev                     Registry
-	nextSameSource, prevSameSource sourceRegistry
+	nextSameSource, prevSameSource Registry
 
 	wrappedCallback Callback[I]
 }
@@ -162,16 +162,14 @@ func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 	// We will panic on purpose in case the next source is not a Runnable of the same type
 	// As this would indicate a bug in the engine.
 	//nolint:forcetypeassert // Intentional panic on type mismatch
-	return r.nextSameSource.getRegistry().(Runnable[I])
+	return r.nextSameSource.(Runnable[I])
 }
 
-func (r *Rule[I, O]) getNext() Registry                  { return r.next }
-func (r *Rule[I, O]) setNext(n Registry)                 { r.next = n }
-func (r *Rule[I, O]) getPrev() Registry                  { return r.prev }
-func (r *Rule[I, O]) setPrev(p Registry)                 { r.prev = p }
-func (r *Rule[I, O]) setNextSameSource(n sourceRegistry) { r.nextSameSource = n }
-func (r *Rule[I, O]) getNextSameSource() sourceRegistry  { return r.nextSameSource }
-func (r *Rule[I, O]) setPrevSameSource(p sourceRegistry) { r.prevSameSource = p }
-func (r *Rule[I, O]) getSourceRegistry() sourceRegistry  { return r }
-func (r *Rule[I, O]) getRegistry() Registry              { return r }
-func (r *Rule[I, O]) getSource() any                     { return r.From }
+func (r *Rule[I, O]) getNext() Registry            { return r.next }
+func (r *Rule[I, O]) setNext(n Registry)           { r.next = n }
+func (r *Rule[I, O]) getPrev() Registry            { return r.prev }
+func (r *Rule[I, O]) setPrev(p Registry)           { r.prev = p }
+func (r *Rule[I, O]) setNextSameSource(n Registry) { r.nextSameSource = n }
+func (r *Rule[I, O]) getNextSameSource() Registry  { return r.nextSameSource }
+func (r *Rule[I, O]) setPrevSameSource(p Registry) { r.prevSameSource = p }
+func (r *Rule[I, O]) getSource() any               { return r.From }

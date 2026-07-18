@@ -277,9 +277,7 @@ func TestRuleCallback(t *testing.T) {
 		// Create a Rule with a different type (string instead of *EventMock)
 		// This will cause a panic when type-asserting to Runnable[*EventMock]
 		incompatibleRule := &Rule[string, string]{}
-		incompatibleSourceRegistry := newMocksourceRegistry(t)
-		incompatibleSourceRegistry.On("getRegistry").Return(incompatibleRule).Once()
-		rule.nextSameSource = incompatibleSourceRegistry
+		rule.nextSameSource = incompatibleRule
 
 		collector := newReportCollector()
 		require.Panics(t, func() { rule.callback(t.Context(), in, collector.Collect) })
@@ -453,17 +451,17 @@ func TestRule_Run(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-		rule, event := tc.setupMocks()
+			rule, event := tc.setupMocks()
 
-		collector := newReportCollector()
+			collector := newReportCollector()
 
-		// Use nil symbols for this test
-		err := rule.Run(t.Context(), event, nil)
-		if err != nil {
-			collector.Collect(err)
-		}
+			// Use nil symbols for this test
+			err := rule.Run(t.Context(), event, nil)
+			if err != nil {
+				collector.Collect(err)
+			}
 
-		reports := collector.Errors()
+			reports := collector.Errors()
 
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
@@ -490,7 +488,7 @@ func TestRule_Start(t *testing.T) {
 				}
 				done := make(chan struct{})
 				source.On("Start", mock.Anything, mock.Anything).
-					Return(done, nil).Once()
+					Return(recvChan(done), nil).Once()
 				return rule, source
 			},
 			expectStart: true,
@@ -527,25 +525,22 @@ func TestRule_Start(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-		rule, _ := tc.setup()
+			rule, _ := tc.setup()
 
-		done, err := rule.start(t.Context())
+			done, err := rule.start(t.Context())
 
-		if tc.expectError {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-		}
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
-		if tc.expectStart && !tc.expectError {
-			require.NotNil(t, done)
-		}
+			if tc.expectStart && !tc.expectError {
+				require.NotNil(t, done)
+			}
 		})
 	}
 }
-
-
-
 
 func TestRule_Run_WithConditions(t *testing.T) {
 	t.Parallel()
@@ -594,13 +589,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-			return &MockRule{
-				ID:     "test-rule",
-				From:   NewMockSource[*EventMock](t),
-				Where:  cond,
-				Select: action,
-				Into:   destination,
-			}
+				return &MockRule{
+					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
+					Where:  cond,
+					Select: action,
+					Into:   destination,
+				}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 0, // Success - no errors reported
@@ -620,13 +615,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				postCond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
-			return &MockRule{
-				ID:     "test-rule",
-				From:   NewMockSource[*EventMock](t),
-				Select: action,
-				Having: postCond,
-				Into:   NewMockDestination[*EventMock](t),
-			}
+				return &MockRule{
+					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
+					Select: action,
+					Having: postCond,
+					Into:   NewMockDestination[*EventMock](t),
+				}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 1,
@@ -650,13 +645,13 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-			return &MockRule{
-				ID:     "test-rule",
-				From:   NewMockSource[*EventMock](t),
-				Select: action,
-				Having: postCond,
-				Into:   destination,
-			}
+				return &MockRule{
+					ID:     "test-rule",
+					From:   NewMockSource[*EventMock](t),
+					Select: action,
+					Having: postCond,
+					Into:   destination,
+				}
 			},
 			event:           NewEventMock(nil),
 			expectedReports: 0, // Success - no errors reported
@@ -668,18 +663,18 @@ func TestRule_Run_WithConditions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-		rule := tc.setupRule()
+			rule := tc.setupRule()
 
-		_, err := Add(t.Context(), nil, rule)
-		require.NoError(t, err)
+			_, err := Add(t.Context(), nil, rule)
+			require.NoError(t, err)
 
-		collector := newReportCollector()
-		err = rule.Run(t.Context(), tc.event, nil)
-		if err != nil {
-			collector.Collect(err)
-		}
+			collector := newReportCollector()
+			err = rule.Run(t.Context(), tc.event, nil)
+			if err != nil {
+				collector.Collect(err)
+			}
 
-		reports := collector.Errors()
+			reports := collector.Errors()
 			require.Len(t, reports, tc.expectedReports)
 			if tc.expectedReports > 0 {
 				tc.validateReport(t, reports[0])

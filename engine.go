@@ -62,7 +62,7 @@ func linkRule(rule Registry, head Registry, tail Registry) {
 	}
 }
 
-func linkSameSourceRule(rule sourceRegistry, sameSourceTail sourceRegistry) {
+func linkSameSourceRule(rule Registry, sameSourceTail Registry) {
 	if sameSourceTail == nil {
 		return
 	}
@@ -71,12 +71,12 @@ func linkSameSourceRule(rule sourceRegistry, sameSourceTail sourceRegistry) {
 	sameSourceTail.setNextSameSource(rule)
 }
 
-func getSameSourceTail(registry Registry, source any) sourceRegistry {
+func getSameSourceTail(registry Registry, source any) Registry {
 	tail := registry.getPrev()
 	for current := tail; current != nil; {
 		currentSource := current.getSource()
 		if currentSource == source {
-			return current.getSourceRegistry()
+			return current
 		}
 
 		current = current.getPrev()
