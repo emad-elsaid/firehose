@@ -10,7 +10,7 @@
           <p class="hero-description">
             Build composable event pipelines with conditional execution, hierarchical rules,
             and middleware support. Event-driven architecture that the compiler can verify.
-            The Rule DSL is intentionally SQL-inspired: Select → Into → From → Where → Having.
+            Choose the naming convention that fits your team: SQL, BDD, or Kafka Streams.
           </p>
           <div class="hero-actions">
             <a href="/firehose/guide/quick-start" class="btn btn-primary">Get Started</a>
@@ -20,15 +20,35 @@
           </div>
         </div>
         <div class="hero-code">
-          <pre><code><span class="keyword">type</span> <span class="type">Rule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+          <pre><code><span class="comment">// SQL convention</span>
+<span class="keyword">type</span> <span class="type">SQLRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
     <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
     <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
     <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
     <span class="field">Where</span>  <span class="type">Condition</span>[I]   <span class="comment">// Input condition</span>
     <span class="field">Having</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
+}
+
+<span class="comment">// BDD convention</span>
+<span class="keyword">type</span> <span class="type">ScenarioRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Give</span>        <span class="type">Source</span>[I]    <span class="comment">// Event source</span>
+    <span class="field">Given</span>       <span class="type">Condition</span>[I] <span class="comment">// Input condition</span>
+    <span class="field">Then</span>        <span class="type">Action</span>[I, O] <span class="comment">// Transform</span>
+    <span class="field">GivenOutput</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
+    <span class="field">To</span>          <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+}
+
+<span class="comment">// Kafka Streams convention</span>
+<span class="keyword">type</span> <span class="type">StreamRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Source</span>       <span class="type">Source</span>[I]    <span class="comment">// Event source</span>
+    <span class="field">Filter</span>       <span class="type">Condition</span>[I] <span class="comment">// Input condition</span>
+    <span class="field">Map</span>          <span class="type">Action</span>[I, O] <span class="comment">// Transform</span>
+    <span class="field">FilterOutput</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
+    <span class="field">Sink</span>         <span class="type">Destination</span>[O] <span class="comment">// Output</span>
 }</code></pre>
           <p class="hero-description" style="margin-top: 0.75rem; font-size: 0.95rem;">
-            Familiar SQL rhythm: <code>SELECT ... INTO ... FROM ... WHERE ... HAVING ...</code>
+            One pipeline, three naming conventions: <code>SQL</code>,
+            <code>BDD (Given-When-Then)</code>, or <code>Kafka Streams</code>.
           </p>
         </div>
       </div>
@@ -130,7 +150,7 @@
 <span class="keyword">func</span> <span class="function">main</span>() {
     ctx := context.<span class="function">Background</span>()
     
-    rule := &fh.<span class="type">Rule</span>[<span class="type">Tick</span>, <span class="type">string</span>]{
+    rule := &fh.<span class="type">SQLRule</span>[<span class="type">Tick</span>, <span class="type">string</span>]{
         <span class="field">ID</span>:     <span class="string">"business_hours"</span>,
         <span class="field">Select</span>: <span class="function">FormatTime</span>{},
         <span class="field">Into</span>:   <span class="function">Printer</span>{},
@@ -138,9 +158,9 @@
         <span class="field">Where</span>:  condition.<span class="function">Cond</span>[<span class="type">Tick</span>](<span class="string">"hour >= 9 and hour < 17"</span>),
     }
     
-    registry, _ := fh.<span class="function">Add</span>(ctx, <span class="keyword">nil</span>, rule)
-    fh.<span class="function">Start</span>(ctx, registry, <span class="keyword">nil</span>)
-    fh.<span class="function">Wait</span>(registry, <span class="keyword">nil</span>)
+    head, _ := fh.<span class="function">Add</span>(ctx, <span class="keyword">nil</span>, rule)
+    fh.<span class="function">Start</span>(ctx, head, <span class="keyword">nil</span>)
+    fh.<span class="function">Wait</span>(head, <span class="keyword">nil</span>)
 }</code></pre>
         </div>
       </div>
@@ -210,7 +230,7 @@
           <div class="pipeline-step">
             <div class="step-icon">🔍</div>
             <div class="step-label">Condition</div>
-            <div class="step-desc">Evaluate Where</div>
+            <div class="step-desc">Filter Input</div>
           </div>
           <div class="pipeline-arrow">→</div>
           <div class="pipeline-step">
@@ -220,9 +240,15 @@
           </div>
           <div class="pipeline-arrow">→</div>
           <div class="pipeline-step">
+            <div class="step-icon">🔍</div>
+            <div class="step-label">Condition</div>
+            <div class="step-desc">Filter Output</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
             <div class="step-icon">📤</div>
-            <div class="step-label">Destination</div>
-            <div class="step-desc">Send Output</div>
+            <div class="step-label">Sink</div>
+            <div class="step-desc">Consume</div>
           </div>
         </div>
       </div>

@@ -82,6 +82,95 @@ Middlewares: []Middleware[I, O]{
 }
 ```
 
+### Pipeline Field Mapping
+
+All three rule types express the same pipeline: source → input condition → action →
+output condition → destination. They differ only in field naming:
+
+| Stage | `SQLRule` | `ScenarioRule` (BDD) | `StreamRule` (Kafka Streams) |
+|-------|-----------|---------------------|------------------------------|
+| Source | `From` | `Give` | `Source` |
+| Input condition | `Where` | `Given` | `Filter` |
+| Action | `Select` | `Then` | `Map` |
+| Output condition | `Having` | `GivenOutput` | `FilterOutput` |
+| Destination | `Into` | `To` | `Sink` |
+
+---
+
+## ScenarioRule
+
+BDD-inspired rule with Given-When-Then semantics.
+
+```go
+type ScenarioRule[I, O any] struct {
+    ID           string
+    Environments []string
+    Give         Source[I]
+    Given        Condition[I]
+    Then         Action[I, O]
+    GivenOutput  Condition[O]
+    To           Destination[O]
+    Middlewares  []Middleware[I, O]
+}
+```
+
+### Fields
+
+#### Give (Source[I])
+Event source that produces events of type `I`.
+
+#### Given (Condition[I])
+Optional condition that filters input events. Equivalent to `Where` on `SQLRule`.
+
+#### Then (Action[I, O])
+Transformation that converts input events to output events. Equivalent to `Select`.
+
+#### GivenOutput (Condition[O])
+Optional condition that filters transformed output events before sending to destination.
+Equivalent to `Having`.
+
+#### To (Destination[O])
+Destination that consumes output events. Equivalent to `Into`.
+
+---
+
+## StreamRule
+
+Kafka Streams-inspired rule with Source/Filter/Map/FilterOutput/Sink semantics.
+
+```go
+type StreamRule[I, O any] struct {
+    ID           string
+    Environments []string
+    Source       Source[I]
+    Filter       Condition[I]
+    Map          Action[I, O]
+    FilterOutput Condition[O]
+    Sink         Destination[O]
+    Middlewares  []Middleware[I, O]
+}
+```
+
+### Fields
+
+#### Source (Source[I])
+Event source that produces events of type `I`. Equivalent to `From` on `SQLRule`.
+
+#### Filter (Condition[I])
+Optional condition that filters input events. Equivalent to `Where`.
+
+#### Map (Action[I, O])
+Transformation that converts input events to output events. Equivalent to `Select`.
+
+#### FilterOutput (Condition[O])
+Optional condition that filters transformed output events before sending to destination.
+Equivalent to `Having`.
+
+#### Sink (Destination[O])
+Destination that consumes output events. Equivalent to `Into`.
+
+---
+
 ## Source Interface
 
 ```go
@@ -184,7 +273,8 @@ func EventSymbols(event any) boolexpr.Symbols
 
 ### ErrInputNoMatch
 
-Indicates a `Where` condition evaluated to false (normal control flow, not an error).
+Indicates an input condition (`Where` / `Given` / `Filter`) evaluated to false
+(normal control flow, not an error).
 
 ```go
 var ErrInputNoMatch = errors.New("no match")
@@ -192,7 +282,8 @@ var ErrInputNoMatch = errors.New("no match")
 
 ### ErrOutputNoMatch
 
-Indicates a `Having` condition evaluated to false (normal control flow, not an error).
+Indicates an output condition (`Having` / `GivenOutput` / `FilterOutput`) evaluated
+to false (normal control flow, not an error).
 
 ```go
 var ErrOutputNoMatch = errors.New("output no match")

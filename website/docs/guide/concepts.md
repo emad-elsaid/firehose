@@ -72,10 +72,16 @@ syms := fh.EventSymbols(event)
 ## Rules
 
 Rules define complete event processing pipelines. They combine a source, optional
-condition, transformation, and destination.
-The field order is SQL-inspired for readability:
-`Select -> Into -> From -> Where -> Having` (like
-`SELECT ... INTO ... FROM ... WHERE ... HAVING ...`).
+condition, transformation, and destination. Firehose provides three rule types
+with the same pipeline but different naming conventions:
+
+| Stage | `SQLRule` | `ScenarioRule` | `StreamRule` |
+|-------|-----------|----------------|--------------|
+| Source | `From` | `Give` | `Source` |
+| Input filter | `Where` | `Given` | `Filter` |
+| Transform | `Select` | `Then` | `Map` |
+| Output filter | `Having` | `GivenOutput` | `FilterOutput` |
+| Sink | `Into` | `To` | `Sink` |
 
 ```go
 type SQLRule[I, O any] struct {
@@ -88,6 +94,28 @@ type SQLRule[I, O any] struct {
     Having       Condition[O]       // Optional post-transform condition
     Middlewares  []Middleware[I, O] // Pipeline interceptors
 }
+
+type ScenarioRule[I, O any] struct {
+    ID           string
+    Environments []string
+    Give         Source[I]          // Event source
+    Given        Condition[I]       // Input condition
+    Then         Action[I, O]       // Transformation
+    GivenOutput  Condition[O]       // Output condition
+    To           Destination[O]     // Output handler
+    Middlewares  []Middleware[I, O]
+}
+
+type StreamRule[I, O any] struct {
+    ID           string
+    Environments []string
+    Source       Source[I]          // Event source
+    Filter       Condition[I]       // Input condition
+    Map          Action[I, O]       // Transformation
+    FilterOutput Condition[O]       // Output condition
+    Sink         Destination[O]     // Output handler
+    Middlewares  []Middleware[I, O]
+}
 ```
 
 ### Type Safety
@@ -95,9 +123,9 @@ type SQLRule[I, O any] struct {
 Rules are generic over input (`I`) and output (`O`) types. The compiler ensures:
 
 - `Source[I]` produces events of type `I`
-- `Condition[I]` evaluates conditions on type `I` (used by `Where`)
-- `Action[I, O]` transforms `I` to `O` (used by `Select`)
-- `Destination[O]` consumes events of type `O` (used by `Into`)
+- `Condition[I]` evaluates conditions on type `I`
+- `Action[I, O]` transforms `I` to `O`
+- `Destination[O]` consumes events of type `O`
 
 ```go
 // Valid - types match
@@ -113,6 +141,22 @@ SQLRule[HTTPRequest, User]{
     Into:   EmailService{},         // expects Email, not User
     From:   HTTPServer{},           // produces HTTPRequest
 }
+```
+
+### Choosing a Rule Type
+
+Which rule type to use is a matter of convention — they are functionally identical
+and can be mixed in the same pipeline:
+
+```go
+source := &KafkaConsumer{Topic: "orders"}
+
+// SQL convention
+head, _ = Add(ctx, head, &SQLRule[Event, Email]{From: source, ...})
+// BDD convention
+head, _ = Add(ctx, head, &ScenarioRule[Event, Metrics]{Give: source, ...})
+// Kafka Streams convention
+head, _ = Add(ctx, head, &StreamRule[Event, Audit]{Source: source, ...})
 ```
 
 ## Sources
@@ -265,9 +309,11 @@ func NewRuleError(rule string, err error) error
 
 Common sentinel and wrapper errors:
 
-- `ErrInputNoMatch` — `Where` condition evaluated to false (normal control flow)
-- `ErrOutputNoMatch` — `Having` condition evaluated to false (normal control flow)
-- `ConditionError` — failure while evaluating `Where` or `Having`
+- `ErrInputNoMatch` — input condition (`Where` / `Given` / `Filter`) evaluated
+   to false (normal control flow)
+- `ErrOutputNoMatch` — output condition (`Having` / `GivenOutput` / `FilterOutput`)
+   evaluated to false (normal control flow)
+- `ConditionError` — failure while evaluating a condition
 - `ActionError` — failure inside `Action.Process`
 - `DestinationError` — failure inside `Destination.Send`
 
@@ -287,10 +333,12 @@ cb(ctx, event, func(err error) {
 
 When a source invokes the callback, the rule executes these steps in order:
 
-1. Evaluate `Where` condition — skip and return `ErrInputNoMatch` if false
-2. Execute `Select` action — transform input to output
-3. Evaluate `Having` condition — skip and return `ErrOutputNoMatch` if false
-4. Send to `Into` destination
+1. Evaluate input condition (`Where` / `Given` / `Filter`) — skip and return
+   `ErrInputNoMatch` if false
+2. Execute action (`Select` / `Then` / `Map`) — transform input to output
+3. Evaluate output condition (`Having` / `GivenOutput` / `FilterOutput`) — skip
+   and return `ErrOutputNoMatch` if false
+4. Send to destination (`Into` / `To` / `Sink`)
 
 Rules with the same source form a linked list. Each rule in the chain executes
 independently.

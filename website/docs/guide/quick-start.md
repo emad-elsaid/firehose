@@ -224,6 +224,36 @@ func main() {
 ```
 </details>
 
+### Alternative Naming Conventions
+
+The same pipeline can be expressed with BDD or Kafka Streams naming:
+
+```go
+// BDD convention: Given → Then → GivenOutput → To → Give
+rule := &fh.ScenarioRule[Tick, string]{
+    ID:          "print_business_hours",
+    Give:        Timer{Interval: 1 * time.Second},
+    Given:       condition.Cond[Tick]("hour >= 9 and hour < 17"),
+    Then:        FormatTime{},
+    GivenOutput: condition.Cond[string](`msg != "12:00:00"`), // skip lunch
+    To:          Printer{},
+}
+
+// Kafka Streams convention: Source → Filter → Map → FilterOutput → Sink
+rule := &fh.StreamRule[Tick, string]{
+    ID:           "print_business_hours",
+    Source:       Timer{Interval: 1 * time.Second},
+    Filter:       condition.Cond[Tick]("hour >= 9 and hour < 17"),
+    Map:          FormatTime{},
+    FilterOutput: condition.Cond[string](`msg != "12:00:00"`),
+    Sink:         Printer{},
+}
+```
+
+All three types share the same engine — they can be mixed freely in the same
+pipeline and use identical components for sources, conditions, actions, and
+destinations.
+
 ## What's Next?
 
 - Learn about [Core Concepts](/guide/concepts)
