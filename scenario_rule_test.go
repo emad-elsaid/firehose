@@ -18,7 +18,7 @@ func TestScenarioRuleCallback(t *testing.T) {
 
 		rule := &MockScenarioRule{
 			ID:   "test-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -44,7 +44,7 @@ func TestScenarioRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockScenarioRule{
 			ID:   "test-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -73,7 +73,7 @@ func TestScenarioRuleCallback(t *testing.T) {
 		destination := NewMockDestination[*EventMock](t)
 		rule := &MockScenarioRule{
 			ID:   "test-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -105,14 +105,14 @@ func TestScenarioRuleCallback(t *testing.T) {
 
 		rule1 := &MockScenarioRule{
 			ID:   "rule1",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockScenarioRule{
 			ID:   "rule2",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -142,14 +142,14 @@ func TestScenarioRuleCallback(t *testing.T) {
 
 		rule1 := &MockScenarioRule{
 			ID:   "rule1",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
 
 		rule2 := &MockScenarioRule{
 			ID:   "rule2",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -180,7 +180,7 @@ func TestScenarioRuleCallback(t *testing.T) {
 
 		rule := &MockScenarioRule{
 			ID:   "test-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -252,7 +252,7 @@ func TestScenarioRule_Run(t *testing.T) {
 
 				rule := &MockScenarioRule{
 					ID:   "test-rule",
-					Give: NewMockSource[*EventMock](t),
+					When: NewMockSource[*EventMock](t),
 					Then: action,
 					To:   destination,
 				}
@@ -280,7 +280,7 @@ func TestScenarioRule_Run(t *testing.T) {
 
 				rule := &MockScenarioRule{
 					ID:   "test-rule",
-					Give: NewMockSource[*EventMock](t),
+					When: NewMockSource[*EventMock](t),
 					Then: action,
 					To:   destination,
 				}
@@ -309,7 +309,7 @@ func TestScenarioRule_Run(t *testing.T) {
 
 				rule := &MockScenarioRule{
 					ID:   "test-rule",
-					Give: NewMockSource[*EventMock](t),
+					When: NewMockSource[*EventMock](t),
 					Then: action,
 					To:   destination,
 				}
@@ -367,7 +367,7 @@ func TestScenarioRule_Start(t *testing.T) {
 				source := NewMockSource[*EventMock](t)
 				rule := &MockScenarioRule{
 					ID:   "test-rule",
-					Give: source,
+					When: source,
 				}
 				done := make(chan struct{})
 				source.On("Start", mock.Anything, mock.Anything).
@@ -381,8 +381,8 @@ func TestScenarioRule_Start(t *testing.T) {
 			name: "does not start when prevSameSource is set (not first in chain)",
 			setup: func() (*MockScenarioRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
-				rule1 := &MockScenarioRule{ID: "rule1", Give: source}
-				rule2 := &MockScenarioRule{ID: "rule2", Give: source}
+				rule1 := &MockScenarioRule{ID: "rule1", When: source}
+				rule2 := &MockScenarioRule{ID: "rule2", When: source}
 				rule2.SetPrevSameSource(rule1)
 				return rule2, source
 			},
@@ -395,7 +395,7 @@ func TestScenarioRule_Start(t *testing.T) {
 				source := NewMockSource[*EventMock](t)
 				rule := &MockScenarioRule{
 					ID:   "test-rule",
-					Give: source,
+					When: source,
 				}
 				source.On("Start", mock.Anything, mock.Anything).
 					Return(nil, os.ErrClosed).Once()
@@ -444,7 +444,7 @@ func TestScenarioRule_Run_WithConditions(t *testing.T) {
 
 				return &MockScenarioRule{
 					ID:    "test-rule",
-					Give:  NewMockSource[*EventMock](t),
+					When:  NewMockSource[*EventMock](t),
 					Then:  NewMockAction[*EventMock, *EventMock](t),
 					To:    NewMockDestination[*EventMock](t),
 					Given: cond,
@@ -473,7 +473,7 @@ func TestScenarioRule_Run_WithConditions(t *testing.T) {
 
 				return &MockScenarioRule{
 					ID:    "test-rule",
-					Give:  NewMockSource[*EventMock](t),
+					When:  NewMockSource[*EventMock](t),
 					Given: cond,
 					Then:  action,
 					To:    destination,
@@ -498,7 +498,7 @@ func TestScenarioRule_Run_WithConditions(t *testing.T) {
 
 				return &MockScenarioRule{
 					ID:          "test-rule",
-					Give:        NewMockSource[*EventMock](t),
+					When:        NewMockSource[*EventMock](t),
 					Then:        action,
 					GivenOutput: postCond,
 					To:          NewMockDestination[*EventMock](t),
@@ -527,7 +527,7 @@ func TestScenarioRule_Run_WithConditions(t *testing.T) {
 
 				return &MockScenarioRule{
 					ID:          "test-rule",
-					Give:        NewMockSource[*EventMock](t),
+					When:        NewMockSource[*EventMock](t),
 					Then:        action,
 					GivenOutput: postCond,
 					To:          destination,
@@ -579,7 +579,7 @@ func TestScenarioRule_IntegrationWithAdd(t *testing.T) {
 
 		scenarioRule := &MockScenarioRule{
 			ID:   "scenario-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   destination,
 		}
@@ -634,9 +634,9 @@ func TestScenarioRule_GetSetMethods(t *testing.T) {
 		require.Same(t, rule1, rule2.GetPrevSameSource())
 	})
 
-	t.Run("GetSource returns Give", func(t *testing.T) {
+	t.Run("GetSource returns When", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
-		rule := &MockScenarioRule{ID: "rule1", Give: source}
+		rule := &MockScenarioRule{ID: "rule1", When: source}
 		require.Same(t, source, rule.GetSource())
 	})
 
@@ -659,10 +659,10 @@ func TestIsValid_ScenarioRule(t *testing.T) {
 		require.Error(t, isValid(rule))
 	})
 
-	t.Run("rule missing Give is invalid", func(t *testing.T) {
+	t.Run("rule missing When is invalid", func(t *testing.T) {
 		rule := &MockScenarioRule{
 			ID:   "rule",
-			Give: nil,
+			When: nil,
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -672,7 +672,7 @@ func TestIsValid_ScenarioRule(t *testing.T) {
 	t.Run("rule missing Then is invalid", func(t *testing.T) {
 		rule := &MockScenarioRule{
 			ID:   "rule",
-			Give: NewMockSource[*EventMock](t),
+			When: NewMockSource[*EventMock](t),
 			Then: nil,
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -682,7 +682,7 @@ func TestIsValid_ScenarioRule(t *testing.T) {
 	t.Run("rule missing To is invalid", func(t *testing.T) {
 		rule := &MockScenarioRule{
 			ID:   "rule",
-			Give: NewMockSource[*EventMock](t),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   nil,
 		}
@@ -692,7 +692,7 @@ func TestIsValid_ScenarioRule(t *testing.T) {
 	t.Run("valid ScenarioRule passes validation", func(t *testing.T) {
 		rule := &MockScenarioRule{
 			ID:   "valid-rule",
-			Give: NewMockSource[*EventMock](t),
+			When: NewMockSource[*EventMock](t),
 			Then: &MockAction[*EventMock, *EventMock]{},
 			To:   &MockDestination[*EventMock]{},
 		}
@@ -707,7 +707,7 @@ func TestScenarioRule_Run_GivenConditionError(t *testing.T) {
 
 	rule := &MockScenarioRule{
 		ID:    "test-rule",
-		Give:  NewMockSource[*EventMock](t),
+		When:  NewMockSource[*EventMock](t),
 		Given: cond,
 		Then:  NewMockAction[*EventMock, *EventMock](t),
 		To:    NewMockDestination[*EventMock](t),
@@ -740,7 +740,7 @@ func TestScenarioRule_Run_GivenOutputConditionError(t *testing.T) {
 
 	rule := &MockScenarioRule{
 		ID:          "test-rule",
-		Give:        NewMockSource[*EventMock](t),
+		When:        NewMockSource[*EventMock](t),
 		Then:        action,
 		GivenOutput: postCond,
 		To:          NewMockDestination[*EventMock](t),

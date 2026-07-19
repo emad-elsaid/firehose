@@ -133,9 +133,9 @@ func main() {
     // GET /api/users route
     head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "get_user",
+        Select: GetUserHandler{},
         From:   httpSource,
         Where:  condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
-        Select: GetUserHandler{},
         Into:   JSONResponse{},
     })
     if err != nil {
@@ -145,10 +145,10 @@ func main() {
     // POST /api/users route
     head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "create_user",
-        From:   httpSource,
-        Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
         Select: CreateUserHandler{},
         Into:   JSONResponse{},
+        From:   httpSource,
+        Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
     })
     if err != nil {
         log.Fatal(err)

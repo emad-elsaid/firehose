@@ -77,7 +77,7 @@ with the same pipeline but different naming conventions:
 
 | Stage | `SQLRule` | `ScenarioRule` | `StreamRule` | `MapReduceRule` |
 |-------|-----------|----------------|--------------|-----------------|
-| Source | `From` | `Give` | `Source` | `Source` |
+| Source | `From` | `When` | `Source` | `Source` |
 | Input filter | `Where` | `Given` | `Filter` | `Filter` |
 | Transform | `Select` | `Then` | `Map` | `Map` |
 | Reduce | — | — | — | `Reduce` |
@@ -99,7 +99,7 @@ type SQLRule[I, O any] struct {
 type ScenarioRule[I, O any] struct {
     ID           string
     Environments []string
-    Give         Source[I]          // Event source
+    When         Source[I]          // Event source
     Given        Condition[I]       // Input condition
     Then         Action[I, O]       // Transformation
     GivenOutput  Condition[O]       // Output condition
@@ -193,7 +193,7 @@ source := &KafkaConsumer{Topic: "orders"}
 // SQL convention
 head, _ = Add(ctx, head, &SQLRule[Event, Email]{From: source, ...})
 // BDD convention
-head, _ = Add(ctx, head, &ScenarioRule[Event, Metrics]{Give: source, ...})
+head, _ = Add(ctx, head, &ScenarioRule[Event, Metrics]{When: source, ...})
 // Kafka Streams convention
 head, _ = Add(ctx, head, &StreamRule[Event, Audit]{Source: source, ...})
 // MapReduce convention (3 type params)

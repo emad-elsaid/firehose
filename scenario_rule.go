@@ -13,7 +13,7 @@ import (
 // ScenarioRule defines an event processing pipeline following the BDD
 // Given-When-Then pattern. I and O represent the input and output event types.
 //
-// Pipeline: Give (source) → Given (condition) → Then (action) →
+// Pipeline: When (source) → Given (condition) → Then (action) →
 //
 //	GivenOutput (condition) → To (destination).
 type ScenarioRule[I, O any] struct {
@@ -23,8 +23,8 @@ type ScenarioRule[I, O any] struct {
 	// Environments is a list of environment names where the rule is active.
 	// If empty, the rule is active in all environments.
 	Environments []string
-	// Give is the source that produces events to be processed by this rule.
-	Give Source[I] `validate:"required"`
+	// When is the source that produces events to be processed by this rule.
+	When Source[I] `validate:"required"`
 	// Given is a condition that must evaluate to true for the rule to process
 	// the event.
 	Given Condition[I]
@@ -92,7 +92,7 @@ func (r *ScenarioRule[I, O]) Start(ctx context.Context) (<-chan struct{}, error)
 		return nil, nil
 	}
 
-	done, err := r.Give.Start(ctx, r.wrappedCallback)
+	done, err := r.When.Start(ctx, r.wrappedCallback)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start source: %w", err)
 	}
@@ -197,7 +197,7 @@ func (r *ScenarioRule[I, O]) SetPrevSameSource(p Rule) { r.prevSameSource = p }
 func (r *ScenarioRule[I, O]) GetPrevSameSource() Rule { return r.prevSameSource }
 
 // GetSource returns the source associated with this rule.
-func (r *ScenarioRule[I, O]) GetSource() any { return r.Give }
+func (r *ScenarioRule[I, O]) GetSource() any { return r.When }
 
 // GetID returns the unique identifier of the rule.
 func (r *ScenarioRule[I, O]) GetID() string { return r.ID }

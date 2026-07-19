@@ -104,8 +104,8 @@ func main() {
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
-        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
         From:   Timer{Interval: 1 * time.Second},
+        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
     }
 
     head, err := fh.Add(ctx, nil, rule)
@@ -204,8 +204,8 @@ func main() {
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
-        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
         From:   Timer{Interval: 1 * time.Second},
+        Where:   condition.Cond[Tick]("hour >= 9 and hour < 17"),
     }
 
     head, _ := fh.Add(ctx, nil, rule)
@@ -229,10 +229,10 @@ func main() {
 The same pipeline can be expressed with BDD, Kafka Streams, or MapReduce naming:
 
 ```go
-// BDD convention: Given → Then → GivenOutput → To → Give
+// BDD convention: Given → When → Then → GivenOutput → To
 rule := &fh.ScenarioRule[Tick, string]{
     ID:          "print_business_hours",
-    Give:        Timer{Interval: 1 * time.Second},
+    When:        Timer{Interval: 1 * time.Second},
     Given:       condition.Cond[Tick]("hour >= 9 and hour < 17"),
     Then:        FormatTime{},
     GivenOutput: condition.Cond[string](`msg != "12:00:00"`), // skip lunch

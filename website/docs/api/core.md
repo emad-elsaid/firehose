@@ -90,7 +90,7 @@ intermediary Reduce stage for stateful accumulation.
 
 | Stage | `SQLRule` | `ScenarioRule` (BDD) | `StreamRule` (Kafka Streams) | `MapReduceRule` |
 |-------|-----------|---------------------|------------------------------|-----------------|
-| Source | `From` | `Give` | `Source` | `Source` |
+| Source | `From` | `When` | `Source` | `Source` |
 | Input condition | `Where` | `Given` | `Filter` | `Filter` |
 | Action | `Select` | `Then` | `Map` | `Map` |
 | Reduce | — | — | — | `Reduce` |
@@ -101,13 +101,14 @@ intermediary Reduce stage for stateful accumulation.
 
 ## ScenarioRule
 
-BDD-inspired rule with Given-When-Then semantics.
+BDD-inspired rule with Given-When-Then semantics. Note the field is named
+`When` (not `Give`) to align with the "when" step in BDD scenarios.
 
 ```go
 type ScenarioRule[I, O any] struct {
     ID           string
     Environments []string
-    Give         Source[I]
+    When         Source[I]
     Given        Condition[I]
     Then         Action[I, O]
     GivenOutput  Condition[O]
@@ -118,8 +119,9 @@ type ScenarioRule[I, O any] struct {
 
 ### Fields
 
-#### Give (Source[I])
-Event source that produces events of type `I`.
+#### When (Source[I])
+Event source that produces events of type `I`. Named after the "when" step in
+BDD Given-When-Then scenarios.
 
 #### Given (Condition[I])
 Optional condition that filters input events. Equivalent to `Where` on `SQLRule`.

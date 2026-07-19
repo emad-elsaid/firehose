@@ -20,8 +20,6 @@ type SQLRule[I, O any] struct {
 	Environments []string
 	// Select is the action to process input events into output events.
 	Select Action[I, O] `validate:"required"`
-	// Into is the destination to send the output of the Select action.
-	Into Destination[O] `validate:"required"`
 	// From is the source that produces events to be processed by this rule.
 	From Source[I] `validate:"required"`
 	// Where is a condition that must evaluate to true for the rule to process the event.
@@ -31,6 +29,8 @@ type SQLRule[I, O any] struct {
 	// Having is a condition that must evaluate to true for the rule to send
 	// the output of the Select action to the Into destination.
 	Having Condition[O]
+	// Into is the destination to send the output of the Select action.
+	Into Destination[O] `validate:"required"`
 	// Middlewares are the middlewares that will be applied to the action and
 	// destination and callback of the rule. The first middleware wraps the
 	// second middleware, and so on. The last middleware wraps the

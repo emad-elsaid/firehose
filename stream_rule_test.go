@@ -528,7 +528,7 @@ func TestStreamRule_IntegrationWithOtherRules(t *testing.T) {
 
 		scenarioRule := &MockScenarioRule{
 			ID:   "scenario-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   dest,
 		}

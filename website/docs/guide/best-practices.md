@@ -14,8 +14,8 @@ rule := &fh.SQLRule[OrderEvent, Email]{
     ID:   "order_confirmation_email",
     Select: CreateConfirmationEmail{},
     Into:   emailService,
-    Where:   condition.Cond[OrderEvent](`status = "completed"`),
     From:   orderSource,
+    Where:   condition.Cond[OrderEvent](`status = "completed"`),
 }
 
 // Bad - multiple responsibilities

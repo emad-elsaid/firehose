@@ -218,8 +218,8 @@ func TestCompleteRule(t *testing.T) {
         ID:   "order_notification",
         Select: CreateEmail{},
         Into:   accumulator,
-        Where:   condition.Cond[OrderEvent]("amount > 100"),
         From:   manual,
+        Where:   condition.Cond[OrderEvent]("amount > 100"),
     }
 
     ctx := context.Background()

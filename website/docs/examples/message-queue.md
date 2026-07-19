@@ -154,10 +154,10 @@ func main() {
     // High-value order processing
     head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "high_value",
-        From:   kafkaSource,
-        Where:  condition.Cond[OrderEvent](`amount > 1000`),
         Select: ProcessHighValueOrder{},
         Into:   DatabaseWriter{},
+        From:   kafkaSource,
+        Where:  condition.Cond[OrderEvent](`amount > 1000`),
     })
     if err != nil {
         log.Fatal(err)
@@ -166,10 +166,10 @@ func main() {
     // Failed order handling
     head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "failed_orders",
-        From:   kafkaSource,
-        Where:  condition.Cond[OrderEvent](`status = "failed"`),
         Select: actions.Func[OrderEvent, OrderEvent](func(ctx context.Context, e OrderEvent, _ boolexpr.Symbols) (OrderEvent, error) { return e, nil }),
         Into:   DeadLetterQueue{},
+        From:   kafkaSource,
+        Where:  condition.Cond[OrderEvent](`status = "failed"`),
     })
     if err != nil {
         log.Fatal(err)

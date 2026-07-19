@@ -743,7 +743,7 @@ func TestMapReduceRule_IntegrationWithOtherRules(t *testing.T) {
 
 		head, err = Add(t.Context(), head, &MockScenarioRule{
 			ID:   "scenario-rule",
-			Give: source,
+			When: source,
 			Then: action,
 			To:   dest,
 		})

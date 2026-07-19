@@ -154,10 +154,10 @@ func main() {
     // Critical CPU alerts to PagerDuty
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_cpu",
-        From:   monitor,
-        Where:  condition.Cond[ProcessEvent](`cpu > 80`),
         Select: CreateCriticalAlert{},
         Into:   PagerDuty{},
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`cpu > 80`),
     })
     if err != nil {
         log.Fatal(err)
@@ -166,10 +166,10 @@ func main() {
     // Critical memory alerts to PagerDuty
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_memory",
-        From:   monitor,
-        Where:  condition.Cond[ProcessEvent](`memory > 1000`),
         Select: CreateCriticalAlert{},
         Into:   PagerDuty{},
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`memory > 1000`),
     })
     if err != nil {
         log.Fatal(err)
@@ -178,10 +178,10 @@ func main() {
     // Warning CPU alerts to Slack
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "warning_cpu",
-        From:   monitor,
-        Where:  condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
         Select: CreateWarningAlert{},
         Into:   Slack{},
+        From:   monitor,
+        Where:  condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
     })
     if err != nil {
         log.Fatal(err)

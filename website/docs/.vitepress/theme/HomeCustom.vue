@@ -23,6 +23,7 @@
         <div class="hero-code">
           <pre><code><span class="comment">// SQL convention</span>
 <span class="keyword">type</span> <span class="type">SQLRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">ID</span>     <span class="type">string</span>         <span class="comment">// Unique ID</span>
     <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
     <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
     <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
