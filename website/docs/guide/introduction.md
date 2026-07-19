@@ -38,10 +38,10 @@ Rules enforce type safety between pipeline stages. The compiler ensures transfor
 
 ```go
 // HTTP request events → Order events
-Rule[HTTPRequest, OrderPlaced]
+SQLRule[HTTPRequest, OrderPlaced]
 
 // Order events → Email notifications
-Rule[OrderPlaced, EmailSent]
+SQLRule[OrderPlaced, EmailSent]
 ```
 
 ### Event Source Fanout
@@ -52,8 +52,8 @@ Register multiple rules with the same source instance. The framework detects thi
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = Add(ctx, reg, &Rule[OrderEvent, Email]{From: kafkaSource, ...})
-reg, _ = Add(ctx, reg, &Rule[OrderEvent, Metrics]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &SQLRule[OrderEvent, Email]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &SQLRule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 ### Middleware System
@@ -65,7 +65,7 @@ type LoggingMiddleware[I, O any] struct{}
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *Rule[I, O],
+    rule *SQLSQLRule[I, O],
     action Action[I, O],
 ) (Action[I, O], error) {
     return loggingAction[I, O]{ruleID: rule.ID, next: action}, nil

@@ -127,11 +127,11 @@ func main() {
     
     httpSource := HTTPServer{Addr: ":8080"}
     
-    var registry fh.Registry
+    var head fh.Rule
     var err error
     
     // GET /api/users route
-    registry, err = fh.Add(ctx, registry, &fh.Rule[HTTPRequest, HTTPResponse]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "get_user",
         From:   httpSource,
         Where:  condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
@@ -143,7 +143,7 @@ func main() {
     }
     
     // POST /api/users route
-    registry, err = fh.Add(ctx, registry, &fh.Rule[HTTPRequest, HTTPResponse]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "create_user",
         From:   httpSource,
         Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
@@ -154,12 +154,12 @@ func main() {
         log.Fatal(err)
     }
     
-    fh.Start(ctx, registry, func(err error) {
+    fh.Start(ctx, head, func(err error) {
         log.Printf("Error: %v", err)
     })
     
     log.Println("Server listening on :8080")
-    fh.Wait(registry, nil)
+    fh.Wait(head, nil)
 }
 ```
 

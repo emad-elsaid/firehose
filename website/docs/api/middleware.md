@@ -6,9 +6,9 @@ API reference for middleware interfaces and built-in implementations.
 
 ```go
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *Rule[I, O], cb Callback[I]) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *Rule[I, O], dest Destination[O]) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule *SQLRule[I, O], cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule *SQLRule[I, O], action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule *SQLRule[I, O], dest Destination[O]) (Destination[O], error)
 }
 ```
 
@@ -75,7 +75,7 @@ func (a loggingAction[I, O]) Process(
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
     return loggingAction[I, O]{ruleID: rule.ID, next: action}, nil
@@ -84,7 +84,7 @@ func (m LoggingMiddleware[I, O]) WrapAction(
 // Return unchanged if not wrapping
 func (m LoggingMiddleware[I, O]) WrapCallback(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     cb fh.Callback[I],
 ) (fh.Callback[I], error) {
     return cb, nil
@@ -92,7 +92,7 @@ func (m LoggingMiddleware[I, O]) WrapCallback(
 
 func (m LoggingMiddleware[I, O]) WrapDestination(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     dest fh.Destination[O],
 ) (fh.Destination[O], error) {
     return dest, nil

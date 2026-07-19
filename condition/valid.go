@@ -19,7 +19,7 @@ import (
 //		Age      int    `validate:"required,gte=18"`
 //	}
 //
-//	rule := &firehose.Rule[UserEvent, ProcessedUser]{
+//	rule := &firehose.SQLRule[UserEvent, ProcessedUser]{
 //		ID: "validate-user",
 //		Where: &condition.Valid[UserEvent]{},  // Validate input
 //		Having: &condition.Valid[ProcessedUser]{},  // Validate output

@@ -148,11 +148,11 @@ func main() {
     
     monitor := &ProcessMonitor{PollInterval: 5 * time.Second}
     
-    var registry fh.Registry
+    var head fh.Rule
     var err error
     
     // Critical CPU alerts to PagerDuty
-    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_cpu",
         From:   monitor,
         Where:  condition.Cond[ProcessEvent](`cpu > 80`),
@@ -164,7 +164,7 @@ func main() {
     }
     
     // Critical memory alerts to PagerDuty
-    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_memory",
         From:   monitor,
         Where:  condition.Cond[ProcessEvent](`memory > 1000`),
@@ -176,7 +176,7 @@ func main() {
     }
     
     // Warning CPU alerts to Slack
-    registry, err = fh.Add(ctx, registry, &fh.Rule[ProcessEvent, Alert]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "warning_cpu",
         From:   monitor,
         Where:  condition.Cond[ProcessEvent](`cpu > 50 and cpu <= 80`),
@@ -187,10 +187,10 @@ func main() {
         log.Fatal(err)
     }
     
-    fh.Start(ctx, registry, nil)
+    fh.Start(ctx, head, nil)
     
     log.Println("System monitor running...")
-    fh.Wait(registry, nil)
+    fh.Wait(head, nil)
 }
 ```
 

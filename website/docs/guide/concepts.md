@@ -60,7 +60,7 @@ The field order is SQL-inspired for readability:
 `Select -> Into -> From -> Where -> Having` (like `SELECT ... INTO ... FROM ... WHERE ... HAVING ...`).
 
 ```go
-type Rule[I, O any] struct {
+type SQLSQLRule[I, O any] struct {
     ID           string             // Unique identifier
     Environments []string           // Active only when ENV matches
     Select       Action[I, O]       // Event transformation
@@ -83,14 +83,14 @@ Rules are generic over input (`I`) and output (`O`) types. The compiler ensures:
 
 ```go
 // ✅ Valid - types match
-Rule[HTTPRequest, User]{
+SQLRule[HTTPRequest, User]{
     Select: ExtractUser{},          // HTTPRequest → User
     Into:   UserDatabase{},         // consumes User
     From:   HTTPServer{},           // produces HTTPRequest
 }
 
 // ❌ Invalid - compiler error
-Rule[HTTPRequest, User]{
+SQLRule[HTTPRequest, User]{
     Select: ExtractUser{},          // HTTPRequest → User
     Into:   EmailService{},         // expects Email, not User
     From:   HTTPServer{},           // produces HTTPRequest
@@ -142,8 +142,8 @@ When multiple rules share the same source instance, Firehose starts it only once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // kafkaSource starts once, events go to both rules
-reg, _ = Add(ctx, reg, &Rule[Event, Email]{From: kafkaSource, ...})
-reg, _ = Add(ctx, reg, &Rule[Event, Metrics]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &SQLRule[Event, Email]{From: kafkaSource, ...})
+reg, _ = Add(ctx, reg, &SQLRule[Event, Metrics]{From: kafkaSource, ...})
 ```
 
 Different source instances start independently.
@@ -252,9 +252,9 @@ Middlewares intercept and wrap pipeline components:
 
 ```go
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *Rule[I, O], cb Callback[I]) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *Rule[I, O], dest Destination[O]) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule *SQLSQLRule[I, O], cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule *SQLSQLRule[I, O], action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule *SQLSQLRule[I, O], dest Destination[O]) (Destination[O], error)
 }
 ```
 

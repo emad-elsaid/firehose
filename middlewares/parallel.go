@@ -16,13 +16,13 @@ type TaskRunner interface {
 type Parallel[I, O any] struct {
 	Runner TaskRunner
 
-	rule *fh.Rule[I, O]
+	rule fh.Rule
 }
 
 // WrapCallback stores the rule and returns the parallel callback function.
 func (s *Parallel[I, O]) WrapCallback(
 	_ context.Context,
-	rule *fh.Rule[I, O],
+	rule fh.Rule,
 	_ fh.Callback[I],
 ) (fh.Callback[I], error) {
 	s.rule = rule
@@ -33,7 +33,7 @@ func (s *Parallel[I, O]) WrapCallback(
 // WrapAction passes through the action unchanged.
 func (s *Parallel[I, O]) WrapAction(
 	_ context.Context,
-	_ *fh.Rule[I, O],
+	_ fh.Rule,
 	action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
 	return action, nil
@@ -42,7 +42,7 @@ func (s *Parallel[I, O]) WrapAction(
 // WrapDestination passes through the destination unchanged.
 func (s *Parallel[I, O]) WrapDestination(
 	_ context.Context,
-	_ *fh.Rule[I, O],
+	_ fh.Rule,
 	destination fh.Destination[O],
 ) (fh.Destination[O], error) {
 	return destination, nil
@@ -53,7 +53,7 @@ func (s Parallel[I, O]) callback(ctx context.Context, event I, report fh.ErrorHa
 
 	var waitGroup sync.WaitGroup
 
-	for current := fh.Runnable[I](s.rule); current != nil; current = current.NextRunnable() {
+	for current := s.rule.(fh.Runnable[I]); current != nil; current = current.NextRunnable() {
 		waitGroup.Add(1)
 
 		s.Runner.Run(func() {

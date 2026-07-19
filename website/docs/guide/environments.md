@@ -14,7 +14,7 @@ Rules can be activated only in specific environments using the `Environments` fi
 ## Basic Usage
 
 ```go
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     ID:           "billing_processor",
     Environments: []string{"production", "staging"},
     Select:         action,
@@ -43,7 +43,7 @@ export ENV=staging
 If `Environments` is empty or nil, the rule is active in all environments:
 
 ```go
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     ID: "always_active",
     From: source,
     // No Environments field - active everywhere
@@ -55,7 +55,7 @@ rule := &fh.Rule[Event, Output]{
 ### Different Destinations
 
 ```go
-rules := []*fh.Rule[Event, Event]{
+rules := []*fh.SQLRule[Event, Event]{
     {
         ID:           "prod_events",
         Environments: []string{"production"},
@@ -76,7 +76,7 @@ rules := []*fh.Rule[Event, Event]{
 ### Debug Logging
 
 ```go
-debugRule := &fh.Rule[Event, Event]{
+debugRule := &fh.SQLRule[Event, Event]{
     ID:           "debug_logger",
     Environments: []string{"development", "staging"},
     Select:         actions.Identity[Event]{},
@@ -88,7 +88,7 @@ debugRule := &fh.Rule[Event, Event]{
 ### Feature Flags
 
 ```go
-betaFeature := &fh.Rule[Event, Output]{
+betaFeature := &fh.SQLRule[Event, Output]{
     ID:           "beta_feature",
     Environments: []string{"staging", "beta"},
     Select:         NewFeatureAction{},
@@ -102,7 +102,7 @@ betaFeature := &fh.Rule[Event, Output]{
 A rule can be active in multiple environments:
 
 ```go
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     Environments: []string{"production", "staging", "qa"},
     // Active in production, staging, and qa
 }
@@ -128,10 +128,10 @@ func TestEnvironmentRules(t *testing.T) {
             defer os.Unsetenv("ENV")
             
             // Create rules with different environments
-            registry := createTestRegistry(t)
+            head := createTestRegistry(t)
             
             // Verify correct rules are active
-            assert.Equal(t, tc.wantLen, countActiveRules(registry))
+            assert.Equal(t, tc.wantLen, countActiveRules(head))
         })
     }
 }

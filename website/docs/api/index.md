@@ -12,29 +12,29 @@ import fh "github.com/emad-elsaid/firehose"
 
 ### Add
 
-Registers a rule and returns an updated registry.
+Registers a rule and returns an updated head.
 
 ```go
 func Add[I, O any](
     ctx context.Context,
-    registry Registry,
-    rule *Rule[I, O],
-) (Registry, error)
+    head Rule,
+    rule *SQLRule[I, O],
+) (Rule, error)
 ```
 
 **Parameters:**
 - `ctx` - Context for rule initialization
-- `registry` - Existing registry (can be `nil` for first rule)
+- `head` - Existing head (can be `nil` for first rule)
 - `rule` - Rule to register
 
 **Returns:**
-- Updated registry
+- Updated head
 - Error if rule validation fails
 
 **Example:**
 
 ```go
-registry, err := fh.Add(ctx, nil, &fh.Rule[Event, Output]{
+head, err := fh.Add(ctx, nil, &fh.SQLRule[Event, Output]{
     ID:   "my_rule",
     Select: action,
     Into:   destination,
@@ -47,12 +47,12 @@ registry, err := fh.Add(ctx, nil, &fh.Rule[Event, Output]{
 Activates all registered event sources.
 
 ```go
-func Start(ctx context.Context, registry Registry, errFunc ErrorHandler)
+func Start(ctx context.Context, head Rule, errFunc ErrorHandler)
 ```
 
 **Parameters:**
 - `ctx` - Context for source lifecycle
-- `registry` - Registry containing rules
+- `head` - Rule containing rules
 - `errFunc` - Handler for source startup errors
 
 **Example:**
@@ -64,8 +64,8 @@ errHandler := func(err error) {
     }
 }
 
-fh.Start(ctx, registry, errHandler)
-for _, ch := range fh.Start(ctx, registry, errHandler) {
+fh.Start(ctx, head, errHandler)
+for _, ch := range fh.Start(ctx, head, errHandler) {
     <-ch
 }
 ```

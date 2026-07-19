@@ -9,14 +9,14 @@ import (
 )
 
 // Add registers a new processing rule in the context.
-func Add(ctx context.Context, registry Registry, rule Registry) (Registry, error) {
+func Add(ctx context.Context, head Rule, rule Rule) (Rule, error) {
 	err := isValid(rule)
 	if err != nil {
 		return nil, err
 	}
 
 	if !isEnvironmentEnabled(rule.GetEnvironments(), os.Getenv("ENV")) {
-		return registry, nil
+		return head, nil
 	}
 
 	err = rule.Init(ctx)
@@ -24,7 +24,7 @@ func Add(ctx context.Context, registry Registry, rule Registry) (Registry, error
 		return nil, err
 	}
 
-	return addToRegistry(registry, rule), nil
+	return addToHead(head, rule), nil
 }
 
 func isEnvironmentEnabled(environments []string, currentEnvironment string) bool {
@@ -35,24 +35,24 @@ func isEnvironmentEnabled(environments []string, currentEnvironment string) bool
 	return slices.Contains(environments, currentEnvironment)
 }
 
-func addToRegistry(registry Registry, rule Registry) Registry {
-	if registry == nil {
+func addToHead(head Rule, rule Rule) Rule {
+	if head == nil {
 		rule.SetNext(rule)
 		rule.SetPrev(rule)
 
 		return rule
 	}
 
-	tail := registry.GetPrev()
-	sameSourceTail := getSameSourceTail(registry, rule.GetSource())
+	tail := head.GetPrev()
+	sameSourceTail := getSameSourceTail(head, rule.GetSource())
 
-	linkRule(rule, registry, tail)
+	linkRule(rule, head, tail)
 	linkSameSourceRule(rule, sameSourceTail)
 
-	return registry
+	return head
 }
 
-func linkRule(rule Registry, head Registry, tail Registry) {
+func linkRule(rule Rule, head Rule, tail Rule) {
 	rule.SetNext(head)
 	head.SetPrev(rule)
 
@@ -62,7 +62,7 @@ func linkRule(rule Registry, head Registry, tail Registry) {
 	}
 }
 
-func linkSameSourceRule(rule Registry, sameSourceTail Registry) {
+func linkSameSourceRule(rule Rule, sameSourceTail Rule) {
 	if sameSourceTail == nil {
 		return
 	}
@@ -71,8 +71,8 @@ func linkSameSourceRule(rule Registry, sameSourceTail Registry) {
 	sameSourceTail.SetNextSameSource(rule)
 }
 
-func getSameSourceTail(registry Registry, source any) Registry {
-	tail := registry.GetPrev()
+func getSameSourceTail(head Rule, source any) Rule {
+	tail := head.GetPrev()
 	for current := tail; current != nil; {
 		currentSource := current.GetSource()
 		if currentSource == source {
@@ -89,10 +89,10 @@ func getSameSourceTail(registry Registry, source any) Registry {
 }
 
 // Start activates all registered rules and returns the done channels.
-func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-chan struct{} {
+func Start(ctx context.Context, head Rule, errFunc ErrorHandler) []<-chan struct{} {
 	var doneChannels []<-chan struct{}
 
-	for current := registry; current != nil; {
+	for current := head; current != nil; {
 		done, err := current.Start(ctx)
 		if err != nil {
 			if errFunc != nil {
@@ -103,7 +103,7 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 		}
 
 		current = current.GetNext()
-		if current == registry {
+		if current == head {
 			break
 		}
 	}
@@ -112,7 +112,7 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 }
 
 // isValid validates the rule's fields.
-func isValid(rule Registry) error {
+func isValid(rule Rule) error {
 	validatorInstance := validator.New(validator.WithRequiredStructEnabled())
 
 	return validatorInstance.Struct(rule)

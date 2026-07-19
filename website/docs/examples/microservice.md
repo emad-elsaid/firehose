@@ -190,7 +190,7 @@ func main() {
     api := &OrderAPI{Addr: ":8080"}
     
     // Email notification pipeline
-    emailRule := &fh.Rule[OrderCreated, EmailNotification]{
+    emailRule := &fh.SQLRule[OrderCreated, EmailNotification]{
         ID:   "send_order_email",
         Select: CreateEmailAction{},
         Into:   EmailService{},
@@ -202,7 +202,7 @@ func main() {
     }
     
     // Inventory update pipeline
-    inventoryRule := &fh.Rule[OrderCreated, []InventoryUpdate]{
+    inventoryRule := &fh.SQLRule[OrderCreated, []InventoryUpdate]{
         ID:   "update_inventory",
         Select: CreateInventoryUpdates{},
         Into: destinations.FromSlice[InventoryUpdate]{
@@ -215,7 +215,7 @@ func main() {
     }
     
     // Analytics pipeline
-    analyticsRule := &fh.Rule[OrderCreated, AnalyticsEvent]{
+    analyticsRule := &fh.SQLRule[OrderCreated, AnalyticsEvent]{
         ID:   "record_analytics",
         Select: CreateAnalytics{},
         Into:   AnalyticsService{},
@@ -223,16 +223,16 @@ func main() {
     }
     
     // Register all rules
-    registry, _ := fh.Add(ctx, nil, emailRule)
-    registry, _ = fh.Add(ctx, registry, inventoryRule)
-    registry, _ = fh.Add(ctx, registry, analyticsRule)
+    head, _ := fh.Add(ctx, nil, emailRule)
+    head, _ = fh.Add(ctx, head, inventoryRule)
+    head, _ = fh.Add(ctx, head, analyticsRule)
     
-    fh.Start(ctx, registry, func(err error) {
+    fh.Start(ctx, head, func(err error) {
         log.Printf("Error: %v", err)
     })
     
     log.Println("Microservice running on :8080")
-    fh.Wait(registry, nil)
+    fh.Wait(head, nil)
 }
 ```
 

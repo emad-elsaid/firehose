@@ -23,7 +23,7 @@ type Panic[I, O any] struct {
 // WrapCallback stores the downstream callback to be wrapped with panic recovery.
 func (p *Panic[I, O]) WrapCallback(
 	_ context.Context,
-	_ *firehose.Rule[I, O],
+	_ firehose.Rule,
 	callback firehose.Callback[I],
 ) (firehose.Callback[I], error) {
 	p.downstreamCallback = callback
@@ -34,7 +34,7 @@ func (p *Panic[I, O]) WrapCallback(
 // WrapAction stores the downstream action to be wrapped with panic recovery.
 func (p *Panic[I, O]) WrapAction(
 	_ context.Context,
-	_ *firehose.Rule[I, O],
+	_ firehose.Rule,
 	action firehose.Action[I, O],
 ) (firehose.Action[I, O], error) {
 	p.downstreamAction = action
@@ -45,7 +45,7 @@ func (p *Panic[I, O]) WrapAction(
 // WrapDestination stores the downstream destination to be wrapped with panic recovery.
 func (p *Panic[I, O]) WrapDestination(
 	_ context.Context,
-	_ *firehose.Rule[I, O],
+	_ firehose.Rule,
 	destination firehose.Destination[O],
 ) (firehose.Destination[O], error) {
 	p.downstreamDest = destination

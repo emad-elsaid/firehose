@@ -38,7 +38,7 @@ func (ifs testConditions[I]) Evaluate(ctx context.Context, event I, syms boolexp
 }
 
 // assertRulesEqual compares two rules ignoring the If field structure (only checks non-nil)
-func assertRulesEqual(t *testing.T, expected, actual *MockRule) {
+func assertRulesEqual(t *testing.T, expected, actual *MockSQLRule) {
 	t.Helper()
 
 	if expected == nil && actual == nil {
@@ -63,8 +63,8 @@ func assertRulesEqual(t *testing.T, expected, actual *MockRule) {
 }
 
 func TestAdd(t *testing.T) {
-	t.Run("add first rule to nil registry", func(t *testing.T) {
-		rule := &MockRule{
+	t.Run("add first rule to nil head", func(t *testing.T) {
+		rule := &MockSQLRule{
 			ID:     "rule1",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -79,28 +79,28 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, result, result.GetPrev())
 	})
 
-	t.Run("add second rule to existing registry", func(t *testing.T) {
-		rule1 := &MockRule{
+	t.Run("add second rule to existing head", func(t *testing.T) {
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
-		registry, _ := Add(t.Context(), nil, rule1)
+		head, _ := Add(t.Context(), nil, rule1)
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := Add(t.Context(), registry, rule2)
+		result, err := Add(t.Context(), head, rule2)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		// Result should be the first rule (registry head)
+		// Result should be the first rule (head head)
 		require.Equal(t, rule1, result)
 
 		// With 2 rules in a circular list: rule1 <-> rule2
@@ -112,36 +112,36 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, rule1, rule2.GetPrev(), "rule2.prev should point to rule1")
 	})
 
-	t.Run("add third rule to registry with two rules", func(t *testing.T) {
-		rule1 := &MockRule{
+	t.Run("add third rule to head with two rules", func(t *testing.T) {
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
-		registry, _ := Add(t.Context(), nil, rule1)
+		head, _ := Add(t.Context(), nil, rule1)
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
-		registry, _ = Add(t.Context(), registry, rule2)
+		head, _ = Add(t.Context(), head, rule2)
 
-		rule3 := &MockRule{
+		rule3 := &MockSQLRule{
 			ID:     "rule3",
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := Add(t.Context(), registry, rule3)
+		result, err := Add(t.Context(), head, rule3)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		// Result should still be rule1 (registry head doesn't change)
+		// Result should still be rule1 (head head doesn't change)
 		require.Equal(t, rule1, result)
 
 		// Verify circular structure: rule1 -> rule2 -> rule3 -> rule1
@@ -157,7 +157,7 @@ func TestAdd(t *testing.T) {
 
 	t.Run("add rule with Environment that doesn't match current ENV", func(t *testing.T) {
 		t.Setenv("ENV", "staging")
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:           "rule1",
 			Environments: []string{"test"},
 			From:         NewMockSource[*EventMock](t),
@@ -173,7 +173,7 @@ func TestAdd(t *testing.T) {
 
 	t.Run("add rule with Environment that matches current ENV", func(t *testing.T) {
 		t.Setenv("ENV", "test")
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:           "rule1",
 			Environments: []string{"test"},
 			From:         NewMockSource[*EventMock](t),
@@ -193,7 +193,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 
 	t.Run("first rule with a source has no same-source links", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -205,7 +205,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		ruleResult := result.(*Rule[*EventMock, *EventMock])
+		ruleResult := result.(*SQLRule[*EventMock, *EventMock])
 		require.Nil(t, ruleResult.nextSameSource, "first rule should have no next same source")
 		require.Nil(t, ruleResult.prevSameSource, "first rule should have no prev same source")
 	})
@@ -214,31 +214,31 @@ func TestAddSameSourceChaining(t *testing.T) {
 		source1 := NewMockSource[*EventMock](t)
 		source2 := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source1,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source2,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := Add(t.Context(), registry, rule2)
+		result, err := Add(t.Context(), head, rule2)
 
 		require.NoError(t, err)
 
 		// First rule
-		rule1 := result.(*Rule[*EventMock, *EventMock])
+		rule1 := result.(*SQLRule[*EventMock, *EventMock])
 		require.Nil(t, rule1.nextSameSource, "rule1 should have no next same source")
 		require.Nil(t, rule1.prevSameSource, "rule1 should have no prev same source")
 
 		// Second rule
-		secondRule := result.GetNext().(*Rule[*EventMock, *EventMock])
+		secondRule := result.GetNext().(*SQLRule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 should have no next same source")
 		require.Nil(t, secondRule.prevSameSource, "rule2 should have no prev same source")
 	})
@@ -246,31 +246,31 @@ func TestAddSameSourceChaining(t *testing.T) {
 	t.Run("two rules with same source are linked", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := Add(t.Context(), registry, rule2)
+		result, err := Add(t.Context(), head, rule2)
 
 		require.NoError(t, err)
 
 		// First rule
-		rule1 := result.(*Rule[*EventMock, *EventMock])
+		rule1 := result.(*SQLRule[*EventMock, *EventMock])
 		require.NotNil(t, rule1.nextSameSource, "rule1 should have next same source")
 		require.Nil(t, rule1.prevSameSource, "rule1 is first, should have no prev same source")
 
 		// Second rule
-		secondRule := result.GetNext().(*Rule[*EventMock, *EventMock])
+		secondRule := result.GetNext().(*SQLRule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 is last, should have no next same source")
 		require.NotNil(t, secondRule.prevSameSource, "rule2 should have prev same source")
 
@@ -282,36 +282,36 @@ func TestAddSameSourceChaining(t *testing.T) {
 	t.Run("three rules with same source form a chain", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
 
-		registry, _ = Add(t.Context(), registry, &MockRule{
+		head, _ = Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
 
-		rule3 := &MockRule{
+		rule3 := &MockSQLRule{
 			ID:     "rule3",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		}
 
-		result, err := Add(t.Context(), registry, rule3)
+		result, err := Add(t.Context(), head, rule3)
 
 		require.NoError(t, err)
 
 		// Navigate the circular list to find all three rules
-		rules := make([]*Rule[*EventMock, *EventMock], 0, 3)
+		rules := make([]*SQLRule[*EventMock, *EventMock], 0, 3)
 		current := result
 		for i := 0; i < 3; i++ {
-			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
+			rules = append(rules, current.(*SQLRule[*EventMock, *EventMock]))
 			current = current.GetNext()
 		}
 
@@ -339,7 +339,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		sourceB := NewMockSource[*EventMock](t)
 
 		// Add first rule with sourceA
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   sourceA,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -347,7 +347,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		})
 
 		// Add second rule with sourceA
-		registry, _ = Add(t.Context(), registry, &MockRule{
+		head, _ = Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule3",
 			From:   sourceA,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -355,7 +355,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		})
 
 		// Add rule with sourceB
-		registry, _ = Add(t.Context(), registry, &MockRule{
+		head, _ = Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule3",
 			From:   sourceB,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -363,7 +363,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		})
 
 		// Add third rule with sourceA
-		result, err := Add(t.Context(), registry, &MockRule{
+		result, err := Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule4",
 			From:   sourceA,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -373,16 +373,16 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.NoError(t, err)
 
 		// Collect all rules
-		rules := make([]*Rule[*EventMock, *EventMock], 0, 4)
+		rules := make([]*SQLRule[*EventMock, *EventMock], 0, 4)
 		current := result
 		for i := 0; i < 4; i++ {
-			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
+			rules = append(rules, current.(*SQLRule[*EventMock, *EventMock]))
 			current = current.GetNext()
 		}
 
 		// Identify rules by source instance (pointer comparison)
-		var sourceARules []*Rule[*EventMock, *EventMock]
-		var sourceBRules []*Rule[*EventMock, *EventMock]
+		var sourceARules []*SQLRule[*EventMock, *EventMock]
+		var sourceBRules []*SQLRule[*EventMock, *EventMock]
 
 		for _, r := range rules {
 			if r.From == sourceA {
@@ -419,7 +419,7 @@ func TestStart(t *testing.T) {
 	t.Run("start single rule successfully", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -437,7 +437,7 @@ func TestStart(t *testing.T) {
 		done := make(chan struct{})
 		source.On("Start", ctx, mock.Anything).Return(recvChan(done), nil).Once()
 
-		doneChannels := Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, head, errorHandler)
 
 		cancel()
 		close(done)
@@ -453,13 +453,13 @@ func TestStart(t *testing.T) {
 		source1 := NewMockSource[*EventMock](t)
 		source2 := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source1,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
-		registry, _ = Add(t.Context(), registry, &MockRule{
+		head, _ = Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule2",
 			From:   source2,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -479,7 +479,7 @@ func TestStart(t *testing.T) {
 		source1.On("Start", ctx, mock.Anything).Return(recvChan(done1), nil).Once()
 		source2.On("Start", ctx, mock.Anything).Return(recvChan(done2), nil).Once()
 
-		doneChannels := Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, head, errorHandler)
 
 		cancel()
 		close(done1)
@@ -495,7 +495,7 @@ func TestStart(t *testing.T) {
 	t.Run("start rule with source error", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -511,7 +511,7 @@ func TestStart(t *testing.T) {
 
 		source.On("Start", ctx, mock.Anything).Return(nil, os.ErrClosed).Once()
 
-		Start(ctx, registry, errorHandler)
+		Start(ctx, head, errorHandler)
 
 		require.Len(t, receivedErrors, 1)
 	})
@@ -519,13 +519,13 @@ func TestStart(t *testing.T) {
 	t.Run("start multiple rules with same source", func(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 
-		registry, _ := Add(t.Context(), nil, &MockRule{
+		head, _ := Add(t.Context(), nil, &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
 		})
-		registry, _ = Add(t.Context(), registry, &MockRule{
+		head, _ = Add(t.Context(), head, &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: &MockAction[*EventMock, *EventMock]{},
@@ -543,7 +543,7 @@ func TestStart(t *testing.T) {
 		done := make(chan struct{})
 		source.On("Start", ctx, mock.Anything).Return(recvChan(done), nil).Once()
 
-		doneChannels := Start(ctx, registry, errorHandler)
+		doneChannels := Start(ctx, head, errorHandler)
 
 		cancel()
 		close(done)
@@ -558,19 +558,19 @@ func TestStart(t *testing.T) {
 func Test_addSingle_Errors(t *testing.T) {
 	tests := []struct {
 		name        string
-		rule        *MockRule
+		rule        *MockSQLRule
 		expectError bool
 	}{
 		{
 			name: "returns error for rule missing all required fields",
-			rule: &MockRule{
+			rule: &MockSQLRule{
 				ID: "invalid",
 			},
 			expectError: true,
 		},
 		{
 			name: "returns error for rule missing When",
-			rule: &MockRule{
+			rule: &MockSQLRule{
 				ID:     "missing-when",
 				Select: &MockAction[*EventMock, *EventMock]{},
 				Into:   &MockDestination[*EventMock]{},
@@ -579,7 +579,7 @@ func Test_addSingle_Errors(t *testing.T) {
 		},
 		{
 			name: "returns error for rule missing Select",
-			rule: &MockRule{
+			rule: &MockSQLRule{
 				ID:   "missing-then",
 				From: NewMockSource[*EventMock](t),
 				Into: &MockDestination[*EventMock]{},
@@ -588,7 +588,7 @@ func Test_addSingle_Errors(t *testing.T) {
 		},
 		{
 			name: "returns error for rule missing Into",
-			rule: &MockRule{
+			rule: &MockSQLRule{
 				ID:     "missing-to",
 				From:   NewMockSource[*EventMock](t),
 				Select: &MockAction[*EventMock, *EventMock]{},
@@ -597,7 +597,7 @@ func Test_addSingle_Errors(t *testing.T) {
 		},
 		{
 			name: "returns error for rule missing ID",
-			rule: &MockRule{
+			rule: &MockSQLRule{
 				From:   NewMockSource[*EventMock](t),
 				Select: &MockAction[*EventMock, *EventMock]{},
 				Into:   &MockDestination[*EventMock]{},
@@ -624,14 +624,14 @@ func Test_addSingle_Errors(t *testing.T) {
 func TestRuleInit(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func() *MockRule
+		setup       func() *MockSQLRule
 		expectError bool
-		validate    func(t *testing.T, rule *MockRule)
+		validate    func(t *testing.T, rule *MockSQLRule)
 	}{
 		{
 			name: "no middlewares initializes wrapped fields",
-			setup: func() *MockRule {
-				rule := &MockRule{
+			setup: func() *MockSQLRule {
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: &MockAction[*EventMock, *EventMock]{},
@@ -640,7 +640,7 @@ func TestRuleInit(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.wrappedCallback)
 				require.NotNil(t, rule.Select)
 				require.NotNil(t, rule.Into)
@@ -648,23 +648,23 @@ func TestRuleInit(t *testing.T) {
 		},
 		{
 			name: "wraps callback with single middleware",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				wrappedCb := func(ctx context.Context, event *EventMock, report ErrorHandler) {}
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return wrappedCb, nil
 					}).Once()
 				middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
 				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      &MockAction[*EventMock, *EventMock]{},
@@ -675,13 +675,13 @@ func TestRuleInit(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.wrappedCallback)
 			},
 		},
 		{
 			name: "wraps callback with multiple middlewares in reverse order",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 
 				middleware1 := &MockMiddleware[*EventMock, *EventMock]{}
 				middleware2 := &MockMiddleware[*EventMock, *EventMock]{}
@@ -690,32 +690,32 @@ func TestRuleInit(t *testing.T) {
 
 				// Should wrap in reverse: middleware2 first, then middleware1
 				middleware2.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return wrappedCb1, nil
 					}).Once()
 				middleware2.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
 				middleware2.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
 				middleware1.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return wrappedCb2, nil
 					}).Once()
 				middleware1.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
 				middleware1.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      &MockAction[*EventMock, *EventMock]{},
@@ -726,18 +726,18 @@ func TestRuleInit(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.wrappedCallback)
 			},
 		},
 		{
 			name: "returns error when middleware wrapping fails",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				middleware.On("WrapCallback", mock.Anything, mock.Anything, mock.Anything).
 					Return(nil, os.ErrClosed).Once()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      &MockAction[*EventMock, *EventMock]{},
@@ -748,7 +748,7 @@ func TestRuleInit(t *testing.T) {
 				return rule
 			},
 			expectError: true,
-			validate:    func(t *testing.T, rule *MockRule) {},
+			validate:    func(t *testing.T, rule *MockSQLRule) {},
 		},
 	}
 
@@ -771,15 +771,15 @@ func TestRuleInit(t *testing.T) {
 func TestRuleInit_action(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func() *MockRule
+		setup       func() *MockSQLRule
 		expectError bool
-		validate    func(t *testing.T, rule *MockRule)
+		validate    func(t *testing.T, rule *MockSQLRule)
 	}{
 		{
 			name: "nil middleware function does not modify action",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: originalAction,
@@ -788,31 +788,31 @@ func TestRuleInit_action(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.Select)
 			},
 		},
 		{
 			name: "wraps action with single middleware",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
 
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				wrappedAction := NewMockAction[*EventMock, *EventMock](t)
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return callback, nil
 					}).Maybe()
 				middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return wrappedAction, nil
 					}).Once()
 				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return dest, nil
 					}).Maybe()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      originalAction,
@@ -823,24 +823,24 @@ func TestRuleInit_action(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.Select)
 			},
 		},
 		{
 			name: "returns error when middleware wrapping fails",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalAction := &MockAction[*EventMock, *EventMock]{}
 
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return callback, nil
 					}).Maybe()
 				middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
 					Return(nil, os.ErrPermission).Once()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      originalAction,
@@ -851,7 +851,7 @@ func TestRuleInit_action(t *testing.T) {
 				return rule
 			},
 			expectError: true,
-			validate:    func(t *testing.T, rule *MockRule) {},
+			validate:    func(t *testing.T, rule *MockSQLRule) {},
 		},
 	}
 
@@ -874,15 +874,15 @@ func TestRuleInit_action(t *testing.T) {
 func TestRuleInit_destination(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func() *MockRule
+		setup       func() *MockSQLRule
 		expectError bool
-		validate    func(t *testing.T, rule *MockRule)
+		validate    func(t *testing.T, rule *MockSQLRule)
 	}{
 		{
 			name: "nil middleware function does not modify destination",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalDest := &MockDestination[*EventMock]{}
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: &MockAction[*EventMock, *EventMock]{},
@@ -891,31 +891,31 @@ func TestRuleInit_destination(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.Into)
 			},
 		},
 		{
 			name: "wraps destination with single middleware",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalDest := &MockDestination[*EventMock]{}
 
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				wrappedDest := NewMockDestination[*EventMock](t)
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return callback, nil
 					}).Maybe()
 				middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
 				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 						return wrappedDest, nil
 					}).Once()
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      &MockAction[*EventMock, *EventMock]{},
@@ -925,27 +925,27 @@ func TestRuleInit_destination(t *testing.T) {
 				return rule
 			},
 			expectError: false,
-			validate: func(t *testing.T, rule *MockRule) {
+			validate: func(t *testing.T, rule *MockSQLRule) {
 				require.NotNil(t, rule.Into)
 			},
 		},
 		{
 			name: "returns error when middleware wrapping fails",
-			setup: func() *MockRule {
+			setup: func() *MockSQLRule {
 				originalDest := &MockDestination[*EventMock]{}
 
 				middleware := &MockMiddleware[*EventMock, *EventMock]{}
 				middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 						return callback, nil
 					}).Maybe()
 				middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-					RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+					RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 						return action, nil
 					}).Maybe()
 				middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
 					Return(nil, os.ErrInvalid).Once()
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:          "test-rule",
 					From:        NewMockSource[*EventMock](t),
 					Select:      &MockAction[*EventMock, *EventMock]{},
@@ -956,7 +956,7 @@ func TestRuleInit_destination(t *testing.T) {
 				return rule
 			},
 			expectError: true,
-			validate:    func(t *testing.T, rule *MockRule) {},
+			validate:    func(t *testing.T, rule *MockSQLRule) {},
 		},
 	}
 
@@ -991,13 +991,13 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		wrappedAction := NewMockAction[*EventMock, *EventMock](t)
 
 		middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-			RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+			RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 				return callback, nil
 			}).Maybe()
 		middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
 			Return(wrappedAction, nil).Once()
 		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
-			RunAndReturn(func(ctx context.Context, rule *MockRule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
+			RunAndReturn(func(ctx context.Context, rule Rule, dest Destination[*EventMock]) (Destination[*EventMock], error) {
 				return dest, nil
 			}).Maybe()
 
@@ -1011,7 +1011,7 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		dest.On("Send", mock.Anything, expectedOutput).
 			Return(nil).Once()
 
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:          "test-rule",
 			From:        NewMockSource[*EventMock](t),
 			Select:      innerAction,
@@ -1020,13 +1020,13 @@ func TestMiddlewareActuallyExecuted(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		registry, err := Add(
+		head, err := Add(
 			ctx,
 			nil,
 			rule,
 		)
 		require.NoError(t, err)
-		require.NotNil(t, registry)
+		require.NotNil(t, head)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
 		_ = rule.Run(ctx, event, syms)
@@ -1057,11 +1057,11 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		wrappedDest := &MockDestination[*EventMock]{}
 
 		middleware.EXPECT().WrapCallback(mock.Anything, mock.Anything, mock.Anything).
-			RunAndReturn(func(ctx context.Context, rule *MockRule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
+			RunAndReturn(func(ctx context.Context, rule Rule, callback Callback[*EventMock]) (Callback[*EventMock], error) {
 				return callback, nil
 			}).Maybe()
 		middleware.EXPECT().WrapAction(mock.Anything, mock.Anything, mock.Anything).
-			RunAndReturn(func(ctx context.Context, rule *MockRule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
+			RunAndReturn(func(ctx context.Context, rule Rule, action Action[*EventMock, *EventMock]) (Action[*EventMock, *EventMock], error) {
 				return action, nil
 			}).Maybe()
 		middleware.EXPECT().WrapDestination(mock.Anything, mock.Anything, mock.Anything).
@@ -1073,7 +1073,7 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 			}).
 			Return(nil).Once()
 
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:          "test-rule",
 			From:        NewMockSource[*EventMock](t),
 			Select:      action,
@@ -1082,13 +1082,13 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		registry, err := Add(
+		head, err := Add(
 			ctx,
 			nil,
 			rule,
 		)
 		require.NoError(t, err)
-		require.NotNil(t, registry)
+		require.NotNil(t, head)
 
 		syms := boolexpr.NewCachedMap(map[string]any{})
 		_ = rule.Run(ctx, event, syms)
@@ -1102,13 +1102,13 @@ func TestDestinationMiddlewareActuallyExecuted(t *testing.T) {
 
 func TestIsValid(t *testing.T) {
 	t.Run("empty rule is invalid", func(t *testing.T) {
-		rule := &MockRule{}
+		rule := &MockSQLRule{}
 
 		require.Error(t, isValid(rule))
 	})
 
 	t.Run("rule missing source is invalid", func(t *testing.T) {
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			From:   nil,
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   &MockDestination[*EventMock]{},
@@ -1117,7 +1117,7 @@ func TestIsValid(t *testing.T) {
 	})
 
 	t.Run("rule missing action is invalid", func(t *testing.T) {
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			From:   NewMockSource[*EventMock](t),
 			Where:  testCond[*EventMock]("Attr1 == 'value'"),
 			Select: nil,
@@ -1127,7 +1127,7 @@ func TestIsValid(t *testing.T) {
 	})
 
 	t.Run("rule missing destination is invalid", func(t *testing.T) {
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			From:   NewMockSource[*EventMock](t),
 			Select: &MockAction[*EventMock, *EventMock]{},
 			Into:   nil,

@@ -25,7 +25,7 @@ type ProcessedUser struct {
 
 // Example_validate demonstrates using Valid as an Condition for input validation.
 func Example_validate() {
-	rule := &firehose.Rule[UserEvent, ProcessedUser]{
+	rule := &firehose.SQLRule[UserEvent, ProcessedUser]{
 		ID: "validate-user-registration",
 		// Validate input before processing
 		Where: &condition.Valid[UserEvent]{},
@@ -61,7 +61,7 @@ func Example_validate() {
 
 // Example_validateOutput demonstrates using Valid as a Having condition for output validation.
 func Example_validateOutput() {
-	rule := &firehose.Rule[UserEvent, ProcessedUser]{
+	rule := &firehose.SQLRule[UserEvent, ProcessedUser]{
 		ID: "validate-processed-user",
 		// Validate output before sending to destination
 		Having: &condition.Valid[ProcessedUser]{},
@@ -95,7 +95,7 @@ func Example_validateOutput() {
 
 // Example_validateBoth demonstrates using Valid for both input and output validation.
 func Example_validateBoth() {
-	rule := &firehose.Rule[UserEvent, ProcessedUser]{
+	rule := &firehose.SQLRule[UserEvent, ProcessedUser]{
 		ID: "validate-both",
 		// Validate input
 		Where: &condition.Valid[UserEvent]{},

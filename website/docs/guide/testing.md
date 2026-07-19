@@ -26,7 +26,7 @@ func TestEventProcessing(t *testing.T) {
     
     accumulator := &destinations.Accumulator[ProcessedOrder]{}
     
-    rule := &fh.Rule[OrderEvent, ProcessedOrder]{
+    rule := &fh.SQLRule[OrderEvent, ProcessedOrder]{
         ID:   "test_rule",
         Select: ProcessOrder{},
         Into:   accumulator,
@@ -34,10 +34,10 @@ func TestEventProcessing(t *testing.T) {
     }
     
     ctx := context.Background()
-    registry, err := fh.Add(ctx, nil, rule)
+    head, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
-    fh.Start(ctx, registry, func(err error) {
+    fh.Start(ctx, head, func(err error) {
         t.Errorf("Unexpected error: %v", err)
     })
     
@@ -215,7 +215,7 @@ func TestCompleteRule(t *testing.T) {
     manual := &sources.Manual[OrderEvent]{}
     accumulator := &destinations.Accumulator[Email]{}
     
-    rule := &fh.Rule[OrderEvent, Email]{
+    rule := &fh.SQLRule[OrderEvent, Email]{
         ID:   "order_notification",
         Select: CreateEmail{},
         Into:   accumulator,
@@ -224,10 +224,10 @@ func TestCompleteRule(t *testing.T) {
     }
     
     ctx := context.Background()
-    registry, err := fh.Add(ctx, nil, rule)
+    head, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
-    fh.Start(ctx, registry, nil)
+    fh.Start(ctx, head, nil)
     
     // Test event that passes condition
     manual.Emit(ctx, OrderEvent{OrderID: "123", Amount: 150})
@@ -263,7 +263,7 @@ func TestLoggingMiddleware(t *testing.T) {
     middleware := &LoggingMiddleware[Event, Output]{Logger: logger}
     
     action := &TestAction{}
-    wrapped, err := middleware.WrapAction(context.Background(), &fh.Rule[Event, Output]{ID: "test"}, action)
+    wrapped, err := middleware.WrapAction(context.Background(), &fh.SQLRule[Event, Output]{ID: "test"}, action)
     require.NoError(t, err)
     
     _, report := wrapped.Process(context.Background(), Event{}, nil)
@@ -299,7 +299,7 @@ func TestKafkaIntegration(t *testing.T) {
         Topic:   "test-topic",
     }
     
-    rule := &fh.Rule[Message, Message]{
+    rule := &fh.SQLRule[Message, Message]{
         ID:   "kafka_consumer",
         Select: actions.Identity[Message]{},
         Into:   accumulator,
@@ -309,8 +309,8 @@ func TestKafkaIntegration(t *testing.T) {
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
     
-    registry, _ := fh.Add(ctx, nil, rule)
-    fh.Start(ctx, registry, nil)
+    head, _ := fh.Add(ctx, nil, rule)
+    fh.Start(ctx, head, nil)
     
     // Produce test messages
     kafka.Produce("test-topic", "test message")
@@ -347,7 +347,7 @@ func BenchmarkPipeline(b *testing.B) {
     manual := &sources.Manual[Event]{}
     accumulator := &destinations.Accumulator[Output]{}
     
-    rule := &fh.Rule[Event, Output]{
+    rule := &fh.SQLRule[Event, Output]{
         ID:   "bench",
         Select: ProcessEvent{},
         Into:   accumulator,
@@ -355,8 +355,8 @@ func BenchmarkPipeline(b *testing.B) {
     }
     
     ctx := context.Background()
-    registry, _ := fh.Add(ctx, nil, rule)
-    fh.Start(ctx, registry, nil)
+    head, _ := fh.Add(ctx, nil, rule)
+    fh.Start(ctx, head, nil)
     
     event := Event{ID: "test"}
     
@@ -379,13 +379,13 @@ func newTestRule[I, O any](
     source fh.Source[I],
     action fh.Action[I, O],
     dest fh.Destination[O],
-) (fh.Registry, *sources.Manual[I], *destinations.Accumulator[O]) {
+) (fh.Rule, *sources.Manual[I], *destinations.Accumulator[O]) {
     t.Helper()
     
     manual := &sources.Manual[I]{}
     accumulator := &destinations.Accumulator[O]{}
     
-    rule := &fh.Rule[I, O]{
+    rule := &fh.SQLRule[I, O]{
         ID:   t.Name(),
         Select: action,
         Into:   accumulator,
@@ -393,12 +393,12 @@ func newTestRule[I, O any](
     }
     
     ctx := context.Background()
-    registry, err := fh.Add(ctx, nil, rule)
+    head, err := fh.Add(ctx, nil, rule)
     require.NoError(t, err)
     
-    fh.Start(ctx, registry, nil)
+    fh.Start(ctx, head, nil)
     
-    return registry, manual, accumulator
+    return head, manual, accumulator
 }
 
 // Usage

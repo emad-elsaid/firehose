@@ -10,7 +10,7 @@ Each rule should have a single, clear responsibility:
 
 ```go
 // ✅ Good - focused responsibility
-rule := &fh.Rule[OrderEvent, Email]{
+rule := &fh.SQLRule[OrderEvent, Email]{
     ID:   "order_confirmation_email",
     Select: CreateConfirmationEmail{},
     Into:   emailService,
@@ -19,7 +19,7 @@ rule := &fh.Rule[OrderEvent, Email]{
 }
 
 // ❌ Bad - multiple responsibilities
-rule := &fh.Rule[OrderEvent, any]{
+rule := &fh.SQLRule[OrderEvent, any]{
     ID: "order_processor",
     // Tries to do too much in one rule
 }
@@ -124,14 +124,14 @@ Share sources across rules instead of creating duplicates:
 // ✅ Good - source shared, starts once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
-reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Email]{From: kafkaSource, ...})
-reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Metrics]{From: kafkaSource, ...})
+reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Email]{From: kafkaSource, ...})
+reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Metrics]{From: kafkaSource, ...})
 
 // ❌ Bad - creates separate sources
-reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Email]{
+reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Email]{
     From: &KafkaConsumer{Topic: "orders"},
 })
-reg, _ = fh.Add(ctx, reg, &fh.Rule[Event, Metrics]{
+reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Metrics]{
     From: &KafkaConsumer{Topic: "orders"},
 })
 ```
@@ -329,7 +329,7 @@ func (c Config) Validate() error {
 Deploy different rules per environment:
 
 ```go
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     Environments: []string{"production"},
     // Production-specific behavior
 }
@@ -381,7 +381,7 @@ Add comments explaining why rules exist:
 ```go
 // Process high-value orders (>$10k) through manual review
 // to prevent fraud and ensure accurate fulfillment.
-rule := &fh.Rule[Order, ReviewRequest]{
+rule := &fh.SQLRule[Order, ReviewRequest]{
     ID: "high_value_manual_review",
     // ...
 }
@@ -394,7 +394,7 @@ Track rule changes:
 ```go
 const RuleVersion = "2.1.0"
 
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     ID: "billing_v2",
     // Version 2.x uses new billing API
 }
@@ -407,7 +407,7 @@ Remove unused rules regularly:
 ```go
 // DEPRECATED: Use billing_v2 instead
 // TODO: Remove after 2024-Q2
-oldRule := &fh.Rule[Event, Output]{
+oldRule := &fh.SQLRule[Event, Output]{
     ID: "billing_v1",
     Environments: []string{}, // Disabled
 }

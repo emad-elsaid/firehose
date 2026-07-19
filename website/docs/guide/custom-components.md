@@ -364,7 +364,7 @@ func (a timeoutAction[I, O]) Process(
 
 func (m TimeoutMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
     return timeoutAction[I, O]{

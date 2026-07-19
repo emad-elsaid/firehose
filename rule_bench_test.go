@@ -66,19 +66,19 @@ func BenchmarkEngine_SingleRule(b *testing.B) {
 	ctx := context.Background()
 	source := &benchSource{}
 
-	rule := &MockRule{
+	rule := &MockSQLRule{
 		ID:     "bench-rule",
 		Select: benchAction{},
 		From:   source,
 		Into:   benchDestination{},
 	}
 
-	registry, err := Add(ctx, nil, rule)
+	head, err := Add(ctx, nil, rule)
 	if err != nil {
 		b.Fatalf("failed to add rule: %v", err)
 	}
 
-	Start(ctx, registry, func(err error) {
+	Start(ctx, head, func(err error) {
 		if err != nil {
 			b.Errorf("start error: %v", err)
 		}
@@ -113,25 +113,25 @@ func BenchmarkEngine_100Rules(b *testing.B) {
 	ctx := context.Background()
 	source := &benchSource{}
 
-	var registry Registry
+	var head Rule
 	var err error
 
 	// Create 100 rules sharing the same source
 	for i := 0; i < 100; i++ {
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "bench-rule-" + string(rune('0'+i%10)),
 			Select: benchAction{},
 			From:   source,
 			Into:   benchDestination{},
 		}
 
-		registry, err = Add(ctx, registry, rule)
+		head, err = Add(ctx, head, rule)
 		if err != nil {
 			b.Fatalf("failed to add rule %d: %v", i, err)
 		}
 	}
 
-	Start(ctx, registry, func(err error) {
+	Start(ctx, head, func(err error) {
 		if err != nil {
 			b.Errorf("start error: %v", err)
 		}

@@ -27,15 +27,15 @@ type logEntry struct {
 func TestSlog_Wrap(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupRule      func() *fh.Rule[*mockEvent, *mockEvent]
+		setupRule      func() *fh.SQLRule[*mockEvent, *mockEvent]
 		setupCallback  func() fh.Callback[*mockEvent]
 		expectedError  bool
 		validateResult func(t *testing.T, cb fh.Callback[*mockEvent], err error, middleware *Slog[*mockEvent, *mockEvent])
 	}{
 		{
 			name: "wraps callback successfully",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "log-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -55,9 +55,9 @@ func TestSlog_Wrap(t *testing.T) {
 		},
 		{
 			name: "stores downstream callback reference",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
 				source := &mockSource[*mockEvent]{}
-				return &fh.Rule[*mockEvent, *mockEvent]{
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "log-rule-2",
 					From:   source,
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -100,7 +100,7 @@ func TestSlog_Callback(t *testing.T) {
 	tests := []struct {
 		name            string
 		setupLogger     func() (*slog.Logger, *bytes.Buffer)
-		setupRule       func() *fh.Rule[*mockEvent, *mockEvent]
+		setupRule       func() *fh.SQLRule[*mockEvent, *mockEvent]
 		setupEvent      func() *mockEvent
 		setupDownstream func() fh.Callback[*mockEvent]
 		validateLog     func(t *testing.T, logOutput string)
@@ -115,8 +115,8 @@ func TestSlog_Callback(t *testing.T) {
 				}))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "log-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -148,9 +148,9 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
 				source := &mockSource[*mockEvent]{}
-				return &fh.Rule[*mockEvent, *mockEvent]{
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "source-log-rule",
 					From:   source,
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -182,8 +182,8 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "event-log-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -215,8 +215,8 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "multi-report-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -254,8 +254,8 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "forward-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -289,8 +289,8 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "error-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -323,8 +323,8 @@ func TestSlog_Callback(t *testing.T) {
 				logger := slog.New(slog.NewJSONHandler(buf, nil))
 				return logger, buf
 			},
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "empty-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -413,7 +413,7 @@ func TestSlog_CallsDownstream(t *testing.T) {
 			downstream, mockObj := tc.setupDownstream()
 			defer mockObj.AssertExpectations(t)
 
-			rule := &fh.Rule[*mockEvent, *mockEvent]{
+			rule := &fh.SQLRule[*mockEvent, *mockEvent]{
 				ID:     "downstream-rule",
 				From:   &mockSource[*mockEvent]{},
 				Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -463,7 +463,7 @@ func TestSlog_CallbackDoesNotPanic(t *testing.T) {
 			slog.SetDefault(logger)
 
 			downstream := tc.setupDownstream()
-			rule := &fh.Rule[*mockEvent, *mockEvent]{
+			rule := &fh.SQLRule[*mockEvent, *mockEvent]{
 				ID:     "closure-rule",
 				From:   &mockSource[*mockEvent]{},
 				Select: &mockAction[*mockEvent, *mockEvent]{},

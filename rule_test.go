@@ -16,7 +16,7 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "test-rule",
 			From:   source,
 			Select: action,
@@ -42,7 +42,7 @@ func TestRuleCallback(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "test-rule",
 			From:   source,
 			Select: action,
@@ -71,7 +71,7 @@ func TestRuleCallback(t *testing.T) {
 		source := NewMockSource[*EventMock](t)
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "test-rule",
 			From:   source,
 			Select: action,
@@ -103,24 +103,24 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule1 := &MockRule{
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		registry, err := Add(t.Context(), nil, rule1)
+		head, err := Add(t.Context(), nil, rule1)
 		require.NoError(t, err)
 
-		registry, err = Add(t.Context(), registry, rule2)
+		head, err = Add(t.Context(), head, rule2)
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Twice()
@@ -139,24 +139,24 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule1 := &MockRule{
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		registry, err := Add(t.Context(), nil, rule1)
+		head, err := Add(t.Context(), nil, rule1)
 		require.NoError(t, err)
 
-		registry, err = Add(t.Context(), registry, rule2)
+		head, err = Add(t.Context(), head, rule2)
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, os.ErrClosed).Once()
@@ -177,24 +177,24 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule1 := &MockRule{
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		registry, err := Add(t.Context(), nil, rule1)
+		head, err := Add(t.Context(), nil, rule1)
 		require.NoError(t, err)
 
-		registry, err = Add(t.Context(), registry, rule2)
+		head, err = Add(t.Context(), head, rule2)
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Once()
@@ -215,34 +215,34 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule1 := &MockRule{
+		rule1 := &MockSQLRule{
 			ID:     "rule1",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		rule2 := &MockRule{
+		rule2 := &MockSQLRule{
 			ID:     "rule2",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		rule3 := &MockRule{
+		rule3 := &MockSQLRule{
 			ID:     "rule3",
 			From:   source,
 			Select: action,
 			Into:   destination,
 		}
 
-		registry, err := Add(t.Context(), nil, rule1)
+		head, err := Add(t.Context(), nil, rule1)
 		require.NoError(t, err)
 
-		registry, err = Add(t.Context(), registry, rule2)
+		head, err = Add(t.Context(), head, rule2)
 		require.NoError(t, err)
 
-		registry, err = Add(t.Context(), registry, rule3)
+		head, err = Add(t.Context(), head, rule3)
 		require.NoError(t, err)
 
 		action.On("Process", t.Context(), in, mock.Anything).Return(in, nil).Times(3)
@@ -261,7 +261,7 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "test-rule",
 			From:   source,
 			Select: action,
@@ -276,7 +276,7 @@ func TestRuleCallback(t *testing.T) {
 
 		// Create a Rule with a different type (string instead of *EventMock)
 		// This will cause a panic when type-asserting to Runnable[*EventMock]
-		incompatibleRule := &Rule[string, string]{}
+		incompatibleRule := &SQLRule[string, string]{}
 		rule.nextSameSource = incompatibleRule
 
 		collector := newReportCollector()
@@ -291,7 +291,7 @@ func TestRuleCallback(t *testing.T) {
 		action := NewMockAction[*EventMock, *EventMock](t)
 		destination := NewMockDestination[*EventMock](t)
 
-		rule := &MockRule{
+		rule := &MockSQLRule{
 			ID:     "test-rule",
 			From:   source,
 			Select: action,
@@ -313,21 +313,21 @@ func TestRuleCallback(t *testing.T) {
 func TestRule_NextRunnable(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() *MockRule
+		setup    func() *MockSQLRule
 		expected bool
 	}{
 		{
 			name: "returns nil when nextSameSource is nil",
-			setup: func() *MockRule {
-				return &MockRule{ID: "rule1"}
+			setup: func() *MockSQLRule {
+				return &MockSQLRule{ID: "rule1"}
 			},
 			expected: false,
 		},
 		{
 			name: "returns next runnable when nextSameSource is set",
-			setup: func() *MockRule {
-				rule1 := &MockRule{ID: "rule1"}
-				rule2 := &MockRule{ID: "rule2"}
+			setup: func() *MockSQLRule {
+				rule1 := &MockSQLRule{ID: "rule1"}
+				rule2 := &MockSQLRule{ID: "rule2"}
 				rule1.SetNextSameSource(rule2)
 				return rule1
 			},
@@ -352,18 +352,18 @@ func TestRule_NextRunnable(t *testing.T) {
 func TestRule_Run(t *testing.T) {
 	tests := []struct {
 		name            string
-		setupMocks      func() (*MockRule, *EventMock)
+		setupMocks      func() (*MockSQLRule, *EventMock)
 		expectedReports int
 		validateReport  func(t *testing.T, report error)
 	}{
 		{
 			name: "successful action and destination",
-			setupMocks: func() (*MockRule, *EventMock) {
+			setupMocks: func() (*MockSQLRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
 				event := NewEventMock(nil)
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: action,
@@ -387,12 +387,12 @@ func TestRule_Run(t *testing.T) {
 		},
 		{
 			name: "action error stops destination call",
-			setupMocks: func() (*MockRule, *EventMock) {
+			setupMocks: func() (*MockSQLRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
 				event := NewEventMock(nil)
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: action,
@@ -417,12 +417,12 @@ func TestRule_Run(t *testing.T) {
 		},
 		{
 			name: "destination error is reported",
-			setupMocks: func() (*MockRule, *EventMock) {
+			setupMocks: func() (*MockSQLRule, *EventMock) {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
 				event := NewEventMock(nil)
 
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: action,
@@ -474,15 +474,15 @@ func TestRule_Run(t *testing.T) {
 func TestRule_Start(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func() (*MockRule, *MockSource[*EventMock])
+		setup       func() (*MockSQLRule, *MockSource[*EventMock])
 		expectStart bool
 		expectError bool
 	}{
 		{
 			name: "starts when prevSameSource is nil (first in chain)",
-			setup: func() (*MockRule, *MockSource[*EventMock]) {
+			setup: func() (*MockSQLRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:   "test-rule",
 					From: source,
 				}
@@ -496,10 +496,10 @@ func TestRule_Start(t *testing.T) {
 		},
 		{
 			name: "does not start when prevSameSource is set (not first in chain)",
-			setup: func() (*MockRule, *MockSource[*EventMock]) {
+			setup: func() (*MockSQLRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
-				rule1 := &MockRule{ID: "rule1", From: source}
-				rule2 := &MockRule{ID: "rule2", From: source}
+				rule1 := &MockSQLRule{ID: "rule1", From: source}
+				rule2 := &MockSQLRule{ID: "rule2", From: source}
 				rule2.SetPrevSameSource(rule1)
 				return rule2, source
 			},
@@ -508,9 +508,9 @@ func TestRule_Start(t *testing.T) {
 		},
 		{
 			name: "returns error when source fails to start",
-			setup: func() (*MockRule, *MockSource[*EventMock]) {
+			setup: func() (*MockSQLRule, *MockSource[*EventMock]) {
 				source := NewMockSource[*EventMock](t)
-				rule := &MockRule{
+				rule := &MockSQLRule{
 					ID:   "test-rule",
 					From: source,
 				}
@@ -547,19 +547,19 @@ func TestRule_Run_WithConditions(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		setupRule       func() *MockRule
+		setupRule       func() *MockSQLRule
 		event           *EventMock
 		expectedReports int
 		validateReport  func(t *testing.T, report error)
 	}{
 		{
 			name: "Condition fails stops execution",
-			setupRule: func() *MockRule {
+			setupRule: func() *MockSQLRule {
 				cond := NewMockCondition[*EventMock](t)
 				cond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
-				return &MockRule{
+				return &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: NewMockAction[*EventMock, *EventMock](t),
@@ -576,7 +576,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		},
 		{
 			name: "Condition passes, action executes",
-			setupRule: func() *MockRule {
+			setupRule: func() *MockSQLRule {
 				cond := NewMockCondition[*EventMock](t)
 				action := NewMockAction[*EventMock, *EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
@@ -589,7 +589,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-				return &MockRule{
+				return &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Where:  cond,
@@ -605,7 +605,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		},
 		{
 			name: "Having condition fails stops destination",
-			setupRule: func() *MockRule {
+			setupRule: func() *MockSQLRule {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				postCond := NewMockCondition[*EventMock](t)
 
@@ -615,7 +615,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				postCond.On("Evaluate", mock.Anything, mock.Anything, mock.Anything).
 					Return(false, nil).Once()
 
-				return &MockRule{
+				return &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: action,
@@ -632,7 +632,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 		},
 		{
 			name: "Having condition passes, destination executes",
-			setupRule: func() *MockRule {
+			setupRule: func() *MockSQLRule {
 				action := NewMockAction[*EventMock, *EventMock](t)
 				postCond := NewMockCondition[*EventMock](t)
 				destination := NewMockDestination[*EventMock](t)
@@ -645,7 +645,7 @@ func TestRule_Run_WithConditions(t *testing.T) {
 				destination.On("Send", mock.Anything, output).
 					Return(nil).Once()
 
-				return &MockRule{
+				return &MockSQLRule{
 					ID:     "test-rule",
 					From:   NewMockSource[*EventMock](t),
 					Select: action,

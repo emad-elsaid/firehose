@@ -17,8 +17,8 @@ func NewEventMock(attrs map[string]any) *EventMock {
 	}
 }
 
-// MockRule is a type alias for Rule[*EventMock, *EventMock]
-type MockRule = Rule[*EventMock, *EventMock]
+// MockSQLRule is a type alias for SQLRule[*EventMock, *EventMock]
+type MockSQLRule = SQLRule[*EventMock, *EventMock]
 
 type reportCollector struct {
 	errors []error

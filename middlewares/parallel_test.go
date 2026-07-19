@@ -90,15 +90,15 @@ func (r *concurrentTaskRunner) Run(f func()) {
 func TestParallel_Wrap(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupRule      func() *fh.Rule[*mockEvent, *mockEvent]
+		setupRule      func() *fh.SQLRule[*mockEvent, *mockEvent]
 		setupRunner    func() TaskRunner
 		expectedError  bool
 		validateResult func(t *testing.T, cb fh.Callback[*mockEvent], err error)
 	}{
 		{
 			name: "wraps callback successfully",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "test-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -116,8 +116,8 @@ func TestParallel_Wrap(t *testing.T) {
 		},
 		{
 			name: "stores rule reference",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
-				return &fh.Rule[*mockEvent, *mockEvent]{
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "test-rule-2",
 					From:   &mockSource[*mockEvent]{},
 					Select: &mockAction[*mockEvent, *mockEvent]{},
@@ -161,7 +161,7 @@ func TestParallel_Wrap(t *testing.T) {
 func TestParallel_Callback(t *testing.T) {
 	tests := []struct {
 		name            string
-		setupRule       func() *fh.Rule[*mockEvent, *mockEvent]
+		setupRule       func() *fh.SQLRule[*mockEvent, *mockEvent]
 		setupEvent      func() *mockEvent
 		setupRunner     func() TaskRunner
 		expectedReports int
@@ -169,7 +169,7 @@ func TestParallel_Callback(t *testing.T) {
 	}{
 		{
 			name: "executes single rule in parallel",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
 				action := &mockAction[*mockEvent, *mockEvent]{}
 				dest := &mockDestination[*mockEvent]{}
 
@@ -178,7 +178,7 @@ func TestParallel_Callback(t *testing.T) {
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(nil)
 
-				return &fh.Rule[*mockEvent, *mockEvent]{
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "rule-1",
 					From:   &mockSource[*mockEvent]{},
 					Select: action,
@@ -199,7 +199,7 @@ func TestParallel_Callback(t *testing.T) {
 
 		{
 			name: "executes callbacks concurrently with goroutine runner",
-			setupRule: func() *fh.Rule[*mockEvent, *mockEvent] {
+			setupRule: func() *fh.SQLRule[*mockEvent, *mockEvent] {
 				action := &mockAction[*mockEvent, *mockEvent]{}
 				dest := &mockDestination[*mockEvent]{}
 
@@ -208,7 +208,7 @@ func TestParallel_Callback(t *testing.T) {
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(nil)
 
-				return &fh.Rule[*mockEvent, *mockEvent]{
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "concurrent-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: action,
@@ -294,7 +294,7 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 			dest.On("Send", mock.Anything, mock.Anything).
 				Return(nil)
 
-			rule := &fh.Rule[*mockEvent, *mockEvent]{
+			rule := &fh.SQLRule[*mockEvent, *mockEvent]{
 				ID:     "concurrent-rule",
 				From:   &mockSource[*mockEvent]{},
 				Select: action,
@@ -334,12 +334,12 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 func TestParallel_WaitGroup(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupRules     func() *fh.Rule[*mockEvent, *mockEvent]
+		setupRules     func() *fh.SQLRule[*mockEvent, *mockEvent]
 		validateTiming func(t *testing.T, taskExecuted bool)
 	}{
 		{
 			name: "waits for all tasks to complete before returning",
-			setupRules: func() *fh.Rule[*mockEvent, *mockEvent] {
+			setupRules: func() *fh.SQLRule[*mockEvent, *mockEvent] {
 				action := &mockAction[*mockEvent, *mockEvent]{}
 				dest := &mockDestination[*mockEvent]{}
 
@@ -348,7 +348,7 @@ func TestParallel_WaitGroup(t *testing.T) {
 				dest.On("Send", mock.Anything, mock.Anything).
 					Return(nil)
 
-				return &fh.Rule[*mockEvent, *mockEvent]{
+				return &fh.SQLRule[*mockEvent, *mockEvent]{
 					ID:     "wait-rule",
 					From:   &mockSource[*mockEvent]{},
 					Select: action,

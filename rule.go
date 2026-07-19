@@ -10,9 +10,9 @@ import (
 	"github.com/emad-elsaid/boolexpr"
 )
 
-// Rule defines an event processing pipeline from source to destination.
+// SQLRule defines an event processing pipeline from source to destination.
 // I and O represent the input and output event types.
-type Rule[I, O any] struct {
+type SQLRule[I, O any] struct {
 	// ID is a unique identifier for the rule, used for reporting and debugging purposes.
 	ID string `validate:"required"`
 	// Environments is a list of environment names where the rule is active. If
@@ -37,8 +37,8 @@ type Rule[I, O any] struct {
 	// actions/destination/callback of the rule.
 	Middlewares []Middleware[I, O]
 
-	next, prev                     Registry
-	nextSameSource, prevSameSource Registry
+	next, prev                     Rule
+	nextSameSource, prevSameSource Rule
 
 	wrappedCallback Callback[I]
 }
@@ -46,7 +46,7 @@ type Rule[I, O any] struct {
 // Init initializes the rule by wrapping the callback, action, and destination
 // with the configured middlewares. Middlewares are applied in reverse order,
 // so the first middleware in the slice wraps all subsequent ones.
-func (r *Rule[I, O]) Init(ctx context.Context) error {
+func (r *SQLRule[I, O]) Init(ctx context.Context) error {
 	r.wrappedCallback = r.callback
 
 	if len(r.Middlewares) == 0 {
@@ -80,7 +80,7 @@ func (r *Rule[I, O]) Init(ctx context.Context) error {
 
 // Start begins the source for this rule if it's the first rule with
 // this source in the chain. Returns a done channel when the source stops.
-func (r *Rule[I, O]) Start(ctx context.Context) (<-chan struct{}, error) {
+func (r *SQLRule[I, O]) Start(ctx context.Context) (<-chan struct{}, error) {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
 		return nil, nil
@@ -94,7 +94,7 @@ func (r *Rule[I, O]) Start(ctx context.Context) (<-chan struct{}, error) {
 	return done, nil
 }
 
-func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ErrorHandler) {
+func (r *SQLRule[I, O]) callback(ctx context.Context, event I, reportFn ErrorHandler) {
 	syms := EventSymbols(event)
 
 	for current := Runnable[I](r); current != nil; current = current.NextRunnable() {
@@ -106,7 +106,7 @@ func (r *Rule[I, O]) callback(ctx context.Context, event I, reportFn ErrorHandle
 }
 
 // Run executes the rule's action and destination for the given event.
-func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) error {
+func (r *SQLRule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) error {
 	// Evaluate input condition
 	if r.Where != nil {
 		pass, err := r.Where.Evaluate(ctx, event, syms)
@@ -156,7 +156,7 @@ func (r *Rule[I, O]) Run(ctx context.Context, event I, syms boolexpr.Symbols) er
 }
 
 // NextRunnable returns the next runnable rule with the same source.
-func (r *Rule[I, O]) NextRunnable() Runnable[I] {
+func (r *SQLRule[I, O]) NextRunnable() Runnable[I] {
 	if r.nextSameSource == nil {
 		return nil
 	}
@@ -167,32 +167,32 @@ func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 	return r.nextSameSource.(Runnable[I])
 }
 
-// GetNext returns the next rule in the circular registry list.
-func (r *Rule[I, O]) GetNext() Registry { return r.next }
+// GetNext returns the next rule in the circular rule list.
+func (r *SQLRule[I, O]) GetNext() Rule { return r.next }
 
-// SetNext sets the next rule in the circular registry list.
-func (r *Rule[I, O]) SetNext(n Registry) { r.next = n }
+// SetNext sets the next rule in the circular rule list.
+func (r *SQLRule[I, O]) SetNext(n Rule) { r.next = n }
 
-// GetPrev returns the previous rule in the circular registry list.
-func (r *Rule[I, O]) GetPrev() Registry { return r.prev }
+// GetPrev returns the previous rule in the circular rule list.
+func (r *SQLRule[I, O]) GetPrev() Rule { return r.prev }
 
-// SetPrev sets the previous rule in the circular registry list.
-func (r *Rule[I, O]) SetPrev(p Registry) { r.prev = p }
+// SetPrev sets the previous rule in the circular rule list.
+func (r *SQLRule[I, O]) SetPrev(p Rule) { r.prev = p }
 
 // SetNextSameSource sets the next rule sharing the same source.
-func (r *Rule[I, O]) SetNextSameSource(n Registry) { r.nextSameSource = n }
+func (r *SQLRule[I, O]) SetNextSameSource(n Rule) { r.nextSameSource = n }
 
 // GetNextSameSource returns the next rule sharing the same source.
-func (r *Rule[I, O]) GetNextSameSource() Registry { return r.nextSameSource }
+func (r *SQLRule[I, O]) GetNextSameSource() Rule { return r.nextSameSource }
 
 // SetPrevSameSource sets the previous rule sharing the same source.
-func (r *Rule[I, O]) SetPrevSameSource(p Registry) { r.prevSameSource = p }
+func (r *SQLRule[I, O]) SetPrevSameSource(p Rule) { r.prevSameSource = p }
 
 // GetSource returns the source associated with this rule.
-func (r *Rule[I, O]) GetSource() any { return r.From }
+func (r *SQLRule[I, O]) GetSource() any { return r.From }
 
 // GetID returns the unique identifier of the rule.
-func (r *Rule[I, O]) GetID() string { return r.ID }
+func (r *SQLRule[I, O]) GetID() string { return r.ID }
 
 // GetEnvironments returns the list of environments where the rule is active.
-func (r *Rule[I, O]) GetEnvironments() []string { return r.Environments }
+func (r *SQLRule[I, O]) GetEnvironments() []string { return r.Environments }

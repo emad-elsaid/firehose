@@ -46,19 +46,19 @@ type Condition[I any] interface {
 	Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
 }
 
-// Registry handler that accumulates rules and manages their execution.
-type Registry interface {
-	GetNext() Registry
-	SetNext(n Registry)
-	GetPrev() Registry
-	SetPrev(p Registry)
+// Rule handler that accumulates rules and manages their execution.
+type Rule interface {
+	GetNext() Rule
+	SetNext(n Rule)
+	GetPrev() Rule
+	SetPrev(p Rule)
 
 	GetSource() any
 	Start(ctx context.Context) (<-chan struct{}, error)
 
-	SetNextSameSource(n Registry)
-	SetPrevSameSource(p Registry)
-	GetNextSameSource() Registry
+	SetNextSameSource(n Rule)
+	SetPrevSameSource(p Rule)
+	GetNextSameSource() Rule
 
 	GetID() string
 	GetEnvironments() []string
@@ -78,9 +78,9 @@ type Runnable[I any] interface {
 // Middleware wraps callbacks, actions, and destinations to add cross-cutting concerns
 // such as conditional execution, panic recovery, logging, retry logic, or telemetry.
 type Middleware[I, O any] interface {
-	WrapCallback(ctx context.Context, rule *Rule[I, O], callback Callback[I]) (Callback[I], error)
-	WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
-	WrapDestination(ctx context.Context, rule *Rule[I, O], destination Destination[O]) (Destination[O], error)
+	WrapCallback(ctx context.Context, rule Rule, callback Callback[I]) (Callback[I], error)
+	WrapAction(ctx context.Context, rule Rule, action Action[I, O]) (Action[I, O], error)
+	WrapDestination(ctx context.Context, rule Rule, destination Destination[O]) (Destination[O], error)
 }
 
 // ErrorHandler is a callback function type that handles errors occurring during

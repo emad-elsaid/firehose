@@ -12,37 +12,25 @@ import (
 // structured logging.
 type Slog[I, O any] struct {
 	downstream fh.Callback[I]
-	source     fh.Source[I]
+	source     any
 }
 
 // WrapCallback stores the downstream callback to be wrapped with logging and returns
 // the callback function to be used by the source.
-func (s *Slog[I, O]) WrapCallback(
-	_ context.Context,
-	rule *fh.Rule[I, O],
-	callback fh.Callback[I],
-) (fh.Callback[I], error) {
+func (s *Slog[I, O]) WrapCallback(_ context.Context, rule fh.Rule, callback fh.Callback[I]) (fh.Callback[I], error) {
 	s.downstream = callback
-	s.source = rule.From
+	s.source = rule.GetSource()
 
 	return s.callback, nil
 }
 
 // WrapAction passes through the action unchanged.
-func (s *Slog[I, O]) WrapAction(
-	_ context.Context,
-	_ *fh.Rule[I, O],
-	action fh.Action[I, O],
-) (fh.Action[I, O], error) {
+func (s *Slog[I, O]) WrapAction(_ context.Context, _ fh.Rule, action fh.Action[I, O]) (fh.Action[I, O], error) {
 	return action, nil
 }
 
 // WrapDestination passes through the destination unchanged.
-func (s *Slog[I, O]) WrapDestination(
-	_ context.Context,
-	_ *fh.Rule[I, O],
-	destination fh.Destination[O],
-) (fh.Destination[O], error) {
+func (s *Slog[I, O]) WrapDestination(_ context.Context, _ fh.Rule, destination fh.Destination[O]) (fh.Destination[O], error) {
 	return destination, nil
 }
 

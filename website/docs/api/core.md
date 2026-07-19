@@ -7,7 +7,7 @@ Core type definitions for the Firehose framework.
 Defines a complete event processing pipeline.
 
 ```go
-type Rule[I, O any] struct {
+type SQLRule[I, O any] struct {
     ID           string
     Environments []string
     Select       Action[I, O]
@@ -159,12 +159,12 @@ type ErrorHandler func(error)
 
 Used with `Start` and `Wait` to handle errors from source operations.
 
-## Registry
+## Rule
 
 Opaque type representing registered rules. Do not construct directly; use `Add`.
 
 ```go
-type Registry interface {
+type Rule interface {
     // Internal methods
 }
 ```

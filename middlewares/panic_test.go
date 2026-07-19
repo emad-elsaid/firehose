@@ -15,7 +15,7 @@ func TestPanic_WrapCallback(t *testing.T) {
 	mw := &Panic[*event, *event]{}
 	wrappedCallback, err := mw.WrapCallback(
 		context.Background(),
-		&firehose.Rule[*event, *event]{},
+		&firehose.SQLRule[*event, *event]{},
 		func(context.Context, *event, firehose.ErrorHandler) {},
 	)
 	require.NoError(t, err)
@@ -29,7 +29,7 @@ func TestPanic_WrapAction(t *testing.T) {
 
 	wrappedAction, err := mw.WrapAction(
 		context.Background(),
-		&firehose.Rule[*event, *event]{},
+		&firehose.SQLRule[*event, *event]{},
 		mockAction,
 	)
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestPanic_WrapDestination(t *testing.T) {
 
 	wrappedDest, err := mw.WrapDestination(
 		context.Background(),
-		&firehose.Rule[*event, *event]{},
+		&firehose.SQLRule[*event, *event]{},
 		mockDest,
 	)
 	require.NoError(t, err)

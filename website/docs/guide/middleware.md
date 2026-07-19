@@ -14,9 +14,9 @@ Firehose provides a unified middleware interface that can intercept three points
 
 ```go
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *Rule[I, O], cb Callback[I]) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *Rule[I, O], action Action[I, O]) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *Rule[I, O], dest Destination[O]) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule *SQLRule[I, O], cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule *SQLRule[I, O], action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule *SQLRule[I, O], dest Destination[O]) (Destination[O], error)
 }
 ```
 
@@ -62,7 +62,7 @@ func (a loggingAction[I, O]) Process(
 // Implement middleware interface
 func (m LoggingMiddleware[I, O]) WrapCallback(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     cb fh.Callback[I],
 ) (fh.Callback[I], error) {
     // Return callback unchanged
@@ -71,7 +71,7 @@ func (m LoggingMiddleware[I, O]) WrapCallback(
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
     return loggingAction[I, O]{
@@ -82,7 +82,7 @@ func (m LoggingMiddleware[I, O]) WrapAction(
 
 func (m LoggingMiddleware[I, O]) WrapDestination(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     dest fh.Destination[O],
 ) (fh.Destination[O], error) {
     // Return destination unchanged
@@ -93,7 +93,7 @@ func (m LoggingMiddleware[I, O]) WrapDestination(
 ### Using Middleware
 
 ```go
-rule := &fh.Rule[Event, Output]{
+rule := &fh.SQLRule[Event, Output]{
     ID:   "my_rule",
     Select: action,
     Into:   destination,
@@ -222,7 +222,7 @@ func (a retryAction[I, O]) Process(
 
 func (m RetryMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.Rule[I, O],
+    rule *fh.SQLRule[I, O],
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
     return retryAction[I, O]{

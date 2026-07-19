@@ -146,11 +146,11 @@ func main() {
         GroupID: "order-processor",
     }
     
-    var registry fh.Registry
+    var head fh.Rule
     var err error
     
     // High-value order processing
-    registry, err = fh.Add(ctx, registry, &fh.Rule[OrderEvent, OrderEvent]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "high_value",
         From:   kafkaSource,
         Where:  condition.Cond[OrderEvent](`amount > 1000`),
@@ -162,7 +162,7 @@ func main() {
     }
     
     // Failed order handling
-    registry, err = fh.Add(ctx, registry, &fh.Rule[OrderEvent, OrderEvent]{
+    head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "failed_orders",
         From:   kafkaSource,
         Where:  condition.Cond[OrderEvent](`status = "failed"`),
@@ -173,8 +173,8 @@ func main() {
         log.Fatal(err)
     }
     
-    fh.Start(ctx, registry, nil)
-    fh.Wait(registry, nil)
+    fh.Start(ctx, head, nil)
+    fh.Wait(head, nil)
 }
 ```
 

@@ -100,7 +100,7 @@ func main() {
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
     defer stop()
 
-    rule := &fh.Rule[Tick, string]{
+    rule := &fh.SQLRule[Tick, string]{
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
@@ -108,7 +108,7 @@ func main() {
         From:   Timer{Interval: 1 * time.Second},
     }
 
-    registry, err := fh.Add(ctx, nil, rule)
+    head, err := fh.Add(ctx, nil, rule)
     if err != nil {
         log.Fatal(err)
     }
@@ -119,8 +119,8 @@ func main() {
         }
     }
 
-    fh.Start(ctx, registry, errHandler)
-    fh.Wait(registry, errHandler)
+    fh.Start(ctx, head, errHandler)
+    fh.Wait(head, errHandler)
 }
 ```
 
@@ -198,7 +198,7 @@ func main() {
     ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
     defer stop()
 
-    rule := &fh.Rule[Tick, string]{
+    rule := &fh.SQLRule[Tick, string]{
         ID:   "print_business_hours",
         Select: FormatTime{},
         Into:   Printer{},
@@ -206,7 +206,7 @@ func main() {
         From:   Timer{Interval: 1 * time.Second},
     }
 
-    registry, _ := fh.Add(ctx, nil, rule)
+    head, _ := fh.Add(ctx, nil, rule)
 
     errHandler := func(err error) {
         if err != nil && !errors.Is(err, context.Canceled) {
@@ -214,8 +214,8 @@ func main() {
         }
     }
 
-    fh.Start(ctx, registry, errHandler)
-    fh.Wait(registry, errHandler)
+    fh.Start(ctx, head, errHandler)
+    fh.Wait(head, errHandler)
 }
 ```
 </details>

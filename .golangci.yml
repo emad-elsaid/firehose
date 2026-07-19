@@ -55,7 +55,6 @@ linters:
     - importas
     - inamedparam
     - ineffassign
-    - interfacebloat
     - intrange
     - iotamixing
     - lll
