@@ -226,7 +226,7 @@ func main() {
 
 ### Alternative Naming Conventions
 
-The same pipeline can be expressed with BDD or Kafka Streams naming:
+The same pipeline can be expressed with BDD, Kafka Streams, or MapReduce naming:
 
 ```go
 // BDD convention: Given → Then → GivenOutput → To → Give
@@ -248,11 +248,23 @@ rule := &fh.StreamRule[Tick, string]{
     FilterOutput: condition.Cond[string](`msg != "12:00:00"`),
     Sink:         Printer{},
 }
+
+// MapReduce convention: Source → Filter → Map → Reduce → FilterOutput → Sink
+rule := &fh.MapReduceRule[Tick, string, Metric]{
+    ID:           "print_business_hours",
+    Source:       Timer{Interval: 1 * time.Second},
+    Filter:       condition.Cond[Tick]("hour >= 9 and hour < 17"),
+    Map:          FormatTime{},
+    Reduce:       &Accumulator{},
+    FilterOutput: condition.Cond[Metric](`count > 10`),
+    Sink:         Printer{},
+}
 ```
 
-All three types share the same engine — they can be mixed freely in the same
-pipeline and use identical components for sources, conditions, actions, and
-destinations.
+`SQLRule`, `ScenarioRule`, and `StreamRule` share the same engine — they can be
+mixed freely in the same pipeline and use identical components for sources,
+conditions, actions, and destinations. `MapReduceRule` adds a Reduce stage for
+stateful accumulation across events.
 
 ## What's Next?
 

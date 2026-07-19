@@ -34,6 +34,19 @@ func (e ActionError) Error() string {
 
 func (e ActionError) Unwrap() error { return e.Err }
 
+// ReduceError wraps an error returned by Reducer.Reduce.
+type ReduceError struct{ Err error }
+
+func (e ReduceError) Error() string {
+	if e.Err == nil {
+		return "reduce"
+	}
+
+	return "reduce: " + e.Err.Error()
+}
+
+func (e ReduceError) Unwrap() error { return e.Err }
+
 // DestinationError wraps an error returned by Destination.Send.
 type DestinationError struct{ Err error }
 

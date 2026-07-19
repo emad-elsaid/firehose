@@ -72,16 +72,17 @@ syms := fh.EventSymbols(event)
 ## Rules
 
 Rules define complete event processing pipelines. They combine a source, optional
-condition, transformation, and destination. Firehose provides three rule types
+condition, transformation, and destination. Firehose provides four rule types
 with the same pipeline but different naming conventions:
 
-| Stage | `SQLRule` | `ScenarioRule` | `StreamRule` |
-|-------|-----------|----------------|--------------|
-| Source | `From` | `Give` | `Source` |
-| Input filter | `Where` | `Given` | `Filter` |
-| Transform | `Select` | `Then` | `Map` |
-| Output filter | `Having` | `GivenOutput` | `FilterOutput` |
-| Sink | `Into` | `To` | `Sink` |
+| Stage | `SQLRule` | `ScenarioRule` | `StreamRule` | `MapReduceRule` |
+|-------|-----------|----------------|--------------|-----------------|
+| Source | `From` | `Give` | `Source` | `Source` |
+| Input filter | `Where` | `Given` | `Filter` | `Filter` |
+| Transform | `Select` | `Then` | `Map` | `Map` |
+| Reduce | — | — | — | `Reduce` |
+| Output filter | `Having` | `GivenOutput` | `FilterOutput` | `FilterOutput` |
+| Sink | `Into` | `To` | `Sink` | `Sink` |
 
 ```go
 type SQLRule[I, O any] struct {
@@ -116,16 +117,45 @@ type StreamRule[I, O any] struct {
     Sink         Destination[O]     // Output handler
     Middlewares  []Middleware[I, O]
 }
+
+type MapReduceRule[I, M, Out any] struct {
+    ID           string
+    Environments []string
+    Source       Source[I]          // Event source
+    Filter       Condition[I]       // Input condition
+    Map          Action[I, M]       // Transform I → M
+    Reduce       Reducer[M, Out]    // Accumulate M into Out
+    FilterOutput Condition[Out]     // Output condition
+    Sink         Destination[Out]   // Output handler
+    Middlewares  []Middleware[I, M]
+}
 ```
+
+`MapReduceRule` differs from the other three rule types: it uses **three** type
+parameters (`I`, `M`, `Out`) and introduces the `Reduce` stage for stateful
+accumulation. The `Reducer[M, Out]` interface combines each intermediary value
+with the current accumulator:
+
+```go
+type Reducer[M, Out any] interface {
+    Reduce(ctx context.Context, value M, accumulator Out) (Out, error)
+}
+```
+
+The accumulator starts at the zero value of `Out` and is updated atomically,
+thread-safe across concurrent events from the same source.
 
 ### Type Safety
 
-Rules are generic over input (`I`) and output (`O`) types. The compiler ensures:
+`SQLRule`, `ScenarioRule`, and `StreamRule` are generic over input (`I`) and output
+(`O`) types. `MapReduceRule` adds an intermediary type `M` and an accumulator type
+`Out`. The compiler ensures:
 
 - `Source[I]` produces events of type `I`
 - `Condition[I]` evaluates conditions on type `I`
 - `Action[I, O]` transforms `I` to `O`
 - `Destination[O]` consumes events of type `O`
+- `Reducer[M, Out]` combines `M` with the current `Out` accumulator
 
 ```go
 // Valid - types match
@@ -141,12 +171,21 @@ SQLRule[HTTPRequest, User]{
     Into:   EmailService{},         // expects Email, not User
     From:   HTTPServer{},           // produces HTTPRequest
 }
+
+// MapReduceRule with three type parameters
+MapReduceRule[Order, Metrics, Report]{
+    Map:    OrderToMetrics{},       // Order → Metrics
+    Reduce: MetricsAccumulator{},   // Metrics + Report → Report
+    Sink:   ReportPublisher{},      // consumes Report
+}
 ```
 
 ### Choosing a Rule Type
 
-Which rule type to use is a matter of convention — they are functionally identical
-and can be mixed in the same pipeline:
+Which rule type to use is a matter of convention — `SQLRule`, `ScenarioRule`, and
+`StreamRule` are functionally identical and can be mixed in the same pipeline.
+`MapReduceRule` adds stateful accumulation for use cases like rolling metrics,
+event counting, or session aggregation:
 
 ```go
 source := &KafkaConsumer{Topic: "orders"}
@@ -157,6 +196,8 @@ head, _ = Add(ctx, head, &SQLRule[Event, Email]{From: source, ...})
 head, _ = Add(ctx, head, &ScenarioRule[Event, Metrics]{Give: source, ...})
 // Kafka Streams convention
 head, _ = Add(ctx, head, &StreamRule[Event, Audit]{Source: source, ...})
+// MapReduce convention (3 type params)
+head, _ = Add(ctx, head, &MapReduceRule[Event, Metric, Summary]{Source: source, ...})
 ```
 
 ## Sources
@@ -315,6 +356,7 @@ Common sentinel and wrapper errors:
    evaluated to false (normal control flow)
 - `ConditionError` — failure while evaluating a condition
 - `ActionError` — failure inside `Action.Process`
+- `ReduceError` — failure inside `Reducer.Reduce` (MapReduceRule only)
 - `DestinationError` — failure inside `Destination.Send`
 
 Sources receive errors through the callback's `ErrorHandler` for monitoring and
@@ -336,9 +378,11 @@ When a source invokes the callback, the rule executes these steps in order:
 1. Evaluate input condition (`Where` / `Given` / `Filter`) — skip and return
    `ErrInputNoMatch` if false
 2. Execute action (`Select` / `Then` / `Map`) — transform input to output
-3. Evaluate output condition (`Having` / `GivenOutput` / `FilterOutput`) — skip
+3. **Reduce** (MapReduceRule only) — combine intermediary value with thread-safe
+   accumulator
+4. Evaluate output condition (`Having` / `GivenOutput` / `FilterOutput`) — skip
    and return `ErrOutputNoMatch` if false
-4. Send to destination (`Into` / `To` / `Sink`)
+5. Send to destination (`Into` / `To` / `Sink`)
 
 Rules with the same source form a linked list. Each rule in the chain executes
 independently.

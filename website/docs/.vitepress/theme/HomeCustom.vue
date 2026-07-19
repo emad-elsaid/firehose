@@ -10,7 +10,8 @@
           <p class="hero-description">
             Build composable event pipelines with conditional execution, hierarchical rules,
             and middleware support. Event-driven architecture that the compiler can verify.
-            Choose the naming convention that fits your team: SQL, BDD, or Kafka Streams.
+            Choose the naming convention that fits your team: SQL, BDD, Kafka Streams,
+            or MapReduce.
           </p>
           <div class="hero-actions">
             <a href="/firehose/guide/quick-start" class="btn btn-primary">Get Started</a>
@@ -45,10 +46,21 @@
     <span class="field">Map</span>          <span class="type">Action</span>[I, O] <span class="comment">// Transform</span>
     <span class="field">FilterOutput</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
     <span class="field">Sink</span>         <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+}
+
+<span class="comment">// MapReduce convention</span>
+<span class="keyword">type</span> <span class="type">MapReduceRule</span>[I, M, Out <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Source</span>       <span class="type">Source</span>[I]        <span class="comment">// Event source</span>
+    <span class="field">Filter</span>       <span class="type">Condition</span>[I]     <span class="comment">// Input condition</span>
+    <span class="field">Map</span>          <span class="type">Action</span>[I, M]     <span class="comment">// Transform</span>
+    <span class="field">Reduce</span>       <span class="type">Reducer</span>[M, Out]  <span class="comment">// Accumulate</span>
+    <span class="field">FilterOutput</span> <span class="type">Condition</span>[Out]   <span class="comment">// Output condition</span>
+    <span class="field">Sink</span>         <span class="type">Destination</span>[Out] <span class="comment">// Output</span>
 }</code></pre>
           <p class="hero-description" style="margin-top: 0.75rem; font-size: 0.95rem;">
-            One pipeline, three naming conventions: <code>SQL</code>,
-            <code>BDD (Given-When-Then)</code>, or <code>Kafka Streams</code>.
+            One pipeline, four naming conventions: <code>SQL</code>,
+            <code>BDD (Given-When-Then)</code>, <code>Kafka Streams</code>, or
+            <code>MapReduce</code>.
           </p>
         </div>
       </div>

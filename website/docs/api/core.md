@@ -84,16 +84,18 @@ Middlewares: []Middleware[I, O]{
 
 ### Pipeline Field Mapping
 
-All three rule types express the same pipeline: source → input condition → action →
-output condition → destination. They differ only in field naming:
+`SQLRule`, `ScenarioRule`, and `StreamRule` express the same pipeline: source → input
+condition → action → output condition → destination. `MapReduceRule` adds an
+intermediary Reduce stage for stateful accumulation.
 
-| Stage | `SQLRule` | `ScenarioRule` (BDD) | `StreamRule` (Kafka Streams) |
-|-------|-----------|---------------------|------------------------------|
-| Source | `From` | `Give` | `Source` |
-| Input condition | `Where` | `Given` | `Filter` |
-| Action | `Select` | `Then` | `Map` |
-| Output condition | `Having` | `GivenOutput` | `FilterOutput` |
-| Destination | `Into` | `To` | `Sink` |
+| Stage | `SQLRule` | `ScenarioRule` (BDD) | `StreamRule` (Kafka Streams) | `MapReduceRule` |
+|-------|-----------|---------------------|------------------------------|-----------------|
+| Source | `From` | `Give` | `Source` | `Source` |
+| Input condition | `Where` | `Given` | `Filter` | `Filter` |
+| Action | `Select` | `Then` | `Map` | `Map` |
+| Reduce | — | — | — | `Reduce` |
+| Output condition | `Having` | `GivenOutput` | `FilterOutput` | `FilterOutput` |
+| Destination | `Into` | `To` | `Sink` | `Sink` |
 
 ---
 
@@ -168,6 +170,75 @@ Equivalent to `Having`.
 
 #### Sink (Destination[O])
 Destination that consumes output events. Equivalent to `Into`.
+
+---
+
+## MapReduceRule
+
+MapReduce-inspired rule with Source/Filter/Map/Reduce/FilterOutput/Sink semantics.
+Uses three type parameters: `I` (input), `M` (intermediary), `Out` (accumulated
+output). The Reduce stage maintains a thread-safe accumulator via `sync.Mutex`.
+
+```go
+type MapReduceRule[I, M, Out any] struct {
+    ID           string
+    Environments []string
+    Source       Source[I]
+    Filter       Condition[I]
+    Map          Action[I, M]
+    Reduce       Reducer[M, Out]
+    FilterOutput Condition[Out]
+    Sink         Destination[Out]
+    Middlewares  []Middleware[I, M]
+}
+```
+
+### Fields
+
+#### Source (Source[I])
+Event source that produces events of type `I`. Equivalent to `From` on `SQLRule`.
+
+#### Filter (Condition[I])
+Optional condition that filters input events. Equivalent to `Where`.
+
+#### Map (Action[I, M])
+Transformation that converts input events of type `I` to intermediary values of type
+`M`. Equivalent to `Select`.
+
+#### Reduce (Reducer[M, Out])
+Combines an intermediary value with the current accumulator to produce a new output
+value. The accumulator is thread-safe and persists across events from the same source.
+
+```go
+type Reducer[M, Out any] interface {
+    Reduce(ctx context.Context, value M, accumulator Out) (Out, error)
+}
+```
+
+The accumulator starts at the zero value of `Out` and is updated atomically after each
+successful Reduce call.
+
+#### FilterOutput (Condition[Out])
+Optional condition that filters reduced output before sending to sink. Equivalent to
+`Having`.
+
+#### Sink (Destination[Out])
+Destination that consumes accumulated output events. Equivalent to `Into`.
+
+### Accumulator Behavior
+
+The Reduce accumulator is updated atomically before the FilterOutput check — even if
+FilterOutput rejects the result, the accumulator retains the new value.
+
+```go
+// Pipeline execution order for MapReduceRule:
+// 1. Source emits event I
+// 2. Filter (optional) — skip if false, return ErrInputNoMatch
+// 3. Map — transforms I → M
+// 4. Reduce — combines M with accumulator Out → new Out
+// 5. FilterOutput (optional) — skip if false, return ErrOutputNoMatch
+// 6. Sink — sends Out to destination
+```
 
 ---
 
@@ -326,6 +397,29 @@ type DestinationError struct {
 
 func (e DestinationError) Error() string
 func (e DestinationError) Unwrap() error
+```
+
+### ReduceError
+
+Wraps errors from the Reduce operation in a `MapReduceRule`.
+
+```go
+type ReduceError struct {
+    Err error
+}
+
+func (e ReduceError) Error() string
+func (e ReduceError) Unwrap() error
+```
+
+## Reducer Interface
+
+Stateful accumulator for `MapReduceRule`.
+
+```go
+type Reducer[M, Out any] interface {
+    Reduce(ctx context.Context, value M, accumulator Out) (Out, error)
+}
 ```
 
 ## Next Steps

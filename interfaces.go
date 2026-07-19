@@ -75,6 +75,13 @@ type Runnable[I any] interface {
 	NextRunnable() Runnable[I]
 }
 
+// Reducer combines an intermediary value with an accumulator to produce a
+// new output value. Used by MapReduceRule to reduce mapped events into a
+// running result.
+type Reducer[M, Out any] interface {
+	Reduce(ctx context.Context, intermediary M, accumulator Out) (Out, error)
+}
+
 // Middleware wraps callbacks, actions, and destinations to add cross-cutting concerns
 // such as conditional execution, panic recovery, logging, retry logic, or telemetry.
 type Middleware[I, O any] interface {

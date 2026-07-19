@@ -26,6 +26,9 @@ type MockScenarioRule = ScenarioRule[*EventMock, *EventMock]
 // MockStreamRule is a type alias for StreamRule[*EventMock, *EventMock]
 type MockStreamRule = StreamRule[*EventMock, *EventMock]
 
+// MockMapReduceRule is a type alias for MapReduceRule[*EventMock, *EventMock, *EventMock]
+type MockMapReduceRule = MapReduceRule[*EventMock, *EventMock, *EventMock]
+
 type reportCollector struct {
 	errors []error
 }
