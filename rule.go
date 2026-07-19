@@ -190,3 +190,9 @@ func (r *Rule[I, O]) SetPrevSameSource(p Registry) { r.prevSameSource = p }
 
 // GetSource returns the source associated with this rule.
 func (r *Rule[I, O]) GetSource() any { return r.From }
+
+// GetID returns the unique identifier of the rule.
+func (r *Rule[I, O]) GetID() string { return r.ID }
+
+// GetEnvironments returns the list of environments where the rule is active.
+func (r *Rule[I, O]) GetEnvironments() []string { return r.Environments }

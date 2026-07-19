@@ -417,6 +417,96 @@ func (_m *MockRegistry) EXPECT() *MockRegistry_Expecter {
 	return &MockRegistry_Expecter{mock: &_m.Mock}
 }
 
+// GetEnvironments provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetEnvironments() []string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetEnvironments")
+	}
+
+	var r0 []string
+	if returnFunc, ok := ret.Get(0).(func() []string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	return r0
+}
+
+// MockRegistry_GetEnvironments_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetEnvironments'
+type MockRegistry_GetEnvironments_Call struct {
+	*mock.Call
+}
+
+// GetEnvironments is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetEnvironments() *MockRegistry_GetEnvironments_Call {
+	return &MockRegistry_GetEnvironments_Call{Call: _e.mock.On("GetEnvironments")}
+}
+
+func (_c *MockRegistry_GetEnvironments_Call) Run(run func()) *MockRegistry_GetEnvironments_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRegistry_GetEnvironments_Call) Return(strings []string) *MockRegistry_GetEnvironments_Call {
+	_c.Call.Return(strings)
+	return _c
+}
+
+func (_c *MockRegistry_GetEnvironments_Call) RunAndReturn(run func() []string) *MockRegistry_GetEnvironments_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetID provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetID() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockRegistry_GetID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetID'
+type MockRegistry_GetID_Call struct {
+	*mock.Call
+}
+
+// GetID is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetID() *MockRegistry_GetID_Call {
+	return &MockRegistry_GetID_Call{Call: _e.mock.On("GetID")}
+}
+
+func (_c *MockRegistry_GetID_Call) Run(run func()) *MockRegistry_GetID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRegistry_GetID_Call) Return(s string) *MockRegistry_GetID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockRegistry_GetID_Call) RunAndReturn(run func() string) *MockRegistry_GetID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetNext provides a mock function for the type MockRegistry
 func (_mock *MockRegistry) GetNext() Registry {
 	ret := _mock.Called()
@@ -597,6 +687,57 @@ func (_c *MockRegistry_GetSource_Call) Return(v any) *MockRegistry_GetSource_Cal
 }
 
 func (_c *MockRegistry_GetSource_Call) RunAndReturn(run func() any) *MockRegistry_GetSource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Init provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) Init(ctx context.Context) error {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Init")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRegistry_Init_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Init'
+type MockRegistry_Init_Call struct {
+	*mock.Call
+}
+
+// Init is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockRegistry_Expecter) Init(ctx any) *MockRegistry_Init_Call {
+	return &MockRegistry_Init_Call{Call: _e.mock.On("Init", ctx)}
+}
+
+func (_c *MockRegistry_Init_Call) Run(run func(ctx context.Context)) *MockRegistry_Init_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRegistry_Init_Call) Return(err error) *MockRegistry_Init_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRegistry_Init_Call) RunAndReturn(run func(ctx context.Context) error) *MockRegistry_Init_Call {
 	_c.Call.Return(run)
 	return _c
 }

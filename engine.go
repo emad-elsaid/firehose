@@ -9,13 +9,13 @@ import (
 )
 
 // Add registers a new processing rule in the context.
-func Add[I, O any](ctx context.Context, registry Registry, rule *Rule[I, O]) (Registry, error) {
+func Add(ctx context.Context, registry Registry, rule Registry) (Registry, error) {
 	err := isValid(rule)
 	if err != nil {
 		return nil, err
 	}
 
-	if !isEnvironmentEnabled(rule.Environments, os.Getenv("ENV")) {
+	if !isEnvironmentEnabled(rule.GetEnvironments(), os.Getenv("ENV")) {
 		return registry, nil
 	}
 
@@ -35,7 +35,7 @@ func isEnvironmentEnabled(environments []string, currentEnvironment string) bool
 	return slices.Contains(environments, currentEnvironment)
 }
 
-func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
+func addToRegistry(registry Registry, rule Registry) Registry {
 	if registry == nil {
 		rule.SetNext(rule)
 		rule.SetPrev(rule)
@@ -44,7 +44,7 @@ func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 	}
 
 	tail := registry.GetPrev()
-	sameSourceTail := getSameSourceTail(registry, rule.From)
+	sameSourceTail := getSameSourceTail(registry, rule.GetSource())
 
 	linkRule(rule, registry, tail)
 	linkSameSourceRule(rule, sameSourceTail)
@@ -112,7 +112,7 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 }
 
 // isValid validates the rule's fields.
-func isValid[I, O any](rule *Rule[I, O]) error {
+func isValid(rule Registry) error {
 	validatorInstance := validator.New(validator.WithRequiredStructEnabled())
 
 	return validatorInstance.Struct(rule)

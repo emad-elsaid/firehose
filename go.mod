@@ -2,7 +2,6 @@ module github.com/emad-elsaid/firehose
 
 go 1.26.3
 
-tool golang.org/x/tools/cmd/deadcode
 
 tool go.uber.org/nilaway/cmd/nilaway
 

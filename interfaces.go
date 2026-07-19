@@ -59,6 +59,10 @@ type Registry interface {
 	SetNextSameSource(n Registry)
 	SetPrevSameSource(p Registry)
 	GetNextSameSource() Registry
+
+	GetID() string
+	GetEnvironments() []string
+	Init(ctx context.Context) error
 }
 
 // Callback is a function type that sources use to send events to the
