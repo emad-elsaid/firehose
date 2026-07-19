@@ -21,7 +21,9 @@ import (
     "log"
 
     "github.com/IBM/sarama"
+    "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
+    "github.com/emad-elsaid/firehose/actions"
     "github.com/emad-elsaid/firehose/condition"
 )
 
@@ -166,7 +168,7 @@ func main() {
         ID:     "failed_orders",
         From:   kafkaSource,
         Where:  condition.Cond[OrderEvent](`status = "failed"`),
-        Select: actions.Identity[OrderEvent]{},
+        Select: actions.Func[OrderEvent, OrderEvent](func(ctx context.Context, e OrderEvent, _ boolexpr.Symbols) (OrderEvent, error) { return e, nil }),
         Into:   DeadLetterQueue{},
     })
     if err != nil {

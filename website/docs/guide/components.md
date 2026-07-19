@@ -41,7 +41,7 @@ Where: &condition.RateLimit[OrderEvent]{
 ```go
 Where: &condition.Once[OrderEvent]{
     Duration: 5 * time.Minute,
-    Cache:    cache.NewMemory[bool](10*time.Minute, time.Minute),
+    Cache:    cache.NewMemory[string](10*time.Minute, time.Minute),
 }
 ```
 

@@ -61,14 +61,14 @@ rule := &fh.SQLRule[Event, Output]{
 head, _ = fh.Add(ctx, nil, &fh.SQLRule[Event, Event]{
     ID:           "prod_events",
     Environments: []string{"production"},
-    Select:         actions.Identity[Event]{},
+    Select:         actions.Func[Event, Event](func(ctx context.Context, e Event, _ boolexpr.Symbols) (Event, error) { return e, nil }),
     Into:           ProductionDatabase{},
     From:           eventSource,
 })
 head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Event]{
     ID:           "dev_events",
     Environments: []string{"development"},
-    Select:         actions.Identity[Event]{},
+    Select:         actions.Func[Event, Event](func(ctx context.Context, e Event, _ boolexpr.Symbols) (Event, error) { return e, nil }),
     Into:           LocalDatabase{},
     From:           eventSource,
 })
@@ -80,7 +80,7 @@ head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Event]{
 debugRule := &fh.SQLRule[Event, Event]{
     ID:           "debug_logger",
     Environments: []string{"development", "staging"},
-    Select:         actions.Identity[Event]{},
+    Select:         actions.Func[Event, Event](func(ctx context.Context, e Event, _ boolexpr.Symbols) (Event, error) { return e, nil }),
     Into:           ConsoleLogger{},
     From:           source,
 }

@@ -144,15 +144,16 @@ Opaque interface representing registered rules.
 type Rule interface {
     GetID() string
     GetSource() any
+    GetEnvironments() []string
     GetNext() Rule
     SetNext(n Rule)
     GetPrev() Rule
     SetPrev(p Rule)
-    GetNextSameSource() Rule
-    SetNextSameSource(n Rule)
-    Start(ctx context.Context) (<-chan struct{}, error)
-    Init(ctx context.Context) error
-    // ...
+	GetNextSameSource() Rule
+	SetNextSameSource(n Rule)
+	SetPrevSameSource(p Rule)
+	Start(ctx context.Context) (<-chan struct{}, error)
+	Init(ctx context.Context) error
 }
 ```
 
@@ -162,8 +163,8 @@ Wraps errors with the originating rule ID.
 
 ```go
 type RuleError struct {
-    Err  error
-    Rule string
+	Rule string
+	Err  error
 }
 
 func NewRuleError(rule string, err error) error

@@ -94,12 +94,12 @@ func (api OrderAPI) Start(
                 http.Error(w, err.Error(), 500)
                 return
             }
+        })
 
-            w.WriteHeader(201)
-            json.NewEncoder(w).Encode(map[string]string{
-                "status": "created",
-                "id":     order.OrderID,
-            })
+        w.WriteHeader(201)
+        json.NewEncoder(w).Encode(map[string]string{
+            "status": "created",
+            "id":     order.OrderID,
         })
     })
 
