@@ -1,10 +1,13 @@
 # Introduction
 
-Firehose is a type-safe event processing framework for Go that enables you to build composable event pipelines with conditional execution and middleware support.
+Firehose is a type-safe event processing framework for Go that enables you to build
+composable event pipelines with conditional execution and middleware support.
 
 ## The Problem
 
-Applications process events from various sources (HTTP requests, message queues, timers, system events, user input) and react with side effects. Without a structured approach, event handling becomes:
+Applications process events from various sources (HTTP requests, message queues,
+timers, system events, user input) and react with side effects. Without a structured
+approach, event handling becomes:
 
 - **Scattered** across the codebase
 - **Difficult to test** in isolation
@@ -22,6 +25,9 @@ Select → Into → From → Where → Having
 This ordering intentionally resembles SQL clauses:
 `SELECT ... INTO ... FROM ... WHERE ... HAVING ...`
 
+Execution order (driven by runtime flow):
+`From → Where → Select → Having → Into`
+
 Each stage is:
 
 - **Select**: Transformation logic converting input events to output events
@@ -34,7 +40,8 @@ Each stage is:
 
 ### Type Safety
 
-Rules enforce type safety between pipeline stages. The compiler ensures transformations match:
+Rules enforce type safety between pipeline stages. The compiler ensures
+transformations match:
 
 ```go
 // HTTP request events → Order events
@@ -46,14 +53,15 @@ SQLRule[OrderPlaced, EmailSent]
 
 ### Event Source Fanout
 
-Register multiple rules with the same source instance. The framework detects this and starts the source only once, fanning events out to all rules:
+Register multiple rules with the same source instance. The framework detects this and
+starts the source only once, fanning events out to all rules:
 
 ```go
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
 // Both rules share kafkaSource - it starts once, events fan out
-reg, _ = Add(ctx, reg, &SQLRule[OrderEvent, Email]{From: kafkaSource, ...})
-reg, _ = Add(ctx, reg, &SQLRule[OrderEvent, Metrics]{From: kafkaSource, ...})
+head, _ = Add(ctx, head, &SQLRule[OrderEvent, Email]{From: kafkaSource, ...})
+head, _ = Add(ctx, head, &SQLRule[OrderEvent, Metrics]{From: kafkaSource, ...})
 ```
 
 ### Middleware System
@@ -65,10 +73,10 @@ type LoggingMiddleware[I, O any] struct{}
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *SQLSQLRule[I, O],
+    rule Rule,
     action Action[I, O],
 ) (Action[I, O], error) {
-    return loggingAction[I, O]{ruleID: rule.ID, next: action}, nil
+    return loggingAction[I, O]{ruleID: rule.GetID(), next: action}, nil
 }
 ```
 

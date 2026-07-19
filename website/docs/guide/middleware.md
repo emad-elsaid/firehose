@@ -1,10 +1,12 @@
 # Middleware
 
-Middlewares intercept and wrap pipeline components to add cross-cutting concerns like logging, metrics, retry logic, or rate limiting.
+Middlewares intercept and wrap pipeline components to add cross-cutting concerns like
+logging, metrics, retry logic, or rate limiting.
 
 ## Overview
 
-Firehose provides a unified middleware interface that can intercept three points in the event processing pipeline:
+Firehose provides a unified middleware interface that can intercept three points in
+the event processing pipeline:
 
 - **Callbacks** - Event reception from sources
 - **Actions** - Event transformation logic
@@ -14,17 +16,17 @@ Firehose provides a unified middleware interface that can intercept three points
 
 ```go
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *SQLRule[I, O], cb Callback[I]) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *SQLRule[I, O], action Action[I, O]) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *SQLRule[I, O], dest Destination[O]) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule Rule, cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule Rule, action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule Rule, dest Destination[O]) (Destination[O], error)
 }
 ```
 
 Each method:
-- Receives the original component
+- Receives the original component and the `Rule` interface
 - Returns a wrapped version
 - Can return the original unchanged
-- Executes in registration order (first wraps later middlewares)
+- Executes in reverse registration order (last middleware wraps first)
 
 ## Creating Custom Middleware
 
@@ -33,7 +35,6 @@ Each method:
 ```go
 type LoggingMiddleware[I, O any] struct{}
 
-// Wrapper for actions
 type loggingAction[I, O any] struct {
     ruleID string
     next   fh.Action[I, O]
@@ -43,49 +44,43 @@ func (a loggingAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     log.Printf("[%s] Processing event: %+v", a.ruleID, event)
-    
+
     start := time.Now()
-    out, report := a.next.Process(ctx, event, syms)
+    out, err := a.next.Process(ctx, event, syms)
     duration := time.Since(start)
-    
-    if report.Err != nil {
-        log.Printf("[%s] Failed after %v: %v", a.ruleID, duration, report.Err)
+
+    if err != nil {
+        log.Printf("[%s] Failed after %v: %v", a.ruleID, duration, err)
     } else {
         log.Printf("[%s] Completed in %v", a.ruleID, duration)
     }
-    
-    return out, report
-}
 
-// Implement middleware interface
-func (m LoggingMiddleware[I, O]) WrapCallback(
-    ctx context.Context,
-    rule *fh.SQLRule[I, O],
-    cb fh.Callback[I],
-) (fh.Callback[I], error) {
-    // Return callback unchanged
-    return cb, nil
+    return out, err
 }
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
-    return loggingAction[I, O]{
-        ruleID: rule.ID,
-        next:   action,
-    }, nil
+    return loggingAction[I, O]{ruleID: rule.GetID(), next: action}, nil
+}
+
+func (m LoggingMiddleware[I, O]) WrapCallback(
+    ctx context.Context,
+    rule fh.Rule,
+    cb fh.Callback[I],
+) (fh.Callback[I], error) {
+    return cb, nil
 }
 
 func (m LoggingMiddleware[I, O]) WrapDestination(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     dest fh.Destination[O],
 ) (fh.Destination[O], error) {
-    // Return destination unchanged
     return dest, nil
 }
 ```
@@ -135,10 +130,9 @@ Middlewares: []fh.Middleware[I, O]{
 ```
 
 **Logs:**
-- Event reception with rule ID
-- Processing duration
-- Success/failure status
-- Error details if present
+- Event reception with source info
+- Event content
+- Processing results (errors)
 
 ### Parallel Execution
 
@@ -162,13 +156,14 @@ Middlewares: []fh.Middleware[I, O]{
 
 ## Middleware Composition
 
-Middlewares compose in registration order. The first middleware wraps later middlewares:
+Middlewares compose in registration order. The last middleware wraps the actual
+component, so the first middleware in the slice is the outermost:
 
 ```go
 Middlewares: []fh.Middleware[I, O]{
     &middlewares.Panic[I, O]{},      // Outermost (catches panics from all)
     &middlewares.Slog[I, O]{},       // Logs events and timing
-    &MetricsMiddleware[I, O]{},      // Records metrics
+    &MetricsMiddleware[I, O]{},      // Innermost (closest to actual logic)
 }
 ```
 
@@ -201,35 +196,23 @@ func (a retryAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     var out O
-    var report fh.Report
-    
+    var err error
+
     for attempt := 1; attempt <= a.maxAttempts; attempt++ {
-        out, report = a.next.Process(ctx, event, syms)
-        
-        if report.Err == nil {
-            return out, report
+        out, err = a.next.Process(ctx, event, syms)
+
+        if err == nil {
+            return out, nil
         }
-        
+
         if attempt < a.maxAttempts {
             time.Sleep(a.delay)
         }
     }
-    
-    return out, report
-}
 
-func (m RetryMiddleware[I, O]) WrapAction(
-    ctx context.Context,
-    rule *fh.SQLRule[I, O],
-    action fh.Action[I, O],
-) (fh.Action[I, O], error) {
-    return retryAction[I, O]{
-        next:        action,
-        maxAttempts: m.MaxAttempts,
-        delay:       m.Delay,
-    }, nil
+    return out, err
 }
 ```
 
@@ -251,17 +234,17 @@ func (a metricsAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     start := time.Now()
-    out, report := a.next.Process(ctx, event, syms)
-    
+    out, err := a.next.Process(ctx, event, syms)
+
     a.duration.Observe(time.Since(start).Seconds())
-    
-    if report.Err != nil {
+
+    if err != nil {
         a.errors.Inc()
     }
-    
-    return out, report
+
+    return out, err
 }
 ```
 
@@ -277,8 +260,8 @@ type circuitBreakerAction[I, O any] struct {
     next             fh.Action[I, O]
     failures         atomic.Int32
     threshold        int32
-    state            atomic.Value // "closed", "open", "half-open"
-    lastFailure      atomic.Value // time.Time
+    state            atomic.Value
+    lastFailure      atomic.Value
     resetTimeout     time.Duration
 }
 
@@ -286,25 +269,25 @@ func (a *circuitBreakerAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     state := a.state.Load().(string)
-    
+
     if state == "open" {
         lastFail := a.lastFailure.Load().(time.Time)
         if time.Since(lastFail) > a.resetTimeout {
             a.state.Store("half-open")
         } else {
             var zero O
-            return zero, fh.NewReport(errors.New("circuit breaker open"))
+            return zero, errors.New("circuit breaker open")
         }
     }
-    
-    out, report := a.next.Process(ctx, event, syms)
-    
-    if report.Err != nil {
+
+    out, err := a.next.Process(ctx, event, syms)
+
+    if err != nil {
         failures := a.failures.Add(1)
         a.lastFailure.Store(time.Now())
-        
+
         if failures >= a.threshold {
             a.state.Store("open")
         }
@@ -312,8 +295,8 @@ func (a *circuitBreakerAction[I, O]) Process(
         a.failures.Store(0)
         a.state.Store("closed")
     }
-    
-    return out, report
+
+    return out, err
 }
 ```
 

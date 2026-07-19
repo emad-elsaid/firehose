@@ -21,7 +21,7 @@ import (
     "fmt"
     "log"
     "net/http"
-    
+
     "github.com/emad-elsaid/boolexpr"
     fh "github.com/emad-elsaid/firehose"
     "github.com/emad-elsaid/firehose/condition"
@@ -56,35 +56,35 @@ type HTTPServer struct {
     Addr string
 }
 
-func (s HTTPServer) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
+func (s HTTPServer) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (<-chan struct{}, error) {
     mux := http.NewServeMux()
-    
+
     mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         body := make([]byte, r.ContentLength)
         r.Body.Read(body)
-        
+
         event := HTTPRequest{
             Method: r.Method,
             Path:   r.URL.Path,
             Body:   body,
         }
-        
-        cb(r.Context(), event, func(report fh.Report) {
-            if report.Err != nil {
+
+        cb(r.Context(), event, func(err error) {
+            if err != nil {
                 w.WriteHeader(500)
-                fmt.Fprintf(w, "Error: %v", report.Err)
+                fmt.Fprintf(w, "Error: %v", err)
                 return
             }
         })
-        
+
         w.WriteHeader(200)
         fmt.Fprintf(w, "OK")
     })
-    
+
     server := &http.Server{Addr: s.Addr, Handler: mux}
     go server.ListenAndServe()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 
 // Actions
@@ -94,11 +94,11 @@ func (h GetUserHandler) Process(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (HTTPResponse, fh.Report) {
+) (HTTPResponse, error) {
     return HTTPResponse{
         Status: 200,
         Body:   `{"user": "alice"}`,
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 type CreateUserHandler struct{}
@@ -107,29 +107,29 @@ func (h CreateUserHandler) Process(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (HTTPResponse, fh.Report) {
+) (HTTPResponse, error) {
     return HTTPResponse{
         Status: 201,
         Body:   `{"created": true}`,
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 // Destination
 type JSONResponse struct{}
 
-func (d JSONResponse) Send(ctx context.Context, resp HTTPResponse) fh.Report {
+func (d JSONResponse) Send(ctx context.Context, resp HTTPResponse) error {
     log.Printf("Response: %d - %s", resp.Status, resp.Body)
-    return fh.NewReport(nil)
+    return nil
 }
 
 func main() {
     ctx := context.Background()
-    
+
     httpSource := HTTPServer{Addr: ":8080"}
-    
+
     var head fh.Rule
     var err error
-    
+
     // GET /api/users route
     head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "get_user",
@@ -141,7 +141,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // POST /api/users route
     head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "create_user",
@@ -153,13 +153,15 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
-    fh.Start(ctx, head, func(err error) {
+
+    doneChannels := fh.Start(ctx, head, func(err error) {
         log.Printf("Error: %v", err)
     })
-    
+
     log.Println("Server listening on :8080")
-    fh.Wait(head, nil)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 

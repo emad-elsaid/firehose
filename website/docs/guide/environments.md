@@ -1,10 +1,12 @@
 # Environment-Specific Rules
 
-Deploy different rule configurations for different environments using the `Environments` field.
+Deploy different rule configurations for different environments using the
+`Environments` field.
 
 ## Overview
 
-Rules can be activated only in specific environments using the `Environments` field. This allows you to:
+Rules can be activated only in specific environments using the `Environments` field.
+This allows you to:
 
 - Run different logic in production vs development
 - Enable debugging rules only in staging
@@ -23,7 +25,8 @@ rule := &fh.SQLRule[Event, Output]{
 }
 ```
 
-This rule activates only when the `ENV` environment variable matches `"production"` or `"staging"`.
+This rule activates only when the `ENV` environment variable matches `"production"`
+or `"staging"`.
 
 ## Environment Detection
 
@@ -55,22 +58,20 @@ rule := &fh.SQLRule[Event, Output]{
 ### Different Destinations
 
 ```go
-rules := []*fh.SQLRule[Event, Event]{
-    {
-        ID:           "prod_events",
-        Environments: []string{"production"},
-        Select:         actions.Identity[Event]{},
-        Into:           ProductionDatabase{},
-        From:           eventSource,
-    },
-    {
-        ID:           "dev_events",
-        Environments: []string{"development"},
-        Select:         actions.Identity[Event]{},
-        Into:           LocalDatabase{},
-        From:           eventSource,
-    },
-}
+head, _ = fh.Add(ctx, nil, &fh.SQLRule[Event, Event]{
+    ID:           "prod_events",
+    Environments: []string{"production"},
+    Select:         actions.Identity[Event]{},
+    Into:           ProductionDatabase{},
+    From:           eventSource,
+})
+head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Event]{
+    ID:           "dev_events",
+    Environments: []string{"development"},
+    Select:         actions.Identity[Event]{},
+    Into:           LocalDatabase{},
+    From:           eventSource,
+})
 ```
 
 ### Debug Logging
@@ -81,18 +82,6 @@ debugRule := &fh.SQLRule[Event, Event]{
     Environments: []string{"development", "staging"},
     Select:         actions.Identity[Event]{},
     Into:           ConsoleLogger{},
-    From:           source,
-}
-```
-
-### Feature Flags
-
-```go
-betaFeature := &fh.SQLRule[Event, Output]{
-    ID:           "beta_feature",
-    Environments: []string{"staging", "beta"},
-    Select:         NewFeatureAction{},
-    Into:           destination,
     From:           source,
 }
 ```
@@ -108,35 +97,6 @@ rule := &fh.SQLRule[Event, Output]{
 }
 ```
 
-## Testing Different Environments
-
-```go
-func TestEnvironmentRules(t *testing.T) {
-    tests := []struct {
-        name    string
-        env     string
-        wantLen int
-    }{
-        {"production", "production", 2},
-        {"development", "development", 1},
-        {"staging", "staging", 3},
-    }
-    
-    for _, tc := range tests {
-        t.Run(tc.name, func(t *testing.T) {
-            os.Setenv("ENV", tc.env)
-            defer os.Unsetenv("ENV")
-            
-            // Create rules with different environments
-            head := createTestRegistry(t)
-            
-            // Verify correct rules are active
-            assert.Equal(t, tc.wantLen, countActiveRules(head))
-        })
-    }
-}
-```
-
 ## Best Practices
 
 1. **Use consistent names** - `production`, `staging`, `development`
@@ -147,92 +107,7 @@ func TestEnvironmentRules(t *testing.T) {
 6. **Avoid environment logic in code** - Use Environments field instead
 7. **Default to safe** - Critical rules should specify environments
 
-## Configuration Management
-
-### Using Config Files
-
-```go
-type Config struct {
-    Environment string
-    Rules       []RuleConfig
-}
-
-type RuleConfig struct {
-    ID           string
-    Environments []string
-}
-
-func loadConfig(path string) (*Config, error) {
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return nil, err
-    }
-    
-    var config Config
-    if err := json.Unmarshal(data, &config); err != nil {
-        return nil, err
-    }
-    
-    return &config, nil
-}
-```
-
-### Environment-Specific Config
-
-```yaml
-# config.production.yaml
-environment: production
-rules:
-  - id: billing
-    environments: [production]
-    source: kafka
-    destination: postgres
-
-# config.development.yaml
-environment: development
-rules:
-  - id: billing
-    environments: [development]
-    source: manual
-    destination: console
-```
-
-## Deployment
-
-### Docker
-
-```dockerfile
-FROM golang:1.21
-
-ENV ENV=production
-
-COPY . /app
-WORKDIR /app
-
-RUN go build -o server
-
-CMD ["./server"]
-```
-
-### Kubernetes
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: firehose-app
-spec:
-  template:
-    spec:
-      containers:
-      - name: app
-        image: myapp:latest
-        env:
-        - name: ENV
-          value: "production"
-```
-
 ## Next Steps
 
-- Learn about [Best Practices](/guide/best-practices)
-- See [Examples](/examples/)
+- Review [Examples](/examples/)
+- Check [API Reference](/api/)

@@ -2,7 +2,7 @@
 
 Core type definitions for the Firehose framework.
 
-## Rule
+## SQLRule
 
 Defines a complete event processing pipeline.
 
@@ -42,13 +42,13 @@ Transformation that converts input events (type `I`) to output events (type `O`)
 
 ```go
 Select: ProcessOrder{}
-Into: OrderDatabase{}
 ```
 
 #### Into (Destination[O])
 Destination that consumes output events of type `O`.
 
 ```go
+Into: OrderDatabase{}
 ```
 
 #### From (Source[I])
@@ -73,7 +73,7 @@ Having: condition.Cond[ProcessedOrder]("status = \"ready\"")
 ```
 
 #### Middlewares ([]Middleware[I, O])
-Pipeline interceptors applied in registration order.
+Pipeline interceptors applied in reverse registration order (first middleware wraps last).
 
 ```go
 Middlewares: []Middleware[I, O]{
@@ -82,101 +82,119 @@ Middlewares: []Middleware[I, O]{
 }
 ```
 
-## Report
-
-Communicates operation results and errors.
+## Source Interface
 
 ```go
-type Report struct {
-    Err  error
-    Rule string
+type Source[T any] interface {
+    Start(ctx context.Context, cb Callback[T]) (done <-chan struct{}, err error)
 }
 ```
 
-### Fields
-
-#### Err (error)
-Optional error details. Can be any error type. Common errors:
-- `ErrNoMatch` - condition evaluated to false
-- `ConditionError` - failure in condition evaluation
-- `ActionError` - failure in action processing
-- `DestinationError` - failure in destination
-
-#### Rule (string)
-Rule ID where the report originated. Set automatically by the framework.
-
-### Functions
-
-#### NewReport
-
-Creates a new report with an optional error.
+## Action Interface
 
 ```go
-func NewReport(err error) Report
-```
-
-**Example:**
-
-```go
-if err != nil {
-    return fh.NewReport(err)
+type Action[I, O any] interface {
+    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error)
 }
-return fh.NewReport(nil)
 ```
 
-## Callback
-
-Type alias for source callback functions.
+## Destination Interface
 
 ```go
-type Callback[I any] func(context.Context, I, ReportFunc)
+type Destination[T any] interface {
+    Send(ctx context.Context, event T) error
+}
 ```
 
-Called by sources to deliver events to the pipeline.
-
-**Parameters:**
-- `context.Context` - Request context
-- `I` - Event instance
-- `ReportFunc` - Function to receive processing reports
-
-## ReportFunc
-
-Type alias for report sink functions.
+## Condition Interface
 
 ```go
-type ReportFunc func(Report)
+type Condition[I any] interface {
+    Evaluate(ctx context.Context, event I, syms boolexpr.Symbols) (bool, error)
+}
 ```
 
-Called by the framework to deliver processing reports back to the source.
-
-## ErrorHandler
-
-Type alias for error handler functions.
+## Middleware Interface
 
 ```go
-type ErrorHandler func(error)
+type Middleware[I, O any] interface {
+    WrapCallback(ctx context.Context, rule Rule, cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule Rule, action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule Rule, dest Destination[O]) (Destination[O], error)
+}
 ```
 
-Used with `Start` and `Wait` to handle errors from source operations.
+## Callback and ErrorHandler
+
+```go
+type Callback[I any] func(context.Context, I, ErrorHandler)
+
+type ErrorHandler func(err error)
+```
+
+`Callback` is called by sources to deliver events to the pipeline.
+
+`ErrorHandler` receives errors from rule execution back to the source.
 
 ## Rule
 
-Opaque type representing registered rules. Do not construct directly; use `Add`.
+Opaque interface representing registered rules.
 
 ```go
 type Rule interface {
-    // Internal methods
+    GetID() string
+    GetSource() any
+    GetNext() Rule
+    SetNext(n Rule)
+    GetPrev() Rule
+    SetPrev(p Rule)
+    GetNextSameSource() Rule
+    SetNextSameSource(n Rule)
+    Start(ctx context.Context) (<-chan struct{}, error)
+    Init(ctx context.Context) error
+    // ...
 }
 ```
 
-## Errors
+## RuleError
 
-### ErrNoMatch
-
-Indicates a condition evaluated to false (normal control flow, not an error).
+Wraps errors with the originating rule ID.
 
 ```go
-var ErrNoMatch = errors.New("condition did not match")
+type RuleError struct {
+    Err  error
+    Rule string
+}
+
+func NewRuleError(rule string, err error) error
+```
+
+## Helper Functions
+
+```go
+// EventID computes a hash-based identifier for an event.
+func EventID(event any) (uint64, error)
+
+// EventSymbols extracts symbols from an event if it implements boolexpr.Symbols.
+func EventSymbols(event any) boolexpr.Symbols
+```
+
+## Error Types
+
+### ErrInputNoMatch
+
+Indicates a `Where` condition evaluated to false (normal control flow, not an error).
+
+```go
+var ErrInputNoMatch = errors.New("no match")
+```
+
+### ErrOutputNoMatch
+
+Indicates a `Having` condition evaluated to false (normal control flow, not an error).
+
+```go
+var ErrOutputNoMatch = errors.New("output no match")
 ```
 
 ### ConditionError

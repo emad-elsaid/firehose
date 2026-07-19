@@ -1,6 +1,7 @@
 # Custom Components
 
-Learn how to implement custom Sources, Actions, Destinations, Conditions, and Middlewares for your specific needs.
+Learn how to implement custom Sources, Actions, Destinations, Conditions, and
+Middlewares for your specific needs.
 
 ## Custom Sources
 
@@ -10,7 +11,7 @@ Sources produce events and send them to a callback function.
 
 ```go
 type Source[T any] interface {
-    Start(ctx context.Context, cb Callback[T]) (done context.Context, err error)
+    Start(ctx context.Context, cb Callback[T]) (done <-chan struct{}, err error)
 }
 ```
 
@@ -30,44 +31,44 @@ type FileEvent struct {
 func (fw FileWatcher) Start(
     ctx context.Context,
     cb fh.Callback[FileEvent],
-) (context.Context, error) {
+) (<-chan struct{}, error) {
     watcher, err := fsnotify.NewWatcher()
     if err != nil {
-        return ctx, err
+        return nil, err
     }
-    
+
     if err := watcher.Add(fw.Path); err != nil {
-        return ctx, err
+        return nil, err
     }
-    
+
     go func() {
         defer watcher.Close()
-        
+
         for {
             select {
             case <-ctx.Done():
                 return
-                
+
             case event := <-watcher.Events:
                 fileEvent := FileEvent{
                     Path:      event.Name,
                     Operation: event.Op.String(),
                     Timestamp: time.Now(),
                 }
-                
-                cb(ctx, fileEvent, func(report fh.Report) {
-                    if report.Err != nil {
-                        log.Printf("Error processing %s: %v", event.Name, report.Err)
+
+                cb(ctx, fileEvent, func(err error) {
+                    if err != nil {
+                        log.Printf("Error processing %s: %v", event.Name, err)
                     }
                 })
-                
+
             case err := <-watcher.Errors:
                 log.Printf("Watcher error: %v", err)
             }
         }
     }()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 ```
 
@@ -83,32 +84,32 @@ type KafkaSource struct {
 func (k KafkaSource) Start(
     ctx context.Context,
     cb fh.Callback[[]byte],
-) (context.Context, error) {
+) (<-chan struct{}, error) {
     config := sarama.NewConfig()
     config.Consumer.Return.Errors = true
-    
+
     consumer, err := sarama.NewConsumerGroup(k.Brokers, k.GroupID, config)
     if err != nil {
-        return ctx, err
+        return nil, err
     }
-    
+
     handler := &consumerHandler{callback: cb}
-    
+
     go func() {
         defer consumer.Close()
-        
+
         for {
             if err := consumer.Consume(ctx, []string{k.Topic}, handler); err != nil {
                 log.Printf("Kafka error: %v", err)
             }
-            
+
             if ctx.Err() != nil {
                 return
             }
         }
     }()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 
 type consumerHandler struct {
@@ -120,8 +121,8 @@ func (h *consumerHandler) ConsumeClaim(
     claim sarama.ConsumerGroupClaim,
 ) error {
     for message := range claim.Messages() {
-        h.callback(session.Context(), message.Value, func(report fh.Report) {
-            if report.Err == nil {
+        h.callback(session.Context(), message.Value, func(err error) {
+            if err == nil {
                 session.MarkMessage(message, "")
             }
         })
@@ -138,7 +139,7 @@ Actions transform input events to output events.
 
 ```go
 type Action[I, O any] interface {
-    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
+    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error)
 }
 ```
 
@@ -154,26 +155,26 @@ func (a APICall) Process(
     ctx context.Context,
     event OrderEvent,
     syms boolexpr.Symbols,
-) (APIResponse, fh.Report) {
+) (APIResponse, error) {
     url := fmt.Sprintf("%s/orders/%s", a.BaseURL, event.OrderID)
-    
+
     req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
     if err != nil {
-        return APIResponse{}, fh.NewReport(err)
+        return APIResponse{}, err
     }
-    
+
     resp, err := a.Client.Do(req)
     if err != nil {
-        return APIResponse{}, fh.NewReport(err)
+        return APIResponse{}, err
     }
     defer resp.Body.Close()
-    
+
     var apiResp APIResponse
     if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-        return APIResponse{}, fh.NewReport(err)
+        return APIResponse{}, err
     }
-    
-    return apiResp, fh.NewReport(nil)
+
+    return apiResp, nil
 }
 ```
 
@@ -188,20 +189,20 @@ func (g GetUserByID) Process(
     ctx context.Context,
     event LoginEvent,
     syms boolexpr.Symbols,
-) (User, fh.Report) {
+) (User, error) {
     var user User
-    
+
     err := g.DB.QueryRowContext(
         ctx,
         "SELECT id, name, email FROM users WHERE id = $1",
         event.UserID,
     ).Scan(&user.ID, &user.Name, &user.Email)
-    
+
     if err != nil {
-        return User{}, fh.NewReport(err)
+        return User{}, err
     }
-    
-    return user, fh.NewReport(nil)
+
+    return user, nil
 }
 ```
 
@@ -213,7 +214,7 @@ Destinations consume events and produce side effects.
 
 ```go
 type Destination[T any] interface {
-    Send(ctx context.Context, event T) Report
+    Send(ctx context.Context, event T) error
 }
 ```
 
@@ -227,14 +228,14 @@ type EmailSender struct {
     Auth     smtp.Auth
 }
 
-func (e EmailSender) Send(ctx context.Context, email Email) fh.Report {
+func (e EmailSender) Send(ctx context.Context, email Email) error {
     msg := fmt.Sprintf(
         "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
         e.From, email.To, email.Subject, email.Body,
     )
-    
+
     addr := fmt.Sprintf("%s:%d", e.SMTPHost, e.SMTPPort)
-    
+
     err := smtp.SendMail(
         addr,
         e.Auth,
@@ -242,8 +243,8 @@ func (e EmailSender) Send(ctx context.Context, email Email) fh.Report {
         []string{email.To},
         []byte(msg),
     )
-    
-    return fh.NewReport(err)
+
+    return err
 }
 ```
 
@@ -255,14 +256,14 @@ type S3Uploader struct {
     Bucket string
 }
 
-func (s S3Uploader) Send(ctx context.Context, file FileData) fh.Report {
+func (s S3Uploader) Send(ctx context.Context, file FileData) error {
     _, err := s.Client.PutObject(ctx, &s3.PutObjectInput{
         Bucket: aws.String(s.Bucket),
         Key:    aws.String(file.Name),
         Body:   bytes.NewReader(file.Data),
     })
-    
-    return fh.NewReport(err)
+
+    return err
 }
 ```
 
@@ -337,34 +338,34 @@ func (a timeoutAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     ctx, cancel := context.WithTimeout(ctx, a.timeout)
     defer cancel()
-    
+
     type result struct {
-        out    O
-        report fh.Report
+        out O
+        err error
     }
-    
+
     resultChan := make(chan result, 1)
-    
+
     go func() {
-        out, report := a.next.Process(ctx, event, syms)
-        resultChan <- result{out, report}
+        out, err := a.next.Process(ctx, event, syms)
+        resultChan <- result{out, err}
     }()
-    
+
     select {
     case res := <-resultChan:
-        return res.out, res.report
+        return res.out, res.err
     case <-ctx.Done():
         var zero O
-        return zero, fh.NewReport(ctx.Err())
+        return zero, ctx.Err()
     }
 }
 
 func (m TimeoutMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
     return timeoutAction[I, O]{
@@ -373,12 +374,19 @@ func (m TimeoutMiddleware[I, O]) WrapAction(
     }, nil
 }
 
-// Implement other methods (return unchanged if not wrapping)
-func (m TimeoutMiddleware[I, O]) WrapCallback(...) (fh.Callback[I], error) {
+func (m TimeoutMiddleware[I, O]) WrapCallback(
+    ctx context.Context,
+    rule fh.Rule,
+    cb fh.Callback[I],
+) (fh.Callback[I], error) {
     return cb, nil
 }
 
-func (m TimeoutMiddleware[I, O]) WrapDestination(...) (fh.Destination[O], error) {
+func (m TimeoutMiddleware[I, O]) WrapDestination(
+    ctx context.Context,
+    rule fh.Rule,
+    dest fh.Destination[O],
+) (fh.Destination[O], error) {
     return dest, nil
 }
 ```
@@ -401,24 +409,24 @@ func (a cachingAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     // Generate cache key from event
     key := fmt.Sprintf("%v", event)
-    
+
     // Check cache
     if cached, ok := a.cache.Get(key); ok {
-        return cached, fh.NewReport(nil)
+        return cached, nil
     }
-    
+
     // Process
-    out, report := a.next.Process(ctx, event, syms)
-    
+    out, err := a.next.Process(ctx, event, syms)
+
     // Cache on success
-    if report.Err == nil {
+    if err == nil {
         a.cache.Set(key, out, a.ttl)
     }
-    
-    return out, report
+
+    return out, err
 }
 ```
 
@@ -429,29 +437,28 @@ func (a cachingAction[I, O]) Process(
 ```go
 func TestFileWatcher(t *testing.T) {
     tmpDir := t.TempDir()
-    
+
     var received []FileEvent
     var mu sync.Mutex
-    
-    callback := func(ctx context.Context, event FileEvent, rf fh.ReportFunc) {
+
+    callback := func(ctx context.Context, event FileEvent, rf fh.ErrorHandler) {
         mu.Lock()
         received = append(received, event)
         mu.Unlock()
-        rf(fh.NewReport(nil))
     }
-    
+
     source := FileWatcher{Path: tmpDir}
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
-    
+
     _, err := source.Start(ctx, callback)
     require.NoError(t, err)
-    
+
     // Create test file
     os.WriteFile(filepath.Join(tmpDir, "test.txt"), []byte("hello"), 0644)
-    
+
     time.Sleep(100 * time.Millisecond)
-    
+
     mu.Lock()
     assert.GreaterOrEqual(t, len(received), 1)
     mu.Unlock()
@@ -466,16 +473,16 @@ func TestAPICall(t *testing.T) {
         json.NewEncoder(w).Encode(APIResponse{Status: "success"})
     }))
     defer server.Close()
-    
+
     action := APICall{
         BaseURL: server.URL,
         Client:  server.Client(),
     }
-    
+
     event := OrderEvent{OrderID: "123"}
-    resp, report := action.Process(context.Background(), event, nil)
-    
-    assert.NoError(t, report.Err)
+    resp, err := action.Process(context.Background(), event, nil)
+
+    assert.NoError(t, err)
     assert.Equal(t, "success", resp.Status)
 }
 ```
@@ -484,17 +491,16 @@ func TestAPICall(t *testing.T) {
 
 ```go
 func TestEmailSender(t *testing.T) {
-    // Use a mock SMTP server or test implementation
     sender := EmailSender{/* ... */}
-    
+
     email := Email{
-        Into:    "test@example.com",
+        To:      "test@example.com",
         Subject: "Test",
         Body:    "Hello",
     }
-    
-    report := sender.Send(context.Background(), email)
-    assert.NoError(t, report.Err)
+
+    err := sender.Send(context.Background(), email)
+    assert.NoError(t, err)
 }
 ```
 

@@ -45,6 +45,15 @@ Where: &condition.Once[OrderEvent]{
 }
 ```
 
+### Struct Validation
+
+```go
+Where: &condition.Valid[OrderEvent]{}
+```
+
+Validates event fields using `go-playground/validator` tags. Returns an error if
+validation fails.
+
 ### Multiple Conditions
 
 ```go
@@ -66,9 +75,9 @@ Select: actions.Func[HTTPRequest, User](func(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (User, fh.Report) {
+) (User, error) {
     user := extractUserFromRequest(req)
-    return user, fh.NewReport(nil)
+    return user, nil
 })
 ```
 
@@ -81,6 +90,8 @@ Select: &actions.Cache[OrderEvent, ProcessedOrder]{
     TTL:    5 * time.Minute,
 }
 ```
+
+Uses `EventID` to generate cache keys. Requires a `CacheStorage` backend.
 
 ### Action Composition
 
@@ -135,9 +146,9 @@ Select: &actions.Random[OrderEvent, ProcessedOrder]{
 ```go
 import "github.com/emad-elsaid/firehose/destinations"
 
-Into: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
+Into: destinations.Func[User](func(ctx context.Context, user User) error {
     err := saveToDatabase(user)
-    return fh.NewReport(err)
+    return err
 })
 ```
 
@@ -195,8 +206,6 @@ Into: &destinations.Random[User]{
 
 ### Channel Adapters
 
-Convert between single events and channels:
-
 ```go
 // Consume from channel, forward each item
 Into: destinations.FromChan[User]{
@@ -210,8 +219,6 @@ Into: destinations.ToChan[User]{
 ```
 
 ### Slice Adapters
-
-Convert between single events and slices:
 
 ```go
 // Consume from slice, forward each item
@@ -232,18 +239,18 @@ Into: destinations.ToSlice[User]{
 ```go
 import "github.com/emad-elsaid/firehose/sources"
 
-From: sources.Func[HTTPRequest](func(ctx context.Context, cb fh.Callback[HTTPRequest]) (context.Context, error) {
+From: sources.Func[HTTPRequest](func(ctx context.Context, cb fh.Callback[HTTPRequest]) (<-chan struct{}, error) {
     server := &http.Server{Addr: ":8080"}
-    
+
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         event := HTTPRequest{Method: r.Method, Path: r.URL.Path}
-        cb(r.Context(), event, func(report fh.Report) {
-            // Handle report
+        cb(r.Context(), event, func(err error) {
+            // Handle error
         })
     })
-    
+
     go server.ListenAndServe()
-    return ctx, nil
+    return ctx.Done(), nil
 })
 ```
 
@@ -279,6 +286,8 @@ Select: &actions.Cache[OrderEvent, ProcessedOrder]{
     TTL:    5 * time.Minute,
 }
 ```
+
+Implements the `CacheStorage` interface with `Get`, `Set`, and `GetOrSet` methods.
 
 ## Middlewares (`middlewares`)
 

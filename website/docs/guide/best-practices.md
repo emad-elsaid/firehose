@@ -9,7 +9,7 @@ Recommended patterns and practices for building robust event processing pipeline
 Each rule should have a single, clear responsibility:
 
 ```go
-// ✅ Good - focused responsibility
+// Good - focused responsibility
 rule := &fh.SQLRule[OrderEvent, Email]{
     ID:   "order_confirmation_email",
     Select: CreateConfirmationEmail{},
@@ -18,7 +18,7 @@ rule := &fh.SQLRule[OrderEvent, Email]{
     From:   orderSource,
 }
 
-// ❌ Bad - multiple responsibilities
+// Bad - multiple responsibilities
 rule := &fh.SQLRule[OrderEvent, any]{
     ID: "order_processor",
     // Tries to do too much in one rule
@@ -30,10 +30,10 @@ rule := &fh.SQLRule[OrderEvent, any]{
 Rule IDs should clearly indicate purpose:
 
 ```go
-// ✅ Good
+// Good
 ID: "high_value_order_pagerduty_alert"
 
-// ❌ Bad
+// Bad
 ID: "rule1"
 ```
 
@@ -56,15 +56,15 @@ Where: condition.Conditions[Event]{
 Actions should be deterministic and stateless:
 
 ```go
-// ✅ Good - pure function
+// Good - pure function
 type CalculateTotal struct{}
 
-func (c CalculateTotal) Process(ctx context.Context, order Order, _ boolexpr.Symbols) (float64, fh.Report) {
+func (c CalculateTotal) Process(ctx context.Context, order Order, _ boolexpr.Symbols) (float64, error) {
     total := order.Subtotal + order.Tax - order.Discount
-    return total, fh.NewReport(nil)
+    return total, nil
 }
 
-// ❌ Bad - has hidden state
+// Bad - has hidden state
 type CalculateTotal struct {
     cache map[string]float64 // State!
 }
@@ -72,22 +72,22 @@ type CalculateTotal struct {
 
 ### Handle Errors Gracefully
 
-Return errors through Report, don't panic:
+Return errors, don't panic:
 
 ```go
-// ✅ Good
-func (a MyAction) Process(ctx context.Context, event Event, _ boolexpr.Symbols) (Output, fh.Report) {
+// Good
+func (a MyAction) Process(ctx context.Context, event Event, _ boolexpr.Symbols) (Output, error) {
     result, err := processEvent(event)
     if err != nil {
-        return Output{}, fh.NewReport(fmt.Errorf("processing failed: %w", err))
+        return Output{}, fmt.Errorf("processing failed: %w", err)
     }
-    return result, fh.NewReport(nil)
+    return result, nil
 }
 
-// ❌ Bad
-func (a MyAction) Process(ctx context.Context, event Event, _ boolexpr.Symbols) (Output, fh.Report) {
+// Bad
+func (a MyAction) Process(ctx context.Context, event Event, _ boolexpr.Symbols) (Output, error) {
     result := processEvent(event) // Panics on error!
-    return result, fh.NewReport(nil)
+    return result, nil
 }
 ```
 
@@ -96,21 +96,21 @@ func (a MyAction) Process(ctx context.Context, event Event, _ boolexpr.Symbols) 
 Always check context cancellation:
 
 ```go
-func (s MySource) Start(ctx context.Context, cb fh.Callback[Event]) (context.Context, error) {
+func (s MySource) Start(ctx context.Context, cb fh.Callback[Event]) (<-chan struct{}, error) {
     go func() {
         ticker := time.NewTicker(time.Second)
         defer ticker.Stop()
-        
+
         for {
             select {
             case <-ctx.Done():
-                return // ✅ Respects cancellation
+                return // Respects cancellation
             case <-ticker.C:
                 cb(ctx, Event{}, nil)
             }
         }
     }()
-    return ctx, nil
+    return ctx.Done(), nil
 }
 ```
 
@@ -121,17 +121,17 @@ func (s MySource) Start(ctx context.Context, cb fh.Callback[Event]) (context.Con
 Share sources across rules instead of creating duplicates:
 
 ```go
-// ✅ Good - source shared, starts once
+// Good - source shared, starts once
 kafkaSource := &KafkaConsumer{Topic: "orders"}
 
-reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Email]{From: kafkaSource, ...})
-reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Metrics]{From: kafkaSource, ...})
+head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Email]{From: kafkaSource, ...})
+head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Metrics]{From: kafkaSource, ...})
 
-// ❌ Bad - creates separate sources
-reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Email]{
+// Bad - creates separate sources
+head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Email]{
     From: &KafkaConsumer{Topic: "orders"},
 })
-reg, _ = fh.Add(ctx, reg, &fh.SQLRule[Event, Metrics]{
+head, _ = fh.Add(ctx, head, &fh.SQLRule[Event, Metrics]{
     From: &KafkaConsumer{Topic: "orders"},
 })
 ```
@@ -172,14 +172,14 @@ Middlewares: []fh.Middleware[I, O]{
 }
 ```
 
-### Log Errors in Sources
+### Log Errors
 
-Sources should log report errors:
+Sources should log errors:
 
 ```go
-cb(ctx, event, func(report fh.Report) {
-    if report.Err != nil {
-        log.Printf("Rule %s failed: %v", report.Rule, report.Err)
+cb(ctx, event, func(err error) {
+    if err != nil {
+        log.Printf("Rule failed: %v", err)
     }
 })
 ```
@@ -191,9 +191,9 @@ Create typed errors for better error handling:
 ```go
 var ErrInvalidOrder = errors.New("invalid order")
 
-func (a ProcessOrder) Process(ctx context.Context, order Order, _ boolexpr.Symbols) (Result, fh.Report) {
+func (a ProcessOrder) Process(ctx context.Context, order Order, _ boolexpr.Symbols) (Result, error) {
     if order.Amount <= 0 {
-        return Result{}, fh.NewReport(ErrInvalidOrder)
+        return Result{}, ErrInvalidOrder
     }
     // ...
 }
@@ -209,10 +209,10 @@ Unit test each component before integration:
 func TestProcessOrder(t *testing.T) {
     action := ProcessOrder{}
     event := OrderEvent{Amount: 100}
-    
-    result, report := action.Process(context.Background(), event, nil)
-    
-    assert.NoError(t, report.Err)
+
+    result, err := action.Process(context.Background(), event, nil)
+
+    assert.NoError(t, err)
     assert.Equal(t, 100.0, result.Total)
 }
 ```
@@ -232,30 +232,12 @@ func TestValidation(t *testing.T) {
         {"missing id", Event{}, true},
         {"negative amount", Event{ID: "123", Amount: -1}, true},
     }
-    
+
     for _, tc := range tests {
         t.Run(tc.name, func(t *testing.T) {
             // Test logic
         })
     }
-}
-```
-
-### Mock External Dependencies
-
-Use interfaces and test doubles:
-
-```go
-type EmailService interface {
-    Send(ctx context.Context, email Email) error
-}
-
-type MockEmailService struct {
-    SendFunc func(ctx context.Context, email Email) error
-}
-
-func (m *MockEmailService) Send(ctx context.Context, email Email) error {
-    return m.SendFunc(ctx, email)
 }
 ```
 
@@ -271,51 +253,31 @@ Middlewares: []fh.Middleware[I, O]{
 }
 ```
 
-### Add Metrics
-
-Track pipeline performance:
-
-```go
-type MetricsMiddleware[I, O any] struct {
-    ProcessedCounter prometheus.Counter
-    DurationHistogram prometheus.Histogram
-}
-```
-
-### Monitor Reports
+### Monitor Errors
 
 Track errors and failures:
 
 ```go
-cb(ctx, event, func(report fh.Report) {
-    if report.Err != nil {
+cb(ctx, event, func(err error) {
+    if err != nil {
         metrics.ErrorCount.Inc()
-        log.Error("Processing failed",
-            "rule", report.Rule,
-            "error", report.Err,
-        )
+        log.Error("Processing failed", "error", err)
     }
 })
 ```
 
 ## Configuration
 
-### Use Environment Variables
-
-Make configuration flexible:
-
-```go
-type Config struct {
-    KafkaBrokers string `env:"KAFKA_BROKERS" envDefault:"localhost:9092"`
-    DatabaseURL  string `env:"DATABASE_URL" envDefault:"postgres://localhost/db"`
-}
-```
-
 ### Validate Configuration
 
 Check configuration at startup:
 
 ```go
+type Config struct {
+    KafkaBrokers string
+    DatabaseURL  string
+}
+
 func (c Config) Validate() error {
     if c.KafkaBrokers == "" {
         return errors.New("KAFKA_BROKERS required")
@@ -336,20 +298,6 @@ rule := &fh.SQLRule[Event, Output]{
 ```
 
 ## Security
-
-### Sanitize User Input
-
-Validate and sanitize all external input:
-
-```go
-func (a ProcessUserInput) Process(ctx context.Context, input UserInput, _ boolexpr.Symbols) (Sanitized, fh.Report) {
-    sanitized := Sanitized{
-        Name: sanitize.HTML(input.Name),
-        Email: sanitize.Email(input.Email),
-    }
-    return sanitized, fh.NewReport(nil)
-}
-```
 
 ### Use Context Timeouts
 
@@ -372,84 +320,43 @@ Where: condition.Func[Event](func(ctx context.Context, event Event, _ boolexpr.S
 })
 ```
 
-## Maintenance
-
-### Document Rule Purpose
-
-Add comments explaining why rules exist:
-
-```go
-// Process high-value orders (>$10k) through manual review
-// to prevent fraud and ensure accurate fulfillment.
-rule := &fh.SQLRule[Order, ReviewRequest]{
-    ID: "high_value_manual_review",
-    // ...
-}
-```
-
-### Version Your Rules
-
-Track rule changes:
-
-```go
-const RuleVersion = "2.1.0"
-
-rule := &fh.SQLRule[Event, Output]{
-    ID: "billing_v2",
-    // Version 2.x uses new billing API
-}
-```
-
-### Clean Up Dead Rules
-
-Remove unused rules regularly:
-
-```go
-// DEPRECATED: Use billing_v2 instead
-// TODO: Remove after 2024-Q2
-oldRule := &fh.SQLRule[Event, Output]{
-    ID: "billing_v1",
-    Environments: []string{}, // Disabled
-}
-```
-
 ## Common Pitfalls
 
 ### Don't Share State Between Events
 
 ```go
-// ❌ Bad - shared state
+// Bad - shared state
 type StatefulAction struct {
     count int // Dangerous!
 }
 
-// ✅ Good - stateless
+// Good - stateless
 type StatelessAction struct{}
 ```
 
 ### Don't Block in Callbacks
 
 ```go
-// ❌ Bad - blocks event processing
-cb(ctx, event, func(report fh.Report) {
+// Bad - blocks event processing
+cb(ctx, event, func(err error) {
     time.Sleep(5 * time.Second) // Blocks!
 })
 
-// ✅ Good - async handling
-cb(ctx, event, func(report fh.Report) {
-    go handleAsync(report) // Non-blocking
+// Good - async handling
+cb(ctx, event, func(err error) {
+    go handleAsync(err) // Non-blocking
 })
 ```
 
 ### Don't Ignore Context
 
 ```go
-// ❌ Bad - ignores context
+// Bad - ignores context
 func process(event Event) Result {
     return slowOperation(event)
 }
 
-// ✅ Good - respects context
+// Good - respects context
 func process(ctx context.Context, event Event) (Result, error) {
     return slowOperation(ctx, event)
 }

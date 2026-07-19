@@ -6,7 +6,7 @@ API reference for destination interfaces and built-in implementations.
 
 ```go
 type Destination[T any] interface {
-    Send(ctx context.Context, event T) Report
+    Send(ctx context.Context, event T) error
 }
 ```
 
@@ -19,9 +19,9 @@ Function adapter for custom destinations.
 ```go
 import "github.com/emad-elsaid/firehose/destinations"
 
-Into: destinations.Func[User](func(ctx context.Context, user User) fh.Report {
+Into: destinations.Func[User](func(ctx context.Context, user User) error {
     err := saveToDatabase(user)
-    return fh.NewReport(err)
+    return err
 })
 ```
 
@@ -40,7 +40,7 @@ users := accumulator.Items()
 
 ### destinations.Fanout
 
-Send to all destinations.
+Send to all destinations. Errors are joined.
 
 ```go
 Into: destinations.Fanout[User]{
@@ -68,7 +68,7 @@ Into: &destinations.RoundRobin[User]{
 
 ### destinations.Random
 
-Send to a random destination.
+Send to a random destination using crypto/rand.
 
 ```go
 Into: &destinations.Random[User]{

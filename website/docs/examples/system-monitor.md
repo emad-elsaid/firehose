@@ -19,7 +19,7 @@ import (
     "fmt"
     "log"
     "time"
-    
+
     "github.com/shirou/gopsutil/v3/process"
     fh "github.com/emad-elsaid/firehose"
     "github.com/emad-elsaid/firehose/condition"
@@ -61,41 +61,41 @@ type ProcessMonitor struct {
 func (pm ProcessMonitor) Start(
     ctx context.Context,
     cb fh.Callback[ProcessEvent],
-) (context.Context, error) {
+) (<-chan struct{}, error) {
     go func() {
         ticker := time.NewTicker(pm.PollInterval)
         defer ticker.Stop()
-        
+
         for {
             select {
             case <-ctx.Done():
                 return
             case <-ticker.C:
                 processes, _ := process.Processes()
-                
+
                 for _, proc := range processes {
                     name, _ := proc.Name()
                     cpu, _ := proc.CPUPercent()
                     mem, _ := proc.MemoryInfo()
-                    
+
                     event := ProcessEvent{
                         Name:       name,
                         PID:        proc.Pid,
                         CPUPercent: cpu,
                         MemoryMB:   float64(mem.RSS) / 1024 / 1024,
                     }
-                    
-                    cb(ctx, event, func(report fh.Report) {
-                        if report.Err != nil {
-                            log.Printf("Alert error: %v", report.Err)
+
+                    cb(ctx, event, func(err error) {
+                        if err != nil {
+                            log.Printf("Alert error: %v", err)
                         }
                     })
                 }
             }
         }
     }()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 
 // Actions
@@ -105,12 +105,12 @@ func (c CreateCriticalAlert) Process(
     ctx context.Context,
     proc ProcessEvent,
     _ boolexpr.Symbols,
-) (Alert, fh.Report) {
+) (Alert, error) {
     return Alert{
         Severity: "critical",
         Message:  fmt.Sprintf("High resource usage: %s", proc.Name),
         Process:  proc,
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 type CreateWarningAlert struct{}
@@ -119,38 +119,38 @@ func (w CreateWarningAlert) Process(
     ctx context.Context,
     proc ProcessEvent,
     _ boolexpr.Symbols,
-) (Alert, fh.Report) {
+) (Alert, error) {
     return Alert{
         Severity: "warning",
         Message:  fmt.Sprintf("Elevated usage: %s", proc.Name),
         Process:  proc,
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 // Destinations
 type PagerDuty struct{}
 
-func (p PagerDuty) Send(ctx context.Context, alert Alert) fh.Report {
+func (p PagerDuty) Send(ctx context.Context, alert Alert) error {
     log.Printf("[PagerDuty] %s: %s (CPU: %.1f%%, Mem: %.1fMB)",
         alert.Severity, alert.Message, alert.Process.CPUPercent, alert.Process.MemoryMB)
-    return fh.NewReport(nil)
+    return nil
 }
 
 type Slack struct{}
 
-func (s Slack) Send(ctx context.Context, alert Alert) fh.Report {
+func (s Slack) Send(ctx context.Context, alert Alert) error {
     log.Printf("[Slack] %s: %s", alert.Severity, alert.Message)
-    return fh.NewReport(nil)
+    return nil
 }
 
 func main() {
     ctx := context.Background()
-    
+
     monitor := &ProcessMonitor{PollInterval: 5 * time.Second}
-    
+
     var head fh.Rule
     var err error
-    
+
     // Critical CPU alerts to PagerDuty
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_cpu",
@@ -162,7 +162,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Critical memory alerts to PagerDuty
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "critical_memory",
@@ -174,7 +174,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Warning CPU alerts to Slack
     head, err = fh.Add(ctx, head, &fh.SQLRule[ProcessEvent, Alert]{
         ID:     "warning_cpu",
@@ -186,11 +186,13 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
-    fh.Start(ctx, head, nil)
-    
+
+    doneChannels := fh.Start(ctx, head, nil)
+
     log.Println("System monitor running...")
-    fh.Wait(head, nil)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 

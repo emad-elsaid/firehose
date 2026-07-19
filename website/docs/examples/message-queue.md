@@ -19,7 +19,7 @@ import (
     "context"
     "encoding/json"
     "log"
-    
+
     "github.com/IBM/sarama"
     fh "github.com/emad-elsaid/firehose"
     "github.com/emad-elsaid/firehose/condition"
@@ -53,32 +53,32 @@ type KafkaSource struct {
 func (k KafkaSource) Start(
     ctx context.Context,
     cb fh.Callback[OrderEvent],
-) (context.Context, error) {
+) (<-chan struct{}, error) {
     config := sarama.NewConfig()
     config.Consumer.Return.Errors = true
-    
+
     consumer, err := sarama.NewConsumerGroup(k.Brokers, k.GroupID, config)
     if err != nil {
-        return ctx, err
+        return nil, err
     }
-    
+
     handler := &consumerHandler{callback: cb}
-    
+
     go func() {
         defer consumer.Close()
-        
+
         for {
             if err := consumer.Consume(ctx, []string{k.Topic}, handler); err != nil {
                 log.Printf("Kafka error: %v", err)
             }
-            
+
             if ctx.Err() != nil {
                 return
             }
         }
     }()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 
 type consumerHandler struct {
@@ -98,12 +98,12 @@ func (h *consumerHandler) ConsumeClaim(
             log.Printf("Parse error: %v", err)
             continue
         }
-        
-        h.callback(session.Context(), event, func(report fh.Report) {
-            if report.Err == nil {
+
+        h.callback(session.Context(), event, func(err error) {
+            if err == nil {
                 session.MarkMessage(message, "")
             } else {
-                log.Printf("Processing error: %v", report.Err)
+                log.Printf("Processing error: %v", err)
             }
         })
     }
@@ -117,38 +117,38 @@ func (p ProcessHighValueOrder) Process(
     ctx context.Context,
     order OrderEvent,
     _ boolexpr.Symbols,
-) (OrderEvent, fh.Report) {
+) (OrderEvent, error) {
     log.Printf("Processing high-value order: %s", order.OrderID)
-    return order, fh.NewReport(nil)
+    return order, nil
 }
 
 // Destinations
 type DatabaseWriter struct{}
 
-func (d DatabaseWriter) Send(ctx context.Context, order OrderEvent) fh.Report {
+func (d DatabaseWriter) Send(ctx context.Context, order OrderEvent) error {
     log.Printf("Saved to database: %s", order.OrderID)
-    return fh.NewReport(nil)
+    return nil
 }
 
 type DeadLetterQueue struct{}
 
-func (d DeadLetterQueue) Send(ctx context.Context, order OrderEvent) fh.Report {
+func (d DeadLetterQueue) Send(ctx context.Context, order OrderEvent) error {
     log.Printf("Sent to DLQ: %s", order.OrderID)
-    return fh.NewReport(nil)
+    return nil
 }
 
 func main() {
     ctx := context.Background()
-    
+
     kafkaSource := &KafkaSource{
         Brokers: []string{"localhost:9092"},
         Topic:   "orders",
         GroupID: "order-processor",
     }
-    
+
     var head fh.Rule
     var err error
-    
+
     // High-value order processing
     head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "high_value",
@@ -160,7 +160,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
+
     // Failed order handling
     head, err = fh.Add(ctx, head, &fh.SQLRule[OrderEvent, OrderEvent]{
         ID:     "failed_orders",
@@ -172,9 +172,11 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    
-    fh.Start(ctx, head, nil)
-    fh.Wait(head, nil)
+
+    doneChannels := fh.Start(ctx, head, nil)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 

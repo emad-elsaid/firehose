@@ -42,25 +42,25 @@ type Timer struct {
     Interval time.Duration
 }
 
-func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context, error) {
+func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (<-chan struct{}, error) {
     go func() {
         ticker := time.NewTicker(t.Interval)
         defer ticker.Stop()
-        
+
         for {
             select {
             case <-ctx.Done():
                 return
             case now := <-ticker.C:
-                cb(ctx, Tick{Time: now}, func(report fh.Report) {
-                    if report.Err != nil {
-                        log.Printf("rule %s failed: %v", report.Rule, report.Err)
+                cb(ctx, Tick{Time: now}, func(err error) {
+                    if err != nil {
+                        log.Printf("rule failed: %v", err)
                     }
                 })
             }
         }
     }()
-    return ctx, nil
+    return ctx.Done(), nil
 }
 ```
 
@@ -75,8 +75,8 @@ func (FormatTime) Process(
     ctx context.Context,
     t Tick,
     _ boolexpr.Symbols,
-) (string, fh.Report) {
-    return t.Time.Format("15:04:05"), fh.NewReport(nil)
+) (string, error) {
+    return t.Time.Format("15:04:05"), nil
 }
 ```
 
@@ -87,9 +87,9 @@ Destinations consume events and produce side effects:
 ```go
 type Printer struct{}
 
-func (Printer) Send(ctx context.Context, msg string) fh.Report {
+func (Printer) Send(ctx context.Context, msg string) error {
     println(msg)
-    return fh.NewReport(nil)
+    return nil
 }
 ```
 
@@ -119,8 +119,10 @@ func main() {
         }
     }
 
-    fh.Start(ctx, head, errHandler)
-    fh.Wait(head, errHandler)
+    doneChannels := fh.Start(ctx, head, errHandler)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 
@@ -161,7 +163,7 @@ type Timer struct {
     Interval time.Duration
 }
 
-func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context, error) {
+func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (<-chan struct{}, error) {
     go func() {
         ticker := time.NewTicker(t.Interval)
         defer ticker.Stop()
@@ -170,28 +172,28 @@ func (t Timer) Start(ctx context.Context, cb fh.Callback[Tick]) (context.Context
             case <-ctx.Done():
                 return
             case now := <-ticker.C:
-                cb(ctx, Tick{Time: now}, func(report fh.Report) {
-                    if report.Err != nil {
-                        log.Printf("rule %s failed: %v", report.Rule, report.Err)
+                cb(ctx, Tick{Time: now}, func(err error) {
+                    if err != nil {
+                        log.Printf("rule failed: %v", err)
                     }
                 })
             }
         }
     }()
-    return ctx, nil
+    return ctx.Done(), nil
 }
 
 type FormatTime struct{}
 
-func (FormatTime) Process(ctx context.Context, t Tick, _ boolexpr.Symbols) (string, fh.Report) {
-    return t.Time.Format("15:04:05"), fh.NewReport(nil)
+func (FormatTime) Process(ctx context.Context, t Tick, _ boolexpr.Symbols) (string, error) {
+    return t.Time.Format("15:04:05"), nil
 }
 
 type Printer struct{}
 
-func (Printer) Send(ctx context.Context, msg string) fh.Report {
+func (Printer) Send(ctx context.Context, msg string) error {
     println(msg)
-    return fh.NewReport(nil)
+    return nil
 }
 
 func main() {
@@ -214,8 +216,10 @@ func main() {
         }
     }
 
-    fh.Start(ctx, head, errHandler)
-    fh.Wait(head, errHandler)
+    doneChannels := fh.Start(ctx, head, errHandler)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 </details>

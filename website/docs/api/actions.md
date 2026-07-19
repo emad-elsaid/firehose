@@ -6,7 +6,7 @@ API reference for action interfaces and built-in implementations.
 
 ```go
 type Action[I, O any] interface {
-    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, Report)
+    Process(ctx context.Context, event I, syms boolexpr.Symbols) (O, error)
 }
 ```
 
@@ -23,15 +23,15 @@ Select: actions.Func[HTTPRequest, User](func(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (User, fh.Report) {
+) (User, error) {
     user := extractUser(req)
-    return user, fh.NewReport(nil)
+    return user, nil
 })
 ```
 
 ### actions.Cache
 
-Memoize action output.
+Memoize action output using `EventID` as cache key.
 
 ```go
 Select: &actions.Cache[Event, Result]{
@@ -80,7 +80,7 @@ Select: &actions.RoundRobin[Event, Result]{
 
 ### actions.Random
 
-Dispatch to a random action.
+Dispatch to a random action using crypto/rand.
 
 ```go
 Select: &actions.Random[Event, Result]{

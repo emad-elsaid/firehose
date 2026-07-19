@@ -6,9 +6,9 @@ API reference for middleware interfaces and built-in implementations.
 
 ```go
 type Middleware[I, O any] interface {
-    WrapCallback(ctx context.Context, rule *SQLRule[I, O], cb Callback[I]) (Callback[I], error)
-    WrapAction(ctx context.Context, rule *SQLRule[I, O], action Action[I, O]) (Action[I, O], error)
-    WrapDestination(ctx context.Context, rule *SQLRule[I, O], dest Destination[O]) (Destination[O], error)
+    WrapCallback(ctx context.Context, rule Rule, cb Callback[I]) (Callback[I], error)
+    WrapAction(ctx context.Context, rule Rule, action Action[I, O]) (Action[I, O], error)
+    WrapDestination(ctx context.Context, rule Rule, dest Destination[O]) (Destination[O], error)
 }
 ```
 
@@ -66,25 +66,24 @@ func (a loggingAction[I, O]) Process(
     ctx context.Context,
     event I,
     syms boolexpr.Symbols,
-) (O, fh.Report) {
+) (O, error) {
     log.Printf("[%s] Processing...", a.ruleID)
-    out, report := a.next.Process(ctx, event, syms)
+    out, err := a.next.Process(ctx, event, syms)
     log.Printf("[%s] Done", a.ruleID)
-    return out, report
+    return out, err
 }
 
 func (m LoggingMiddleware[I, O]) WrapAction(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     action fh.Action[I, O],
 ) (fh.Action[I, O], error) {
-    return loggingAction[I, O]{ruleID: rule.ID, next: action}, nil
+    return loggingAction[I, O]{ruleID: rule.GetID(), next: action}, nil
 }
 
-// Return unchanged if not wrapping
 func (m LoggingMiddleware[I, O]) WrapCallback(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     cb fh.Callback[I],
 ) (fh.Callback[I], error) {
     return cb, nil
@@ -92,7 +91,7 @@ func (m LoggingMiddleware[I, O]) WrapCallback(
 
 func (m LoggingMiddleware[I, O]) WrapDestination(
     ctx context.Context,
-    rule *fh.SQLRule[I, O],
+    rule fh.Rule,
     dest fh.Destination[O],
 ) (fh.Destination[O], error) {
     return dest, nil

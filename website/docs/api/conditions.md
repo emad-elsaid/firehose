@@ -2,7 +2,7 @@
 
 API reference for condition interfaces and built-in implementations.
 
-## If Interface
+## Condition Interface
 
 ```go
 type Condition[I any] interface {
@@ -36,7 +36,7 @@ Where: condition.Func[Event](func(ctx context.Context, event Event, syms boolexp
 
 ### condition.RateLimit
 
-Throttle event processing.
+Throttle event processing using `golang.org/x/time/rate`.
 
 ```go
 Where: &condition.RateLimit[Event]{
@@ -47,14 +47,24 @@ Where: &condition.RateLimit[Event]{
 
 ### condition.Once
 
-Deduplicate events by ID within a time window.
+Deduplicate events by `EventID` within a time window.
 
 ```go
 Where: &condition.Once[Event]{
     Duration: 5 * time.Minute,
-    Cache:    cache.NewMemory[bool](10*time.Minute, time.Minute),
+    Cache:    cache.NewMemory[string](10*time.Minute, time.Minute),
 }
 ```
+
+### condition.Valid
+
+Validate event struct fields using `go-playground/validator` struct tags.
+
+```go
+Where: &condition.Valid[Event]{}
+```
+
+Returns an error if validation fails.
 
 ### condition.Conditions
 

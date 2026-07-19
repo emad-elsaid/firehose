@@ -32,7 +32,7 @@ import (
     "encoding/json"
     "log"
     "net/http"
-    
+
     fh "github.com/emad-elsaid/firehose"
     "github.com/emad-elsaid/firehose/destinations"
     "github.com/emad-elsaid/firehose/middlewares"
@@ -53,7 +53,7 @@ type Item struct {
 }
 
 type EmailNotification struct {
-    Into    string
+    To      string
     Subject string
     Body    string
 }
@@ -76,25 +76,25 @@ type OrderAPI struct {
 func (api OrderAPI) Start(
     ctx context.Context,
     cb fh.Callback[OrderCreated],
-) (context.Context, error) {
+) (<-chan struct{}, error) {
     http.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
         if r.Method != "POST" {
             http.Error(w, "Method not allowed", 405)
             return
         }
-        
+
         var order OrderCreated
         if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
             http.Error(w, err.Error(), 400)
             return
         }
-        
-        cb(r.Context(), order, func(report fh.Report) {
-            if report.Err != nil {
-                http.Error(w, report.Err.Error(), 500)
+
+        cb(r.Context(), order, func(err error) {
+            if err != nil {
+                http.Error(w, err.Error(), 500)
                 return
             }
-            
+
             w.WriteHeader(201)
             json.NewEncoder(w).Encode(map[string]string{
                 "status": "created",
@@ -102,11 +102,11 @@ func (api OrderAPI) Start(
             })
         })
     })
-    
+
     server := &http.Server{Addr: api.Addr}
     go server.ListenAndServe()
-    
-    return ctx, nil
+
+    return ctx.Done(), nil
 }
 
 // Actions
@@ -116,12 +116,12 @@ func (a CreateEmailAction) Process(
     ctx context.Context,
     order OrderCreated,
     _ boolexpr.Symbols,
-) (EmailNotification, fh.Report) {
+) (EmailNotification, error) {
     return EmailNotification{
-        Into:    fmt.Sprintf("customer-%s@example.com", order.CustomerID),
+        To:      fmt.Sprintf("customer-%s@example.com", order.CustomerID),
         Subject: "Order Confirmation",
         Body:    fmt.Sprintf("Your order %s has been confirmed", order.OrderID),
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 type CreateInventoryUpdates struct{}
@@ -130,7 +130,7 @@ func (a CreateInventoryUpdates) Process(
     ctx context.Context,
     order OrderCreated,
     _ boolexpr.Symbols,
-) ([]InventoryUpdate, fh.Report) {
+) ([]InventoryUpdate, error) {
     updates := make([]InventoryUpdate, len(order.Items))
     for i, item := range order.Items {
         updates[i] = InventoryUpdate{
@@ -138,7 +138,7 @@ func (a CreateInventoryUpdates) Process(
             Quantity: -item.Quantity,
         }
     }
-    return updates, fh.NewReport(nil)
+    return updates, nil
 }
 
 type CreateAnalytics struct{}
@@ -147,7 +147,7 @@ func (a CreateAnalytics) Process(
     ctx context.Context,
     order OrderCreated,
     _ boolexpr.Symbols,
-) (AnalyticsEvent, fh.Report) {
+) (AnalyticsEvent, error) {
     return AnalyticsEvent{
         EventType: "order_created",
         Data: map[string]any{
@@ -156,39 +156,38 @@ func (a CreateAnalytics) Process(
             "amount":      order.Amount,
             "item_count":  len(order.Items),
         },
-    }, fh.NewReport(nil)
+    }, nil
 }
 
 // Destinations
 type EmailService struct{}
 
-func (s EmailService) Send(ctx context.Context, email EmailNotification) fh.Report {
-    log.Printf("Sending email to %s: %s", email.Into, email.Subject)
-    // Send email logic
-    return fh.NewReport(nil)
+func (s EmailService) Send(ctx context.Context, email EmailNotification) error {
+    log.Printf("Sending email to %s: %s", email.To, email.Subject)
+    return nil
 }
 
 type InventoryService struct{}
 
-func (s InventoryService) Send(ctx context.Context, updates []InventoryUpdate) fh.Report {
+func (s InventoryService) Send(ctx context.Context, updates []InventoryUpdate) error {
     for _, update := range updates {
         log.Printf("Updating inventory: %s by %d", update.SKU, update.Quantity)
     }
-    return fh.NewReport(nil)
+    return nil
 }
 
 type AnalyticsService struct{}
 
-func (s AnalyticsService) Send(ctx context.Context, event AnalyticsEvent) fh.Report {
+func (s AnalyticsService) Send(ctx context.Context, event AnalyticsEvent) error {
     log.Printf("Recording analytics: %s", event.EventType)
-    return fh.NewReport(nil)
+    return nil
 }
 
 func main() {
     ctx := context.Background()
-    
+
     api := &OrderAPI{Addr: ":8080"}
-    
+
     // Email notification pipeline
     emailRule := &fh.SQLRule[OrderCreated, EmailNotification]{
         ID:   "send_order_email",
@@ -200,20 +199,20 @@ func main() {
             &middlewares.Slog[OrderCreated, EmailNotification]{},
         },
     }
-    
+
     // Inventory update pipeline
     inventoryRule := &fh.SQLRule[OrderCreated, []InventoryUpdate]{
         ID:   "update_inventory",
         Select: CreateInventoryUpdates{},
         Into: destinations.FromSlice[InventoryUpdate]{
-        From:   api,
             Into: InventoryService{},
         },
+        From:   api,
         Middlewares: []fh.Middleware[OrderCreated, []InventoryUpdate]{
             &middlewares.Panic[OrderCreated, []InventoryUpdate]{},
         },
     }
-    
+
     // Analytics pipeline
     analyticsRule := &fh.SQLRule[OrderCreated, AnalyticsEvent]{
         ID:   "record_analytics",
@@ -221,18 +220,20 @@ func main() {
         Into:   AnalyticsService{},
         From:   api,
     }
-    
+
     // Register all rules
     head, _ := fh.Add(ctx, nil, emailRule)
     head, _ = fh.Add(ctx, head, inventoryRule)
     head, _ = fh.Add(ctx, head, analyticsRule)
-    
-    fh.Start(ctx, head, func(err error) {
+
+    doneChannels := fh.Start(ctx, head, func(err error) {
         log.Printf("Error: %v", err)
     })
-    
+
     log.Println("Microservice running on :8080")
-    fh.Wait(head, nil)
+    for _, ch := range doneChannels {
+        <-ch
+    }
 }
 ```
 

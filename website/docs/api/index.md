@@ -12,14 +12,10 @@ import fh "github.com/emad-elsaid/firehose"
 
 ### Add
 
-Registers a rule and returns an updated head.
+Registers a rule and returns the updated head.
 
 ```go
-func Add[I, O any](
-    ctx context.Context,
-    head Rule,
-    rule *SQLRule[I, O],
-) (Rule, error)
+func Add(ctx context.Context, head Rule, rule Rule) (Rule, error)
 ```
 
 **Parameters:**
@@ -47,13 +43,16 @@ head, err := fh.Add(ctx, nil, &fh.SQLRule[Event, Output]{
 Activates all registered event sources.
 
 ```go
-func Start(ctx context.Context, head Rule, errFunc ErrorHandler)
+func Start(ctx context.Context, head Rule, errFunc ErrorHandler) []<-chan struct{}
 ```
 
 **Parameters:**
 - `ctx` - Context for source lifecycle
-- `head` - Rule containing rules
+- `head` - Head rule returned from `Add`
 - `errFunc` - Handler for source startup errors
+
+**Returns:**
+- Slice of done channels, one per unique source started
 
 **Example:**
 
@@ -64,8 +63,8 @@ errHandler := func(err error) {
     }
 }
 
-fh.Start(ctx, head, errHandler)
-for _, ch := range fh.Start(ctx, head, errHandler) {
+doneChannels := fh.Start(ctx, head, errHandler)
+for _, ch := range doneChannels {
     <-ch
 }
 ```
