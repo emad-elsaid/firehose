@@ -417,12 +417,12 @@ func (_m *MockRegistry) EXPECT() *MockRegistry_Expecter {
 	return &MockRegistry_Expecter{mock: &_m.Mock}
 }
 
-// getNext provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getNext() Registry {
+// GetNext provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetNext() Registry {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for getNext")
+		panic("no return value specified for GetNext")
 	}
 
 	var r0 Registry
@@ -436,39 +436,39 @@ func (_mock *MockRegistry) getNext() Registry {
 	return r0
 }
 
-// MockRegistry_getNext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getNext'
-type MockRegistry_getNext_Call struct {
+// MockRegistry_GetNext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNext'
+type MockRegistry_GetNext_Call struct {
 	*mock.Call
 }
 
-// getNext is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getNext() *MockRegistry_getNext_Call {
-	return &MockRegistry_getNext_Call{Call: _e.mock.On("getNext")}
+// GetNext is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetNext() *MockRegistry_GetNext_Call {
+	return &MockRegistry_GetNext_Call{Call: _e.mock.On("GetNext")}
 }
 
-func (_c *MockRegistry_getNext_Call) Run(run func()) *MockRegistry_getNext_Call {
+func (_c *MockRegistry_GetNext_Call) Run(run func()) *MockRegistry_GetNext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockRegistry_getNext_Call) Return(registry Registry) *MockRegistry_getNext_Call {
+func (_c *MockRegistry_GetNext_Call) Return(registry Registry) *MockRegistry_GetNext_Call {
 	_c.Call.Return(registry)
 	return _c
 }
 
-func (_c *MockRegistry_getNext_Call) RunAndReturn(run func() Registry) *MockRegistry_getNext_Call {
+func (_c *MockRegistry_GetNext_Call) RunAndReturn(run func() Registry) *MockRegistry_GetNext_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// getNextSameSource provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getNextSameSource() Registry {
+// GetNextSameSource provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetNextSameSource() Registry {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for getNextSameSource")
+		panic("no return value specified for GetNextSameSource")
 	}
 
 	var r0 Registry
@@ -482,39 +482,39 @@ func (_mock *MockRegistry) getNextSameSource() Registry {
 	return r0
 }
 
-// MockRegistry_getNextSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getNextSameSource'
-type MockRegistry_getNextSameSource_Call struct {
+// MockRegistry_GetNextSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNextSameSource'
+type MockRegistry_GetNextSameSource_Call struct {
 	*mock.Call
 }
 
-// getNextSameSource is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getNextSameSource() *MockRegistry_getNextSameSource_Call {
-	return &MockRegistry_getNextSameSource_Call{Call: _e.mock.On("getNextSameSource")}
+// GetNextSameSource is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetNextSameSource() *MockRegistry_GetNextSameSource_Call {
+	return &MockRegistry_GetNextSameSource_Call{Call: _e.mock.On("GetNextSameSource")}
 }
 
-func (_c *MockRegistry_getNextSameSource_Call) Run(run func()) *MockRegistry_getNextSameSource_Call {
+func (_c *MockRegistry_GetNextSameSource_Call) Run(run func()) *MockRegistry_GetNextSameSource_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockRegistry_getNextSameSource_Call) Return(registry Registry) *MockRegistry_getNextSameSource_Call {
+func (_c *MockRegistry_GetNextSameSource_Call) Return(registry Registry) *MockRegistry_GetNextSameSource_Call {
 	_c.Call.Return(registry)
 	return _c
 }
 
-func (_c *MockRegistry_getNextSameSource_Call) RunAndReturn(run func() Registry) *MockRegistry_getNextSameSource_Call {
+func (_c *MockRegistry_GetNextSameSource_Call) RunAndReturn(run func() Registry) *MockRegistry_GetNextSameSource_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// getPrev provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getPrev() Registry {
+// GetPrev provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetPrev() Registry {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for getPrev")
+		panic("no return value specified for GetPrev")
 	}
 
 	var r0 Registry
@@ -528,39 +528,39 @@ func (_mock *MockRegistry) getPrev() Registry {
 	return r0
 }
 
-// MockRegistry_getPrev_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getPrev'
-type MockRegistry_getPrev_Call struct {
+// MockRegistry_GetPrev_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPrev'
+type MockRegistry_GetPrev_Call struct {
 	*mock.Call
 }
 
-// getPrev is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getPrev() *MockRegistry_getPrev_Call {
-	return &MockRegistry_getPrev_Call{Call: _e.mock.On("getPrev")}
+// GetPrev is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetPrev() *MockRegistry_GetPrev_Call {
+	return &MockRegistry_GetPrev_Call{Call: _e.mock.On("GetPrev")}
 }
 
-func (_c *MockRegistry_getPrev_Call) Run(run func()) *MockRegistry_getPrev_Call {
+func (_c *MockRegistry_GetPrev_Call) Run(run func()) *MockRegistry_GetPrev_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockRegistry_getPrev_Call) Return(registry Registry) *MockRegistry_getPrev_Call {
+func (_c *MockRegistry_GetPrev_Call) Return(registry Registry) *MockRegistry_GetPrev_Call {
 	_c.Call.Return(registry)
 	return _c
 }
 
-func (_c *MockRegistry_getPrev_Call) RunAndReturn(run func() Registry) *MockRegistry_getPrev_Call {
+func (_c *MockRegistry_GetPrev_Call) RunAndReturn(run func() Registry) *MockRegistry_GetPrev_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// getSource provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) getSource() any {
+// GetSource provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) GetSource() any {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for getSource")
+		panic("no return value specified for GetSource")
 	}
 
 	var r0 any
@@ -574,51 +574,51 @@ func (_mock *MockRegistry) getSource() any {
 	return r0
 }
 
-// MockRegistry_getSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getSource'
-type MockRegistry_getSource_Call struct {
+// MockRegistry_GetSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSource'
+type MockRegistry_GetSource_Call struct {
 	*mock.Call
 }
 
-// getSource is a helper method to define mock.On call
-func (_e *MockRegistry_Expecter) getSource() *MockRegistry_getSource_Call {
-	return &MockRegistry_getSource_Call{Call: _e.mock.On("getSource")}
+// GetSource is a helper method to define mock.On call
+func (_e *MockRegistry_Expecter) GetSource() *MockRegistry_GetSource_Call {
+	return &MockRegistry_GetSource_Call{Call: _e.mock.On("GetSource")}
 }
 
-func (_c *MockRegistry_getSource_Call) Run(run func()) *MockRegistry_getSource_Call {
+func (_c *MockRegistry_GetSource_Call) Run(run func()) *MockRegistry_GetSource_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockRegistry_getSource_Call) Return(v any) *MockRegistry_getSource_Call {
+func (_c *MockRegistry_GetSource_Call) Return(v any) *MockRegistry_GetSource_Call {
 	_c.Call.Return(v)
 	return _c
 }
 
-func (_c *MockRegistry_getSource_Call) RunAndReturn(run func() any) *MockRegistry_getSource_Call {
+func (_c *MockRegistry_GetSource_Call) RunAndReturn(run func() any) *MockRegistry_GetSource_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// setNext provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) setNext(n Registry) {
+// SetNext provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) SetNext(n Registry) {
 	_mock.Called(n)
 	return
 }
 
-// MockRegistry_setNext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'setNext'
-type MockRegistry_setNext_Call struct {
+// MockRegistry_SetNext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetNext'
+type MockRegistry_SetNext_Call struct {
 	*mock.Call
 }
 
-// setNext is a helper method to define mock.On call
+// SetNext is a helper method to define mock.On call
 //   - n Registry
-func (_e *MockRegistry_Expecter) setNext(n any) *MockRegistry_setNext_Call {
-	return &MockRegistry_setNext_Call{Call: _e.mock.On("setNext", n)}
+func (_e *MockRegistry_Expecter) SetNext(n any) *MockRegistry_SetNext_Call {
+	return &MockRegistry_SetNext_Call{Call: _e.mock.On("SetNext", n)}
 }
 
-func (_c *MockRegistry_setNext_Call) Run(run func(n Registry)) *MockRegistry_setNext_Call {
+func (_c *MockRegistry_SetNext_Call) Run(run func(n Registry)) *MockRegistry_SetNext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 Registry
 		if args[0] != nil {
@@ -631,34 +631,34 @@ func (_c *MockRegistry_setNext_Call) Run(run func(n Registry)) *MockRegistry_set
 	return _c
 }
 
-func (_c *MockRegistry_setNext_Call) Return() *MockRegistry_setNext_Call {
+func (_c *MockRegistry_SetNext_Call) Return() *MockRegistry_SetNext_Call {
 	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockRegistry_setNext_Call) RunAndReturn(run func(n Registry)) *MockRegistry_setNext_Call {
+func (_c *MockRegistry_SetNext_Call) RunAndReturn(run func(n Registry)) *MockRegistry_SetNext_Call {
 	_c.Run(run)
 	return _c
 }
 
-// setNextSameSource provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) setNextSameSource(n Registry) {
+// SetNextSameSource provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) SetNextSameSource(n Registry) {
 	_mock.Called(n)
 	return
 }
 
-// MockRegistry_setNextSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'setNextSameSource'
-type MockRegistry_setNextSameSource_Call struct {
+// MockRegistry_SetNextSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetNextSameSource'
+type MockRegistry_SetNextSameSource_Call struct {
 	*mock.Call
 }
 
-// setNextSameSource is a helper method to define mock.On call
+// SetNextSameSource is a helper method to define mock.On call
 //   - n Registry
-func (_e *MockRegistry_Expecter) setNextSameSource(n any) *MockRegistry_setNextSameSource_Call {
-	return &MockRegistry_setNextSameSource_Call{Call: _e.mock.On("setNextSameSource", n)}
+func (_e *MockRegistry_Expecter) SetNextSameSource(n any) *MockRegistry_SetNextSameSource_Call {
+	return &MockRegistry_SetNextSameSource_Call{Call: _e.mock.On("SetNextSameSource", n)}
 }
 
-func (_c *MockRegistry_setNextSameSource_Call) Run(run func(n Registry)) *MockRegistry_setNextSameSource_Call {
+func (_c *MockRegistry_SetNextSameSource_Call) Run(run func(n Registry)) *MockRegistry_SetNextSameSource_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 Registry
 		if args[0] != nil {
@@ -671,34 +671,34 @@ func (_c *MockRegistry_setNextSameSource_Call) Run(run func(n Registry)) *MockRe
 	return _c
 }
 
-func (_c *MockRegistry_setNextSameSource_Call) Return() *MockRegistry_setNextSameSource_Call {
+func (_c *MockRegistry_SetNextSameSource_Call) Return() *MockRegistry_SetNextSameSource_Call {
 	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockRegistry_setNextSameSource_Call) RunAndReturn(run func(n Registry)) *MockRegistry_setNextSameSource_Call {
+func (_c *MockRegistry_SetNextSameSource_Call) RunAndReturn(run func(n Registry)) *MockRegistry_SetNextSameSource_Call {
 	_c.Run(run)
 	return _c
 }
 
-// setPrev provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) setPrev(p Registry) {
+// SetPrev provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) SetPrev(p Registry) {
 	_mock.Called(p)
 	return
 }
 
-// MockRegistry_setPrev_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'setPrev'
-type MockRegistry_setPrev_Call struct {
+// MockRegistry_SetPrev_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetPrev'
+type MockRegistry_SetPrev_Call struct {
 	*mock.Call
 }
 
-// setPrev is a helper method to define mock.On call
+// SetPrev is a helper method to define mock.On call
 //   - p Registry
-func (_e *MockRegistry_Expecter) setPrev(p any) *MockRegistry_setPrev_Call {
-	return &MockRegistry_setPrev_Call{Call: _e.mock.On("setPrev", p)}
+func (_e *MockRegistry_Expecter) SetPrev(p any) *MockRegistry_SetPrev_Call {
+	return &MockRegistry_SetPrev_Call{Call: _e.mock.On("SetPrev", p)}
 }
 
-func (_c *MockRegistry_setPrev_Call) Run(run func(p Registry)) *MockRegistry_setPrev_Call {
+func (_c *MockRegistry_SetPrev_Call) Run(run func(p Registry)) *MockRegistry_SetPrev_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 Registry
 		if args[0] != nil {
@@ -711,34 +711,34 @@ func (_c *MockRegistry_setPrev_Call) Run(run func(p Registry)) *MockRegistry_set
 	return _c
 }
 
-func (_c *MockRegistry_setPrev_Call) Return() *MockRegistry_setPrev_Call {
+func (_c *MockRegistry_SetPrev_Call) Return() *MockRegistry_SetPrev_Call {
 	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockRegistry_setPrev_Call) RunAndReturn(run func(p Registry)) *MockRegistry_setPrev_Call {
+func (_c *MockRegistry_SetPrev_Call) RunAndReturn(run func(p Registry)) *MockRegistry_SetPrev_Call {
 	_c.Run(run)
 	return _c
 }
 
-// setPrevSameSource provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) setPrevSameSource(p Registry) {
+// SetPrevSameSource provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) SetPrevSameSource(p Registry) {
 	_mock.Called(p)
 	return
 }
 
-// MockRegistry_setPrevSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'setPrevSameSource'
-type MockRegistry_setPrevSameSource_Call struct {
+// MockRegistry_SetPrevSameSource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetPrevSameSource'
+type MockRegistry_SetPrevSameSource_Call struct {
 	*mock.Call
 }
 
-// setPrevSameSource is a helper method to define mock.On call
+// SetPrevSameSource is a helper method to define mock.On call
 //   - p Registry
-func (_e *MockRegistry_Expecter) setPrevSameSource(p any) *MockRegistry_setPrevSameSource_Call {
-	return &MockRegistry_setPrevSameSource_Call{Call: _e.mock.On("setPrevSameSource", p)}
+func (_e *MockRegistry_Expecter) SetPrevSameSource(p any) *MockRegistry_SetPrevSameSource_Call {
+	return &MockRegistry_SetPrevSameSource_Call{Call: _e.mock.On("SetPrevSameSource", p)}
 }
 
-func (_c *MockRegistry_setPrevSameSource_Call) Run(run func(p Registry)) *MockRegistry_setPrevSameSource_Call {
+func (_c *MockRegistry_SetPrevSameSource_Call) Run(run func(p Registry)) *MockRegistry_SetPrevSameSource_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 Registry
 		if args[0] != nil {
@@ -751,22 +751,22 @@ func (_c *MockRegistry_setPrevSameSource_Call) Run(run func(p Registry)) *MockRe
 	return _c
 }
 
-func (_c *MockRegistry_setPrevSameSource_Call) Return() *MockRegistry_setPrevSameSource_Call {
+func (_c *MockRegistry_SetPrevSameSource_Call) Return() *MockRegistry_SetPrevSameSource_Call {
 	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockRegistry_setPrevSameSource_Call) RunAndReturn(run func(p Registry)) *MockRegistry_setPrevSameSource_Call {
+func (_c *MockRegistry_SetPrevSameSource_Call) RunAndReturn(run func(p Registry)) *MockRegistry_SetPrevSameSource_Call {
 	_c.Run(run)
 	return _c
 }
 
-// start provides a mock function for the type MockRegistry
-func (_mock *MockRegistry) start(ctx context.Context) (<-chan struct{}, error) {
+// Start provides a mock function for the type MockRegistry
+func (_mock *MockRegistry) Start(ctx context.Context) (<-chan struct{}, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
-		panic("no return value specified for start")
+		panic("no return value specified for Start")
 	}
 
 	var r0 <-chan struct{}
@@ -789,18 +789,18 @@ func (_mock *MockRegistry) start(ctx context.Context) (<-chan struct{}, error) {
 	return r0, r1
 }
 
-// MockRegistry_start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'start'
-type MockRegistry_start_Call struct {
+// MockRegistry_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type MockRegistry_Start_Call struct {
 	*mock.Call
 }
 
-// start is a helper method to define mock.On call
+// Start is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockRegistry_Expecter) start(ctx any) *MockRegistry_start_Call {
-	return &MockRegistry_start_Call{Call: _e.mock.On("start", ctx)}
+func (_e *MockRegistry_Expecter) Start(ctx any) *MockRegistry_Start_Call {
+	return &MockRegistry_Start_Call{Call: _e.mock.On("Start", ctx)}
 }
 
-func (_c *MockRegistry_start_Call) Run(run func(ctx context.Context)) *MockRegistry_start_Call {
+func (_c *MockRegistry_Start_Call) Run(run func(ctx context.Context)) *MockRegistry_Start_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -813,12 +813,12 @@ func (_c *MockRegistry_start_Call) Run(run func(ctx context.Context)) *MockRegis
 	return _c
 }
 
-func (_c *MockRegistry_start_Call) Return(valCh <-chan struct{}, err error) *MockRegistry_start_Call {
+func (_c *MockRegistry_Start_Call) Return(valCh <-chan struct{}, err error) *MockRegistry_Start_Call {
 	_c.Call.Return(valCh, err)
 	return _c
 }
 
-func (_c *MockRegistry_start_Call) RunAndReturn(run func(ctx context.Context) (<-chan struct{}, error)) *MockRegistry_start_Call {
+func (_c *MockRegistry_Start_Call) RunAndReturn(run func(ctx context.Context) (<-chan struct{}, error)) *MockRegistry_Start_Call {
 	_c.Call.Return(run)
 	return _c
 }

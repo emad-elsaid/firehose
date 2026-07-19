@@ -139,11 +139,11 @@ func TestParallel_Wrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setupRule()
 			runner := tc.setupRunner()
-		parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
+			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
 
-		cb := func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {}
+			cb := func(ctx context.Context, e *mockEvent, report fh.ErrorHandler) {}
 
-		result, err := parallel.WrapCallback(context.Background(), rule, cb)
+			result, err := parallel.WrapCallback(context.Background(), rule, cb)
 
 			if tc.expectedError {
 				require.Error(t, err)
@@ -231,15 +231,15 @@ func TestParallel_Callback(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := tc.setupRule()
-		event := tc.setupEvent()
-		runner := tc.setupRunner()
+			event := tc.setupEvent()
+			runner := tc.setupRunner()
 
-		_, err := fh.Add(context.Background(), nil, rule)
-		require.NoError(t, err)
+			_, err := fh.Add(context.Background(), nil, rule)
+			require.NoError(t, err)
 
-		parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
-		_, err = parallel.WrapCallback(context.Background(), rule, nil)
-		require.NoError(t, err)
+			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
+			_, err = parallel.WrapCallback(context.Background(), rule, nil)
+			require.NoError(t, err)
 
 			collector := newReportCollector()
 			ctx := context.Background()
@@ -294,17 +294,17 @@ func TestParallel_ConcurrencySafety(t *testing.T) {
 			dest.On("Send", mock.Anything, mock.Anything).
 				Return(nil)
 
-		rule := &fh.Rule[*mockEvent, *mockEvent]{
-			ID:     "concurrent-rule",
-			From:   &mockSource[*mockEvent]{},
-			Select: action,
-			Into:   dest,
-		}
+			rule := &fh.Rule[*mockEvent, *mockEvent]{
+				ID:     "concurrent-rule",
+				From:   &mockSource[*mockEvent]{},
+				Select: action,
+				Into:   dest,
+			}
 
-		_, err := fh.Add(context.Background(), nil, rule)
-		require.NoError(t, err)
+			_, err := fh.Add(context.Background(), nil, rule)
+			require.NoError(t, err)
 
-		event := newMockEvent(map[string]any{"key": "value"})
+			event := newMockEvent(map[string]any{"key": "value"})
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: &concurrentTaskRunner{}}
 			_, err = parallel.WrapCallback(context.Background(), rule, nil)
@@ -363,15 +363,15 @@ func TestParallel_WaitGroup(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-		rule := tc.setupRules()
-		event := newMockEvent(map[string]any{"key": "value"})
+			rule := tc.setupRules()
+			event := newMockEvent(map[string]any{"key": "value"})
 
-		_, err := fh.Add(context.Background(), nil, rule)
-		require.NoError(t, err)
+			_, err := fh.Add(context.Background(), nil, rule)
+			require.NoError(t, err)
 
-		// Use syncTaskRunner which executes immediately
-		taskExecuted := false
-		runner := &syncTaskRunner{}
+			// Use syncTaskRunner which executes immediately
+			taskExecuted := false
+			runner := &syncTaskRunner{}
 
 			parallel := &Parallel[*mockEvent, *mockEvent]{Runner: runner}
 			_, err = parallel.WrapCallback(context.Background(), rule, nil)

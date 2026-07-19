@@ -37,9 +37,9 @@ func TestManualEmit(t *testing.T) {
 			received := []int{}
 
 			if tc.startSource {
-			_, err := source.Start(t.Context(), func(_ context.Context, event int, _ firehose.ErrorHandler) {
-				received = append(received, event)
-			})
+				_, err := source.Start(t.Context(), func(_ context.Context, event int, _ firehose.ErrorHandler) {
+					received = append(received, event)
+				})
 				require.NoError(t, err)
 			}
 

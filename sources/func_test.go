@@ -38,10 +38,10 @@ func TestFuncStart(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-		called := false
-		cb := func(_ context.Context, _ int, _ firehose.ErrorHandler) {
-			called = true
-		}
+			called := false
+			cb := func(_ context.Context, _ int, _ firehose.ErrorHandler) {
+				called = true
+			}
 
 			done, err := tc.source.Start(t.Context(), cb)
 

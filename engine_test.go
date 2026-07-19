@@ -75,8 +75,8 @@ func TestAdd(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.Equal(t, result, result.getNext())
-		require.Equal(t, result, result.getPrev())
+		require.Equal(t, result, result.GetNext())
+		require.Equal(t, result, result.GetPrev())
 	})
 
 	t.Run("add second rule to existing registry", func(t *testing.T) {
@@ -104,12 +104,12 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, rule1, result)
 
 		// With 2 rules in a circular list: rule1 <-> rule2
-		require.Equal(t, rule2, result.getNext(), "rule1.next should point to rule2")
-		require.Equal(t, rule2, result.getPrev(), "rule1.prev should point to rule2")
+		require.Equal(t, rule2, result.GetNext(), "rule1.next should point to rule2")
+		require.Equal(t, rule2, result.GetPrev(), "rule1.prev should point to rule2")
 
 		// Verify rule2 points back to rule1
-		require.Equal(t, rule1, rule2.getNext(), "rule2.next should point to rule1")
-		require.Equal(t, rule1, rule2.getPrev(), "rule2.prev should point to rule1")
+		require.Equal(t, rule1, rule2.GetNext(), "rule2.next should point to rule1")
+		require.Equal(t, rule1, rule2.GetPrev(), "rule2.prev should point to rule1")
 	})
 
 	t.Run("add third rule to registry with two rules", func(t *testing.T) {
@@ -145,14 +145,14 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, rule1, result)
 
 		// Verify circular structure: rule1 -> rule2 -> rule3 -> rule1
-		require.Equal(t, rule2, rule1.getNext(), "rule1.next should be rule2")
-		require.Equal(t, rule3, rule2.getNext(), "rule2.next should be rule3")
-		require.Equal(t, rule1, rule3.getNext(), "rule3.next should be rule1")
+		require.Equal(t, rule2, rule1.GetNext(), "rule1.next should be rule2")
+		require.Equal(t, rule3, rule2.GetNext(), "rule2.next should be rule3")
+		require.Equal(t, rule1, rule3.GetNext(), "rule3.next should be rule1")
 
 		// Verify reverse: rule1 <- rule2 <- rule3 <- rule1
-		require.Equal(t, rule3, rule1.getPrev(), "rule1.prev should be rule3")
-		require.Equal(t, rule1, rule2.getPrev(), "rule2.prev should be rule1")
-		require.Equal(t, rule2, rule3.getPrev(), "rule3.prev should be rule2")
+		require.Equal(t, rule3, rule1.GetPrev(), "rule1.prev should be rule3")
+		require.Equal(t, rule1, rule2.GetPrev(), "rule2.prev should be rule1")
+		require.Equal(t, rule2, rule3.GetPrev(), "rule3.prev should be rule2")
 	})
 
 	t.Run("add rule with Environment that doesn't match current ENV", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.Nil(t, rule1.prevSameSource, "rule1 should have no prev same source")
 
 		// Second rule
-		secondRule := result.getNext().(*Rule[*EventMock, *EventMock])
+		secondRule := result.GetNext().(*Rule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 should have no next same source")
 		require.Nil(t, secondRule.prevSameSource, "rule2 should have no prev same source")
 	})
@@ -270,7 +270,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		require.Nil(t, rule1.prevSameSource, "rule1 is first, should have no prev same source")
 
 		// Second rule
-		secondRule := result.getNext().(*Rule[*EventMock, *EventMock])
+		secondRule := result.GetNext().(*Rule[*EventMock, *EventMock])
 		require.Nil(t, secondRule.nextSameSource, "rule2 is last, should have no next same source")
 		require.NotNil(t, secondRule.prevSameSource, "rule2 should have prev same source")
 
@@ -312,7 +312,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		current := result
 		for i := 0; i < 3; i++ {
 			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
-			current = current.getNext()
+			current = current.GetNext()
 		}
 
 		// First rule in same-source chain
@@ -377,7 +377,7 @@ func TestAddSameSourceChaining(t *testing.T) {
 		current := result
 		for i := 0; i < 4; i++ {
 			rules = append(rules, current.(*Rule[*EventMock, *EventMock]))
-			current = current.getNext()
+			current = current.GetNext()
 		}
 
 		// Identify rules by source instance (pointer comparison)

@@ -58,10 +58,10 @@ func TestPanic_RecoverCallback(t *testing.T) {
 		assertion  func(t *testing.T, reports []error)
 	}{
 		{
-		name: "recovers from panic",
-		downstream: func(_ context.Context, _ *event, _ firehose.ErrorHandler) {
-			panic("callback panic!")
-		},
+			name: "recovers from panic",
+			downstream: func(_ context.Context, _ *event, _ firehose.ErrorHandler) {
+				panic("callback panic!")
+			},
 			assertion: func(t *testing.T, reports []error) {
 				require.Len(t, reports, 1)
 				assert.ErrorIs(t, reports[0], ErrPanicRecovered)
@@ -69,11 +69,11 @@ func TestPanic_RecoverCallback(t *testing.T) {
 			},
 		},
 		{
-		name: "passes through report",
-		downstream: func(_ context.Context, _ *event, report firehose.ErrorHandler) {
-			// Report nil - should not be collected since nil means success
-			report(nil)
-		},
+			name: "passes through report",
+			downstream: func(_ context.Context, _ *event, report firehose.ErrorHandler) {
+				// Report nil - should not be collected since nil means success
+				report(nil)
+			},
 			assertion: func(t *testing.T, reports []error) {
 				// Nil errors are not reported
 				require.Len(t, reports, 0)

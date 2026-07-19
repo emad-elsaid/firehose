@@ -78,7 +78,9 @@ func (r *Rule[I, O]) Init(ctx context.Context) error {
 	return nil
 }
 
-func (r *Rule[I, O]) start(ctx context.Context) (<-chan struct{}, error) {
+// Start begins the source for this rule if it's the first rule with
+// this source in the chain. Returns a done channel when the source stops.
+func (r *Rule[I, O]) Start(ctx context.Context) (<-chan struct{}, error) {
 	isFirstSameSource := r.prevSameSource == nil
 	if !isFirstSameSource {
 		return nil, nil
@@ -165,11 +167,26 @@ func (r *Rule[I, O]) NextRunnable() Runnable[I] {
 	return r.nextSameSource.(Runnable[I])
 }
 
-func (r *Rule[I, O]) getNext() Registry            { return r.next }
-func (r *Rule[I, O]) setNext(n Registry)           { r.next = n }
-func (r *Rule[I, O]) getPrev() Registry            { return r.prev }
-func (r *Rule[I, O]) setPrev(p Registry)           { r.prev = p }
-func (r *Rule[I, O]) setNextSameSource(n Registry) { r.nextSameSource = n }
-func (r *Rule[I, O]) getNextSameSource() Registry  { return r.nextSameSource }
-func (r *Rule[I, O]) setPrevSameSource(p Registry) { r.prevSameSource = p }
-func (r *Rule[I, O]) getSource() any               { return r.From }
+// GetNext returns the next rule in the circular registry list.
+func (r *Rule[I, O]) GetNext() Registry { return r.next }
+
+// SetNext sets the next rule in the circular registry list.
+func (r *Rule[I, O]) SetNext(n Registry) { r.next = n }
+
+// GetPrev returns the previous rule in the circular registry list.
+func (r *Rule[I, O]) GetPrev() Registry { return r.prev }
+
+// SetPrev sets the previous rule in the circular registry list.
+func (r *Rule[I, O]) SetPrev(p Registry) { r.prev = p }
+
+// SetNextSameSource sets the next rule sharing the same source.
+func (r *Rule[I, O]) SetNextSameSource(n Registry) { r.nextSameSource = n }
+
+// GetNextSameSource returns the next rule sharing the same source.
+func (r *Rule[I, O]) GetNextSameSource() Registry { return r.nextSameSource }
+
+// SetPrevSameSource sets the previous rule sharing the same source.
+func (r *Rule[I, O]) SetPrevSameSource(p Registry) { r.prevSameSource = p }
+
+// GetSource returns the source associated with this rule.
+func (r *Rule[I, O]) GetSource() any { return r.From }

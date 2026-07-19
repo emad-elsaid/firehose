@@ -37,13 +37,13 @@ func isEnvironmentEnabled(environments []string, currentEnvironment string) bool
 
 func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 	if registry == nil {
-		rule.setNext(rule)
-		rule.setPrev(rule)
+		rule.SetNext(rule)
+		rule.SetPrev(rule)
 
 		return rule
 	}
 
-	tail := registry.getPrev()
+	tail := registry.GetPrev()
 	sameSourceTail := getSameSourceTail(registry, rule.From)
 
 	linkRule(rule, registry, tail)
@@ -53,12 +53,12 @@ func addToRegistry[I, O any](registry Registry, rule *Rule[I, O]) Registry {
 }
 
 func linkRule(rule Registry, head Registry, tail Registry) {
-	rule.setNext(head)
-	head.setPrev(rule)
+	rule.SetNext(head)
+	head.SetPrev(rule)
 
 	if tail != nil {
-		rule.setPrev(tail)
-		tail.setNext(rule)
+		rule.SetPrev(tail)
+		tail.SetNext(rule)
 	}
 }
 
@@ -67,19 +67,19 @@ func linkSameSourceRule(rule Registry, sameSourceTail Registry) {
 		return
 	}
 
-	rule.setPrevSameSource(sameSourceTail)
-	sameSourceTail.setNextSameSource(rule)
+	rule.SetPrevSameSource(sameSourceTail)
+	sameSourceTail.SetNextSameSource(rule)
 }
 
 func getSameSourceTail(registry Registry, source any) Registry {
-	tail := registry.getPrev()
+	tail := registry.GetPrev()
 	for current := tail; current != nil; {
-		currentSource := current.getSource()
+		currentSource := current.GetSource()
 		if currentSource == source {
 			return current
 		}
 
-		current = current.getPrev()
+		current = current.GetPrev()
 		if current == tail {
 			break
 		}
@@ -93,7 +93,7 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 	var doneChannels []<-chan struct{}
 
 	for current := registry; current != nil; {
-		done, err := current.start(ctx)
+		done, err := current.Start(ctx)
 		if err != nil {
 			if errFunc != nil {
 				errFunc(err)
@@ -102,7 +102,7 @@ func Start(ctx context.Context, registry Registry, errFunc ErrorHandler) []<-cha
 			doneChannels = append(doneChannels, done)
 		}
 
-		current = current.getNext()
+		current = current.GetNext()
 		if current == registry {
 			break
 		}

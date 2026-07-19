@@ -328,7 +328,7 @@ func TestRule_NextRunnable(t *testing.T) {
 			setup: func() *MockRule {
 				rule1 := &MockRule{ID: "rule1"}
 				rule2 := &MockRule{ID: "rule2"}
-				rule1.setNextSameSource(rule2)
+				rule1.SetNextSameSource(rule2)
 				return rule1
 			},
 			expected: true,
@@ -500,7 +500,7 @@ func TestRule_Start(t *testing.T) {
 				source := NewMockSource[*EventMock](t)
 				rule1 := &MockRule{ID: "rule1", From: source}
 				rule2 := &MockRule{ID: "rule2", From: source}
-				rule2.setPrevSameSource(rule1)
+				rule2.SetPrevSameSource(rule1)
 				return rule2, source
 			},
 			expectStart: false,
@@ -527,7 +527,7 @@ func TestRule_Start(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rule, _ := tc.setup()
 
-			done, err := rule.start(t.Context())
+			done, err := rule.Start(t.Context())
 
 			if tc.expectError {
 				require.Error(t, err)

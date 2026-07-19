@@ -48,17 +48,17 @@ type Condition[I any] interface {
 
 // Registry handler that accumulates rules and manages their execution.
 type Registry interface {
-	getNext() Registry
-	setNext(n Registry)
-	getPrev() Registry
-	setPrev(p Registry)
+	GetNext() Registry
+	SetNext(n Registry)
+	GetPrev() Registry
+	SetPrev(p Registry)
 
-	getSource() any
-	start(ctx context.Context) (<-chan struct{}, error)
+	GetSource() any
+	Start(ctx context.Context) (<-chan struct{}, error)
 
-	setNextSameSource(n Registry)
-	setPrevSameSource(p Registry)
-	getNextSameSource() Registry
+	SetNextSameSource(n Registry)
+	SetPrevSameSource(p Registry)
+	GetNextSameSource() Registry
 }
 
 // Callback is a function type that sources use to send events to the
