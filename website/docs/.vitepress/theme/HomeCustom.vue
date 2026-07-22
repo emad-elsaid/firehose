@@ -21,43 +21,17 @@
           </div>
         </div>
         <div class="hero-code">
-          <pre><code><span class="comment">// SQL convention</span>
-<span class="keyword">type</span> <span class="type">SQLRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
-    <span class="field">ID</span>     <span class="type">string</span>         <span class="comment">// Unique ID</span>
-    <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
-    <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
-    <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
-    <span class="field">Where</span>  <span class="type">Condition</span>[I]   <span class="comment">// Input condition</span>
-    <span class="field">Having</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
-}
-
-<span class="comment">// BDD convention</span>
-<span class="keyword">type</span> <span class="type">ScenarioRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
-    <span class="field">Give</span>        <span class="type">Source</span>[I]    <span class="comment">// Event source</span>
-    <span class="field">Given</span>       <span class="type">Condition</span>[I] <span class="comment">// Input condition</span>
-    <span class="field">Then</span>        <span class="type">Action</span>[I, O] <span class="comment">// Transform</span>
-    <span class="field">GivenOutput</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
-    <span class="field">To</span>          <span class="type">Destination</span>[O] <span class="comment">// Output</span>
-}
-
-<span class="comment">// Kafka Streams convention</span>
-<span class="keyword">type</span> <span class="type">StreamRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
-    <span class="field">Source</span>       <span class="type">Source</span>[I]    <span class="comment">// Event source</span>
-    <span class="field">Filter</span>       <span class="type">Condition</span>[I] <span class="comment">// Input condition</span>
-    <span class="field">Map</span>          <span class="type">Action</span>[I, O] <span class="comment">// Transform</span>
-    <span class="field">FilterOutput</span> <span class="type">Condition</span>[O] <span class="comment">// Output condition</span>
-    <span class="field">Sink</span>         <span class="type">Destination</span>[O] <span class="comment">// Output</span>
-}
-
-<span class="comment">// MapReduce convention</span>
-<span class="keyword">type</span> <span class="type">MapReduceRule</span>[I, M, Out <span class="keyword">any</span>] <span class="keyword">struct</span> {
-    <span class="field">Source</span>       <span class="type">Source</span>[I]        <span class="comment">// Event source</span>
-    <span class="field">Filter</span>       <span class="type">Condition</span>[I]     <span class="comment">// Input condition</span>
-    <span class="field">Map</span>          <span class="type">Action</span>[I, M]     <span class="comment">// Transform</span>
-    <span class="field">Reduce</span>       <span class="type">Reducer</span>[M, Out]  <span class="comment">// Accumulate</span>
-    <span class="field">FilterOutput</span> <span class="type">Condition</span>[Out]   <span class="comment">// Output condition</span>
-    <span class="field">Sink</span>         <span class="type">Destination</span>[Out] <span class="comment">// Output</span>
-}</code></pre>
+          <div class="hero-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.name"
+              :class="['hero-tab', { active: activeTab === tab.name }]"
+              @click="activeTab = tab.name"
+            >
+              {{ tab.name }}
+            </button>
+          </div>
+          <pre><code v-html="activeTabCode"></code></pre>
           <p class="hero-description" style="margin-top: 0.75rem; font-size: 0.95rem;">
             One pipeline, four naming conventions: <code>SQL</code>,
             <code>BDD (Given-When-Then)</code>, <code>Kafka Streams</code>, or
@@ -108,11 +82,6 @@
             <div class="feature-icon">📋</div>
             <h3>Declarative Conditions</h3>
             <p>Boolean expressions for event filtering. Rich operators for numbers, strings, and collections.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🌲</div>
-            <h3>Hierarchical Rules</h3>
-            <p>SubRules inherit and extend parent configuration. DRY event processing patterns.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">🔌</div>
@@ -319,9 +288,47 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const heroRef = ref(null)
+const activeTab = ref('SQL')
+
+const tabs = [
+  { name: 'SQL', code: `type <span class="type">SQLRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">ID</span>     <span class="type">string</span>         <span class="comment">// Unique ID</span>
+    <span class="field">Select</span> <span class="type">Action</span>[I, O]   <span class="comment">// Transform</span>
+    <span class="field">Into</span>   <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+    <span class="field">From</span>   <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
+    <span class="field">Where</span>  <span class="type">Condition</span>[I]   <span class="comment">// Input condition</span>
+    <span class="field">Having</span> <span class="type">Condition</span>[O]  <span class="comment">// Output condition</span>
+}` },
+  { name: 'Scenario', code: `type <span class="type">ScenarioRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Give</span>        <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
+    <span class="field">Given</span>       <span class="type">Condition</span>[I]  <span class="comment">// Input condition</span>
+    <span class="field">Then</span>        <span class="type">Action</span>[I, O]  <span class="comment">// Transform</span>
+    <span class="field">GivenOutput</span> <span class="type">Condition</span>[O]  <span class="comment">// Output condition</span>
+    <span class="field">To</span>          <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+}` },
+  { name: 'Stream', code: `type <span class="type">StreamRule</span>[I, O <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Source</span>       <span class="type">Source</span>[I]      <span class="comment">// Event source</span>
+    <span class="field">Filter</span>       <span class="type">Condition</span>[I]  <span class="comment">// Input condition</span>
+    <span class="field">Map</span>          <span class="type">Action</span>[I, O]  <span class="comment">// Transform</span>
+    <span class="field">FilterOutput</span> <span class="type">Condition</span>[O]  <span class="comment">// Output condition</span>
+    <span class="field">Sink</span>         <span class="type">Destination</span>[O] <span class="comment">// Output</span>
+}` },
+  { name: 'MapReduce', code: `type <span class="type">MapReduceRule</span>[I, M, Out <span class="keyword">any</span>] <span class="keyword">struct</span> {
+    <span class="field">Source</span>       <span class="type">Source</span>[I]        <span class="comment">// Event source</span>
+    <span class="field">Filter</span>       <span class="type">Condition</span>[I]     <span class="comment">// Input condition</span>
+    <span class="field">Map</span>          <span class="type">Action</span>[I, M]     <span class="comment">// Transform</span>
+    <span class="field">Reduce</span>       <span class="type">Reducer</span>[M, Out]  <span class="comment">// Accumulate</span>
+    <span class="field">FilterOutput</span> <span class="type">Condition</span>[Out]   <span class="comment">// Output condition</span>
+    <span class="field">Sink</span>         <span class="type">Destination</span>[Out] <span class="comment">// Output</span>
+}` },
+]
+
+const activeTabCode = computed(() => {
+  return tabs.find(t => t.name === activeTab.value)?.code ?? ''
+})
 
 onMounted(() => {
   const observerOptions = {
@@ -410,5 +417,33 @@ onMounted(() => {
 <style scoped>
 .firehose-home {
   margin-top: calc(-1 * var(--vp-nav-height));
+}
+
+.hero-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hero-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hero-tab:hover {
+  color: var(--text-primary);
+}
+
+.hero-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
 }
 </style>
