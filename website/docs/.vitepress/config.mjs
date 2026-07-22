@@ -4,7 +4,7 @@ export default defineConfig({
   title: 'Firehose',
   description: 'Type-Safe Event Processing for Go',
   base: '/firehose/',
-  ignoreDeadLinks: true,
+  ignoreDeadLinks: false,
   
   themeConfig: {
     logo: '/logo.svg',
@@ -37,7 +37,6 @@ export default defineConfig({
             { text: 'Events & Rules', link: '/guide/concepts' },
             { text: 'Built-in Components', link: '/guide/components' },
             { text: 'Middleware', link: '/guide/middleware' },
-            { text: 'Hierarchical Rules', link: '/guide/hierarchical-rules' },
           ]
         },
         {

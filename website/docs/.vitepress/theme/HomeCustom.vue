@@ -324,7 +324,6 @@ import { onMounted, ref } from 'vue'
 const heroRef = ref(null)
 
 onMounted(() => {
-  // Intersection observer for fade-in animations
   const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
@@ -339,7 +338,6 @@ onMounted(() => {
     })
   }, observerOptions)
 
-  // Observe elements for animation
   const animateElements = document.querySelectorAll('.feature-card, .concept-card, .use-case')
   animateElements.forEach(el => {
     el.style.opacity = '0'
@@ -348,11 +346,10 @@ onMounted(() => {
     observer.observe(el)
   })
 
-  // Add code copy functionality
   document.querySelectorAll('pre code').forEach(block => {
     const wrapper = block.parentElement
     wrapper.style.position = 'relative'
-    
+
     const button = document.createElement('button')
     button.className = 'copy-button'
     button.textContent = '📋'
@@ -369,15 +366,15 @@ onMounted(() => {
       transition: all 0.3s ease;
       font-size: 1rem;
     `
-    
+
     wrapper.addEventListener('mouseenter', () => {
       button.style.opacity = '1'
     })
-    
+
     wrapper.addEventListener('mouseleave', () => {
       button.style.opacity = '0'
     })
-    
+
     button.addEventListener('click', () => {
       const text = block.textContent
       navigator.clipboard.writeText(text).then(() => {
@@ -387,24 +384,22 @@ onMounted(() => {
         }, 2000)
       })
     })
-    
+
     wrapper.appendChild(button)
   })
 
-  // Add parallax effect to hero section
   const handleScroll = () => {
     const scrolled = window.scrollY
     const hero = heroRef.value
-    
+
     if (hero && scrolled < 800) {
       hero.style.transform = `translateY(${scrolled * 0.3}px)`
       hero.style.opacity = 1 - (scrolled / 800)
     }
   }
-  
+
   window.addEventListener('scroll', handleScroll)
 
-  // Cleanup
   return () => {
     window.removeEventListener('scroll', handleScroll)
     observer.disconnect()
