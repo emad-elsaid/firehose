@@ -8,8 +8,8 @@
             <span class="subtitle">for Go</span>
           </h1>
           <p class="hero-description">
-            Build composable event pipelines with conditional execution, hierarchical rules,
-            and middleware support. Event-driven architecture that the compiler can verify.
+            Build composable event pipelines with conditional execution and
+            middleware support. Event-driven architecture that the compiler can verify.
             Choose the naming convention that fits your team: SQL, BDD, Kafka Streams,
             or MapReduce.
           </p>
@@ -56,8 +56,8 @@
             <div class="icon">✨</div>
             <h2>The Solution</h2>
             <p>
-              Declarative event pipelines with type safety. Composable components. 
-              Hierarchical rules with inheritance. Middleware for cross-cutting concerns.
+              Declarative event pipelines with type safety. Composable components.
+              Middleware for cross-cutting concerns.
             </p>
           </div>
         </div>
