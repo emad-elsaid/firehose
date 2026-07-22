@@ -1,10 +1,17 @@
 import { defineConfig } from 'vitepress'
+import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 
 export default defineConfig({
   title: 'Firehose',
   description: 'Type-Safe Event Processing for Go',
   base: '/firehose/',
   ignoreDeadLinks: false,
+
+  markdown: {
+    config(md) {
+      md.use(tabsMarkdownPlugin)
+    },
+  },
   
   themeConfig: {
     logo: '/logo.svg',

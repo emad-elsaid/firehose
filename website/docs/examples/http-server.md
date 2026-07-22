@@ -10,28 +10,13 @@ This example demonstrates:
 - Request transformation
 - Response generation
 
-## Complete Example
+## Example
+
+:::tabs
+
+== Input
 
 ```go
-package main
-
-import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-
-    "github.com/emad-elsaid/boolexpr"
-    fh "github.com/emad-elsaid/firehose"
-    "github.com/emad-elsaid/firehose/condition"
-)
-
-type contextKey string
-
-const writerKey contextKey = "writer"
-
-// Event type
 type HTTPRequest struct {
     Method string
     Path   string
@@ -48,14 +33,24 @@ func (h HTTPRequest) Get(key string) (any, error) {
         return nil, fmt.Errorf("unknown: %s", key)
     }
 }
+```
 
-// Response type
-type HTTPResponse struct {
-    Status int
-    Body   string
+== Output
+
+```go
+type User struct {
+    Name  string `json:"name"`
+    Email string `json:"email"`
 }
 
-// HTTP Source — stores ResponseWriter in context
+type Created struct {
+    Created bool `json:"created"`
+}
+```
+
+== Source
+
+```go
 type HTTPServer struct {
     Addr string
 }
@@ -88,19 +83,19 @@ func (s HTTPServer) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (<-c
 
     return ctx.Done(), nil
 }
+```
 
-// Actions
+== Actions
+
+```go
 type GetUserHandler struct{}
 
 func (h GetUserHandler) Process(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (HTTPResponse, error) {
-    return HTTPResponse{
-        Status: 200,
-        Body:   `{"user": "alice"}`,
-    }, nil
+) (User, error) {
+    return User{Name: "alice", Email: "alice@example.com"}, nil
 }
 
 type CreateUserHandler struct{}
@@ -109,69 +104,52 @@ func (h CreateUserHandler) Process(
     ctx context.Context,
     req HTTPRequest,
     syms boolexpr.Symbols,
-) (HTTPResponse, error) {
-    return HTTPResponse{
-        Status: 201,
-        Body:   `{"created": true}`,
-    }, nil
+) (Created, error) {
+    return Created{Created: true}, nil
 }
+```
 
-// Destination — writes to ResponseWriter from context
-type JSONResponse struct{}
+== Destination
 
-func (d JSONResponse) Send(ctx context.Context, resp HTTPResponse) error {
+```go
+type JSONResponse[T any] struct{}
+
+func (d JSONResponse[T]) Send(ctx context.Context, resp T) error {
     w, ok := ctx.Value(writerKey).(http.ResponseWriter)
     if !ok {
         return fmt.Errorf("missing ResponseWriter in context")
     }
 
     w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(resp.Status)
-    return json.NewEncoder(w).Encode(resp.Body)
-}
-
-func main() {
-    ctx := context.Background()
-
-    httpSource := HTTPServer{Addr: ":8080"}
-
-    var head fh.Rule
-    var err error
-
-    // GET /api/users route
-    head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
-        ID:     "get_user",
-        Select: GetUserHandler{},
-        From:   httpSource,
-        Where:  condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
-        Into:   JSONResponse{},
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // POST /api/users route
-    head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
-        ID:     "create_user",
-        Select: CreateUserHandler{},
-        From:   httpSource,
-        Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
-        Into:   JSONResponse{},
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    doneChannels := fh.Start(ctx, head, func(err error) {
-        log.Printf("Error: %v", err)
-    })
-
-    log.Println("Server listening on :8080")
-    for _, ch := range doneChannels {
-        <-ch
-    }
+    return json.NewEncoder(w).Encode(resp)
 }
 ```
+
+== Rules
+
+```go
+var head fh.Rule
+
+// GET /api/users route
+head, _ = fh.Add(ctx, head, &fh.ScenarioRule[HTTPRequest, User]{
+    ID:    "get_user",
+    When:  httpSource,
+    Given: condition.Cond[HTTPRequest](`method = "GET" and path starts_with "/api/users"`),
+    Then:  GetUserHandler{},
+    To:    JSONResponse[User]{},
+})
+
+// POST /api/users route
+head, _ = fh.Add(ctx, head, &fh.ScenarioRule[HTTPRequest, Created]{
+    ID:    "create_user",
+    When:  httpSource,
+    Given: condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
+    Then:  CreateUserHandler{},
+    To:    JSONResponse[Created]{},
+})
+```
+
+:::
 
 ## Running
 
