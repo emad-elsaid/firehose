@@ -27,6 +27,10 @@ import (
     "github.com/emad-elsaid/firehose/condition"
 )
 
+type contextKey string
+
+const writerKey contextKey = "writer"
+
 // Event type
 type HTTPRequest struct {
     Method string
@@ -51,7 +55,7 @@ type HTTPResponse struct {
     Body   string
 }
 
-// HTTP Source
+// HTTP Source — stores ResponseWriter in context
 type HTTPServer struct {
     Addr string
 }
@@ -69,16 +73,14 @@ func (s HTTPServer) Start(ctx context.Context, cb fh.Callback[HTTPRequest]) (<-c
             Body:   body,
         }
 
-        cb(r.Context(), event, func(err error) {
+        ctx := context.WithValue(r.Context(), writerKey, w)
+
+        cb(ctx, event, func(err error) {
             if err != nil {
                 w.WriteHeader(500)
                 fmt.Fprintf(w, "Error: %v", err)
-                return
             }
         })
-
-        w.WriteHeader(200)
-        fmt.Fprintf(w, "OK")
     })
 
     server := &http.Server{Addr: s.Addr, Handler: mux}
@@ -114,12 +116,18 @@ func (h CreateUserHandler) Process(
     }, nil
 }
 
-// Destination
+// Destination — writes to ResponseWriter from context
 type JSONResponse struct{}
 
 func (d JSONResponse) Send(ctx context.Context, resp HTTPResponse) error {
-    log.Printf("Response: %d - %s", resp.Status, resp.Body)
-    return nil
+    w, ok := ctx.Value(writerKey).(http.ResponseWriter)
+    if !ok {
+        return fmt.Errorf("missing ResponseWriter in context")
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(resp.Status)
+    return json.NewEncoder(w).Encode(resp.Body)
 }
 
 func main() {
@@ -146,9 +154,9 @@ func main() {
     head, err = fh.Add(ctx, head, &fh.SQLRule[HTTPRequest, HTTPResponse]{
         ID:     "create_user",
         Select: CreateUserHandler{},
-        Into:   JSONResponse{},
         From:   httpSource,
         Where:  condition.Cond[HTTPRequest](`method = "POST" and path starts_with "/api/users"`),
+        Into:   JSONResponse{},
     })
     if err != nil {
         log.Fatal(err)
